@@ -5,6 +5,7 @@ import { GameScreen } from '../components/GameScreen';
 import { ResultScreen } from '../components/ResultScreen';
 import { FlashMemoryScreen } from '../components/FlashMemoryScreen';
 import { FlashMemoryResult } from '../components/FlashMemoryResult';
+import { NeuralBackground } from '../components/NeuralBackground';
 import { useGameEngine } from '../hooks/useGameEngine';
 import { useSounds } from '../hooks/useSounds';
 
@@ -142,7 +143,10 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen overflow-hidden">
+    <div className="min-h-screen overflow-hidden relative">
+      {/* Animated Neural Background */}
+      <NeuralBackground />
+      
       <AnimatePresence mode="wait">
         {currentScreen === 'dashboard' && (
           <motion.div
@@ -195,7 +199,9 @@ const Index = () => {
             transition={{ duration: 0.3 }}
           >
             <ResultScreen
-              gameState={gameState}
+              score={gameState.score}
+              correct={gameState.correct}
+              wrong={gameState.wrong}
               onPlayAgain={handlePlayAgain}
               onGoHome={handleGoHome}
               isNewHighScore={isNewHighScore}

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ParticleExplosion } from './ParticleExplosion';
+import confetti from 'canvas-confetti';
 
 interface FlashMemoryProps {
   onGameOver: (level: number, score: number) => void;
@@ -16,7 +16,6 @@ interface Cell {
 }
 
 const GRID_SIZE = 9; // 3x3
-const BASE_NUMBERS = [1, 2, 3]; // Level 1 starts with 3 numbers
 
 const getNumbersForLevel = (level: number): number[] => {
   const count = Math.min(2 + level, 7); // Level 1 = 3, Level 2 = 4, etc. max 7
@@ -46,8 +45,6 @@ export const FlashMemory = ({ onGameOver, playSound, triggerHaptic }: FlashMemor
   const [phase, setPhase] = useState<'showing' | 'hiding' | 'playing'>('showing');
   const [nextExpected, setNextExpected] = useState(1);
   const [isShaking, setIsShaking] = useState(false);
-  const [showParticles, setShowParticles] = useState(false);
-  const [particleKey, setParticleKey] = useState(0);
   const [showLevelUp, setShowLevelUp] = useState(false);
 
   const initializeRound = useCallback((currentLevel: number) => {
@@ -89,7 +86,21 @@ export const FlashMemory = ({ onGameOver, playSound, triggerHaptic }: FlashMemor
     initializeRound(level);
   }, []);
 
-  const handleCellTap = (cellIndex: number) => {
+  const triggerConfetti = (event: React.MouseEvent) => {
+    const rect = (event.target as HTMLElement).getBoundingClientRect();
+    const x = (rect.left + rect.width / 2) / window.innerWidth;
+    const y = (rect.top + rect.height / 2) / window.innerHeight;
+
+    confetti({
+      particleCount: 25,
+      spread: 50,
+      origin: { x, y },
+      colors: ['#00D4FF', '#FF00FF', '#FFD700'],
+      scalar: 0.8,
+    });
+  };
+
+  const handleCellTap = (cellIndex: number, event: React.MouseEvent) => {
     if (phase !== 'playing') return;
 
     const cell = cells[cellIndex];
@@ -124,9 +135,7 @@ export const FlashMemory = ({ onGameOver, playSound, triggerHaptic }: FlashMemor
     // Correct tap!
     playSound('correct');
     triggerHaptic('light');
-    setShowParticles(true);
-    setParticleKey(prev => prev + 1);
-    setTimeout(() => setShowParticles(false), 100);
+    triggerConfetti(event);
 
     // Update cell state
     setCells(prev => prev.map(c => 
@@ -159,8 +168,6 @@ export const FlashMemory = ({ onGameOver, playSound, triggerHaptic }: FlashMemor
       transition={{ duration: 0.4 }}
       className="flex flex-col items-center justify-center h-full px-6"
     >
-      <ParticleExplosion key={particleKey} trigger={showParticles} x={50} y={50} />
-
       {/* Level & Score Header */}
       <div className="text-center mb-8">
         <motion.div
@@ -175,7 +182,7 @@ export const FlashMemory = ({ onGameOver, playSound, triggerHaptic }: FlashMemor
           key={score}
           initial={{ scale: 1.2 }}
           animate={{ scale: 1 }}
-          className="text-4xl font-bold font-mono text-primary"
+          className="text-4xl font-black font-mono text-primary text-glow-cyan"
         >
           {score}
         </motion.div>
@@ -188,7 +195,7 @@ export const FlashMemory = ({ onGameOver, playSound, triggerHaptic }: FlashMemor
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="text-lg text-secondary mb-6 uppercase tracking-wider text-center"
+            className="text-lg text-secondary mb-6 uppercase tracking-widest text-center text-glow-magenta font-bold"
           >
             Memorize!
           </motion.p>
@@ -200,7 +207,7 @@ export const FlashMemory = ({ onGameOver, playSound, triggerHaptic }: FlashMemor
             exit={{ opacity: 0 }}
             className="text-lg text-muted-foreground mb-6 uppercase tracking-wider text-center"
           >
-            Tap in order: <span className="text-primary font-bold">{nextExpected}</span>
+            Tap in order: <span className="text-primary font-black text-glow-cyan">{nextExpected}</span>
           </motion.p>
         )}
       </AnimatePresence>
@@ -214,54 +221,71 @@ export const FlashMemory = ({ onGameOver, playSound, triggerHaptic }: FlashMemor
             exit={{ scale: 0, opacity: 0 }}
             className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none"
           >
-            <div className="text-5xl font-black text-glow-neon uppercase">
+            <div className="text-5xl font-black text-gradient-neon uppercase">
               Level {level + 1}!
             </div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* 3x3 Grid */}
+      {/* 3x3 Grid - Energy Cell Style */}
       <div className="grid grid-cols-3 gap-3 w-full max-w-xs aspect-square">
-        {cells.map((cell) => (
-          <motion.button
-            key={cell.index}
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ 
-              opacity: 1, 
-              scale: 1,
-              backgroundColor: cell.tapped 
-                ? 'hsl(var(--primary) / 0.3)' 
-                : 'hsl(var(--muted) / 0.5)',
-            }}
-            whileHover={phase === 'playing' && !cell.tapped ? { scale: 1.05 } : {}}
-            whileTap={phase === 'playing' && !cell.tapped ? { scale: 0.95 } : {}}
-            onClick={() => handleCellTap(cell.index)}
-            disabled={phase !== 'playing' || cell.tapped}
-            className="rounded-xl border-2 border-border flex items-center justify-center text-4xl font-black font-mono transition-all duration-200"
-            style={{
-              borderColor: cell.tapped 
-                ? 'hsl(var(--primary))' 
-                : cell.revealed 
-                  ? 'hsl(var(--secondary))' 
-                  : 'hsl(var(--border))',
-            }}
-          >
-            <AnimatePresence mode="wait">
-              {(cell.revealed || cell.tapped) && cell.number && (
-                <motion.span
-                  initial={{ scale: 0, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  exit={{ scale: 0, opacity: 0 }}
-                  transition={{ type: "spring", stiffness: 300 }}
-                  className={cell.tapped ? "text-primary" : "text-secondary text-glow-cyan"}
-                >
-                  {cell.number}
-                </motion.span>
-              )}
-            </AnimatePresence>
-          </motion.button>
-        ))}
+        {cells.map((cell) => {
+          const isActive = cell.revealed || cell.tapped;
+          const isTapped = cell.tapped;
+          
+          return (
+            <motion.button
+              key={cell.index}
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ 
+                opacity: 1, 
+                scale: 1,
+              }}
+              whileHover={phase === 'playing' && !cell.tapped ? { scale: 1.05, borderColor: 'hsl(var(--neon-cyan))' } : {}}
+              whileTap={phase === 'playing' && !cell.tapped ? { scale: 0.95 } : {}}
+              onClick={(e) => handleCellTap(cell.index, e)}
+              disabled={phase !== 'playing' || cell.tapped}
+              className="rounded-xl flex items-center justify-center text-4xl font-black font-mono transition-all duration-200 backdrop-blur-sm"
+              style={{
+                background: isTapped 
+                  ? 'linear-gradient(145deg, hsl(var(--neon-gold) / 0.4), hsl(var(--neon-gold) / 0.2))'
+                  : cell.revealed
+                    ? 'linear-gradient(145deg, hsl(var(--neon-magenta) / 0.3), hsl(var(--neon-magenta) / 0.1))'
+                    : 'linear-gradient(145deg, hsl(260 30% 14% / 0.8), hsl(260 30% 8% / 0.6))',
+                border: isTapped 
+                  ? '2px solid hsl(var(--neon-gold))'
+                  : cell.revealed 
+                    ? '2px solid hsl(var(--neon-magenta) / 0.8)' 
+                    : '2px solid hsl(var(--neon-cyan) / 0.4)',
+                boxShadow: isTapped
+                  ? '0 0 30px hsl(var(--neon-gold) / 0.5), inset 0 0 20px hsl(var(--neon-gold) / 0.2)'
+                  : cell.revealed
+                    ? '0 0 25px hsl(var(--neon-magenta) / 0.4)'
+                    : '0 0 15px hsl(var(--neon-cyan) / 0.2)',
+              }}
+            >
+              <AnimatePresence mode="wait">
+                {isActive && cell.number && (
+                  <motion.span
+                    initial={{ scale: 0, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    exit={{ scale: 0, opacity: 0 }}
+                    transition={{ type: "spring", stiffness: 300 }}
+                    style={{
+                      color: isTapped ? 'hsl(var(--neon-gold))' : 'hsl(var(--neon-magenta))',
+                      textShadow: isTapped 
+                        ? '0 0 20px hsl(var(--neon-gold) / 0.8)' 
+                        : '0 0 20px hsl(var(--neon-magenta) / 0.8)',
+                    }}
+                  >
+                    {cell.number}
+                  </motion.span>
+                )}
+              </AnimatePresence>
+            </motion.button>
+          );
+        })}
       </div>
 
       {/* Hint */}

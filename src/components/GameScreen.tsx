@@ -64,14 +64,14 @@ export const GameScreen = ({
           angle: 60,
           spread: 55,
           origin: { x: 0 },
-          colors: ['#D4FF00', '#00D4FF', '#FFD700'],
+          colors: ['#00D4FF', '#FF00FF', '#FFD700'],
         });
         confetti({
           particleCount: 7,
           angle: 120,
           spread: 55,
           origin: { x: 1 },
-          colors: ['#D4FF00', '#00D4FF', '#FFD700'],
+          colors: ['#00D4FF', '#FF00FF', '#FFD700'],
         });
 
         if (Date.now() < end) {
@@ -114,17 +114,14 @@ export const GameScreen = ({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="absolute inset-0 pointer-events-none z-50"
-            style={{
-              boxShadow: 'inset 0 0 60px rgba(255, 215, 0, 0.5), inset 0 0 100px rgba(255, 69, 0, 0.3)',
-            }}
           >
             <motion.div
               className="absolute inset-0"
               animate={{
                 boxShadow: [
-                  'inset 0 0 60px rgba(255, 215, 0, 0.5)',
-                  'inset 0 0 80px rgba(255, 69, 0, 0.6)',
-                  'inset 0 0 60px rgba(255, 215, 0, 0.5)',
+                  'inset 0 0 80px hsl(var(--neon-gold) / 0.5), inset 0 0 120px hsl(var(--neon-magenta) / 0.3)',
+                  'inset 0 0 100px hsl(var(--neon-gold) / 0.7), inset 0 0 150px hsl(var(--neon-magenta) / 0.4)',
+                  'inset 0 0 80px hsl(var(--neon-gold) / 0.5), inset 0 0 120px hsl(var(--neon-magenta) / 0.3)',
                 ],
               }}
               transition={{ duration: 0.5, repeat: Infinity }}
@@ -142,7 +139,7 @@ export const GameScreen = ({
             exit={{ opacity: 0, y: -50, scale: 0.5 }}
             className="absolute top-1/3 left-1/2 -translate-x-1/2 z-50 pointer-events-none"
           >
-            <span className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-orange-500 drop-shadow-lg">
+            <span className="text-5xl font-black text-gradient-gold drop-shadow-lg">
               +{gameState.streak * 2} COMBO!
             </span>
           </motion.div>
@@ -160,7 +157,10 @@ export const GameScreen = ({
             <motion.div
               animate={{ scale: [1, 1.1, 1] }}
               transition={{ duration: 0.5, repeat: Infinity }}
-              className="flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-yellow-500 to-orange-500 text-black font-bold text-sm"
+              className="flex items-center gap-2 px-5 py-2 rounded-full border-glow-gold text-neon-gold font-black text-sm uppercase tracking-wider"
+              style={{
+                background: 'linear-gradient(135deg, hsl(var(--neon-gold) / 0.3), hsl(var(--neon-gold) / 0.1))',
+              }}
             >
               <Trophy className="w-4 h-4" />
               NEW RECORD!
@@ -177,14 +177,14 @@ export const GameScreen = ({
       >
         {/* Best Score - Top Right */}
         <div className="absolute top-6 right-14 flex items-center gap-1 text-muted-foreground">
-          <Trophy className="w-4 h-4" />
+          <Trophy className="w-4 h-4 text-neon-gold" />
           <span className="font-mono text-sm font-bold">BEST: {bestScore}</span>
         </div>
 
         {/* Quit button */}
         <button 
           onClick={onQuit}
-          className="absolute top-6 left-6 p-2 rounded-full bg-muted/50 text-muted-foreground hover:text-foreground transition-colors"
+          className="absolute top-6 left-6 p-2 rounded-full bg-muted/30 backdrop-blur-sm text-muted-foreground hover:text-foreground transition-colors border border-border/30"
         >
           <X className="w-5 h-5" />
         </button>
@@ -195,14 +195,17 @@ export const GameScreen = ({
             key={gameState.currentGame}
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="inline-block px-4 py-1 rounded-full text-xs font-bold uppercase tracking-wider"
+            className="inline-block px-5 py-1.5 rounded-full text-xs font-black uppercase tracking-widest border"
             style={{
               background: gameState.currentGame === 'speedMath' 
-                ? 'linear-gradient(90deg, hsl(var(--neon-lime) / 0.3), hsl(var(--neon-lime) / 0.1))'
-                : 'linear-gradient(90deg, hsl(var(--cyber-blue) / 0.3), hsl(var(--cyber-blue) / 0.1))',
+                ? 'linear-gradient(90deg, hsl(var(--neon-cyan) / 0.2), hsl(var(--neon-cyan) / 0.05))'
+                : 'linear-gradient(90deg, hsl(var(--neon-magenta) / 0.2), hsl(var(--neon-magenta) / 0.05))',
+              borderColor: gameState.currentGame === 'speedMath' 
+                ? 'hsl(var(--neon-cyan) / 0.5)'
+                : 'hsl(var(--neon-magenta) / 0.5)',
               color: gameState.currentGame === 'speedMath' 
-                ? 'hsl(var(--neon-lime))'
-                : 'hsl(var(--cyber-blue))',
+                ? 'hsl(var(--neon-cyan))'
+                : 'hsl(var(--neon-magenta))',
             }}
           >
             {gameState.currentGame === 'speedMath' ? '⚡ Speed Math' : '🎨 Color Match'}
@@ -210,11 +213,12 @@ export const GameScreen = ({
         </div>
 
         {/* Progress bar */}
-        <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden mb-4">
+        <div className="w-full h-1.5 bg-muted/30 rounded-full overflow-hidden mb-4 border border-border/30">
           <motion.div
             className="h-full rounded-full"
             style={{
-              background: 'linear-gradient(90deg, hsl(var(--neon-lime)), hsl(var(--cyber-blue)))',
+              background: 'linear-gradient(90deg, hsl(var(--neon-cyan)), hsl(var(--neon-magenta)))',
+              boxShadow: '0 0 10px hsl(var(--neon-cyan) / 0.5)',
             }}
             animate={{ width: `${gameProgress}%` }}
           />
@@ -236,7 +240,7 @@ export const GameScreen = ({
             className="flex items-center gap-2"
           >
             <Zap className="w-4 h-4 text-primary" />
-            <span className="font-mono text-lg font-bold text-primary">{gameState.score}</span>
+            <span className="font-mono text-lg font-black text-glow-cyan">{gameState.score}</span>
           </motion.div>
 
           <div className="flex items-center gap-2">
@@ -258,14 +262,19 @@ export const GameScreen = ({
           >
             <motion.span 
               animate={isComboMode ? { 
-                boxShadow: ['0 0 10px rgba(255,215,0,0.5)', '0 0 20px rgba(255,215,0,0.8)', '0 0 10px rgba(255,215,0,0.5)']
+                boxShadow: ['0 0 15px hsl(var(--neon-gold) / 0.5)', '0 0 30px hsl(var(--neon-gold) / 0.8)', '0 0 15px hsl(var(--neon-gold) / 0.5)']
               } : {}}
               transition={{ duration: 0.5, repeat: Infinity }}
-              className={`inline-block px-3 py-1 rounded-full text-sm font-bold ${
+              className={`inline-block px-4 py-1.5 rounded-full text-sm font-black ${
                 isComboMode 
-                  ? 'bg-gradient-to-r from-yellow-500/30 to-orange-500/30 text-yellow-400 border border-yellow-500/50' 
-                  : 'bg-primary/20 text-primary'
+                  ? 'border-glow-gold text-neon-gold' 
+                  : 'bg-primary/20 text-primary border border-primary/30'
               }`}
+              style={{
+                background: isComboMode 
+                  ? 'linear-gradient(135deg, hsl(var(--neon-gold) / 0.3), hsl(var(--neon-gold) / 0.1))'
+                  : undefined,
+              }}
             >
               🔥 {gameState.streak} streak! ({Math.min(1 + gameState.streak * 0.1, 2).toFixed(1)}x)
             </motion.span>
