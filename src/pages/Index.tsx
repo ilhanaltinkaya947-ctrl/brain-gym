@@ -8,6 +8,7 @@ import { FlashMemoryScreen } from '../components/FlashMemoryScreen';
 import { FlashMemoryResult } from '../components/FlashMemoryResult';
 import { NeuralBackground } from '../components/NeuralBackground';
 import { SettingsModal, AppSettings } from '../components/SettingsModal';
+import { OnboardingFlow } from '../components/OnboardingFlow';
 import { useGameEngine } from '../hooks/useGameEngine';
 import { useSounds } from '../hooks/useSounds';
 import { GameConfig, DEFAULT_CONFIG, MiniGameType, MIXABLE_GAMES } from '@/types/game';
@@ -24,6 +25,7 @@ const DEFAULT_SETTINGS: AppSettings = {
 const Index = () => {
   const [currentScreen, setCurrentScreen] = useState<Screen>('dashboard');
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [onboardingOpen, setOnboardingOpen] = useState(false);
   
   // App settings
   const [appSettings, setAppSettings] = useState<AppSettings>(() => {
@@ -113,6 +115,11 @@ const Index = () => {
   const handleOpenSettings = () => {
     playSound('tick');
     setSettingsOpen(true);
+  };
+
+  const handleOpenOnboarding = () => {
+    playSound('tick');
+    setOnboardingOpen(true);
   };
 
   // Skip config and go straight to game
@@ -247,6 +254,7 @@ const Index = () => {
               onStartGame={handleStartGame}
               onStartFlashMemory={handleStartFlashMemory}
               onOpenSettings={handleOpenSettings}
+              onOpenOnboarding={handleOpenOnboarding}
               brainCharge={brainCharge}
               highScore={Math.max(highScoreClassic, highScoreEndless)}
               flashHighScore={flashHighLevel}
@@ -382,6 +390,13 @@ const Index = () => {
         onClose={() => setSettingsOpen(false)}
         settings={appSettings}
         onSettingsChange={setAppSettings}
+      />
+
+      {/* Onboarding Flow */}
+      <OnboardingFlow
+        isOpen={onboardingOpen}
+        onClose={() => setOnboardingOpen(false)}
+        onComplete={() => setOnboardingOpen(false)}
       />
     </div>
   );
