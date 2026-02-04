@@ -26,7 +26,7 @@ export const FlashMemoryScreen = ({
         {/* Quit button */}
         <button 
           onClick={onQuit}
-          className="absolute top-6 right-6 p-2 rounded-full bg-muted/50 text-muted-foreground hover:text-foreground transition-colors z-10"
+          className="absolute top-6 right-6 p-2 rounded-full bg-muted/30 backdrop-blur-sm text-muted-foreground hover:text-foreground transition-colors z-10 border border-border/30"
         >
           <X className="w-5 h-5" />
         </button>
@@ -36,15 +36,16 @@ export const FlashMemoryScreen = ({
           <motion.span
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="inline-block px-4 py-1 rounded-full text-xs font-bold uppercase tracking-wider"
+            className="inline-block px-5 py-1.5 rounded-full text-xs font-black uppercase tracking-widest border"
             style={{
-              background: 'linear-gradient(90deg, hsl(var(--secondary) / 0.3), hsl(var(--secondary) / 0.1))',
-              color: 'hsl(var(--secondary))',
+              background: 'linear-gradient(90deg, hsl(var(--neon-magenta) / 0.2), hsl(var(--neon-magenta) / 0.05))',
+              borderColor: 'hsl(var(--neon-magenta) / 0.5)',
+              color: 'hsl(var(--neon-magenta))',
             }}
           >
             🧠 Flash Memory
           </motion.span>
-          <p className="text-xs text-muted-foreground mt-2">Sudden Death Mode</p>
+          <p className="text-xs text-muted-foreground mt-2 uppercase tracking-widest">Sudden Death Mode</p>
         </div>
       </motion.div>
 

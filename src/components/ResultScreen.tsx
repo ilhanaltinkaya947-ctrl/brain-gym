@@ -1,26 +1,50 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import confetti from 'canvas-confetti';
-import { Trophy, Target, Clock, TrendingUp, RotateCcw, Sparkles } from 'lucide-react';
-import { GameState } from '../hooks/useGameEngine';
+import { Trophy, Target, Clock, Zap, RotateCcw, Home, Star } from 'lucide-react';
 
 interface ResultScreenProps {
-  gameState: GameState;
+  score: number;
+  correct: number;
+  wrong: number;
+  isNewHighScore: boolean;
   onPlayAgain: () => void;
   onGoHome: () => void;
-  isNewHighScore: boolean;
 }
 
-export const ResultScreen = ({ gameState, onPlayAgain, onGoHome, isNewHighScore }: ResultScreenProps) => {
+export const ResultScreen = ({
+  score,
+  correct,
+  wrong,
+  isNewHighScore,
+  onPlayAgain,
+  onGoHome,
+}: ResultScreenProps) => {
   const [displayScore, setDisplayScore] = useState(0);
-  const accuracy = gameState.totalQuestions > 0 
-    ? Math.round((gameState.correct / gameState.totalQuestions) * 100) 
-    : 0;
-  const avgSpeed = gameState.totalQuestions > 0 
-    ? (120 / gameState.totalQuestions).toFixed(1) 
-    : '0';
+  const accuracy = correct + wrong > 0 ? Math.round((correct / (correct + wrong)) * 100) : 0;
+  const avgSpeed = correct > 0 ? (120 / correct).toFixed(1) : '0';
 
-  // Massive confetti for new high score
+  // Animate score counting up
+  useEffect(() => {
+    const duration = 1500;
+    const steps = 60;
+    const increment = score / steps;
+    let current = 0;
+    
+    const timer = setInterval(() => {
+      current += increment;
+      if (current >= score) {
+        setDisplayScore(score);
+        clearInterval(timer);
+      } else {
+        setDisplayScore(Math.floor(current));
+      }
+    }, duration / steps);
+
+    return () => clearInterval(timer);
+  }, [score]);
+
+  // Trigger confetti for high score
   useEffect(() => {
     if (isNewHighScore) {
       const duration = 4000;
@@ -28,18 +52,18 @@ export const ResultScreen = ({ gameState, onPlayAgain, onGoHome, isNewHighScore 
 
       const frame = () => {
         confetti({
-          particleCount: 10,
+          particleCount: 5,
           angle: 60,
-          spread: 80,
-          origin: { x: 0, y: 0.6 },
-          colors: ['#D4FF00', '#00D4FF', '#FFD700', '#FF6B6B'],
+          spread: 55,
+          origin: { x: 0 },
+          colors: ['#00D4FF', '#FF00FF', '#FFD700'],
         });
         confetti({
-          particleCount: 10,
+          particleCount: 5,
           angle: 120,
-          spread: 80,
-          origin: { x: 1, y: 0.6 },
-          colors: ['#D4FF00', '#00D4FF', '#FFD700', '#FF6B6B'],
+          spread: 55,
+          origin: { x: 1 },
+          colors: ['#00D4FF', '#FF00FF', '#FFD700'],
         });
 
         if (Date.now() < end) {
@@ -50,85 +74,60 @@ export const ResultScreen = ({ gameState, onPlayAgain, onGoHome, isNewHighScore 
     }
   }, [isNewHighScore]);
 
-  // Animate score counting up
-  useEffect(() => {
-    const duration = 1500;
-    const steps = 50;
-    const increment = gameState.score / steps;
-    let current = 0;
-    
-    const interval = setInterval(() => {
-      current += increment;
-      if (current >= gameState.score) {
-        setDisplayScore(gameState.score);
-        clearInterval(interval);
-      } else {
-        setDisplayScore(Math.floor(current));
-      }
-    }, duration / steps);
-
-    return () => clearInterval(interval);
-  }, [gameState.score]);
-
   return (
-    <div className="min-h-screen flex flex-col items-center justify-between px-6 py-12 safe-top safe-bottom">
-      {/* Header */}
+    <div className="min-h-screen flex flex-col items-center justify-center px-6 py-12 safe-top safe-bottom">
+      {/* High Score Badge */}
+      {isNewHighScore && (
+        <motion.div
+          initial={{ opacity: 0, scale: 0, rotate: -180 }}
+          animate={{ opacity: 1, scale: 1, rotate: 0 }}
+          transition={{ delay: 0.3, type: "spring", stiffness: 200 }}
+          className="mb-6"
+        >
+          <div className="flex items-center gap-2 px-6 py-3 rounded-full border-glow-gold"
+            style={{
+              background: 'linear-gradient(135deg, hsl(var(--neon-gold) / 0.3), hsl(var(--neon-gold) / 0.1))',
+            }}
+          >
+            <Star className="w-6 h-6 text-neon-gold fill-neon-gold" />
+            <span className="text-neon-gold font-black text-xl uppercase tracking-wider text-glow-gold">
+              New Best!
+            </span>
+            <Star className="w-6 h-6 text-neon-gold fill-neon-gold" />
+          </div>
+        </motion.div>
+      )}
+
+      {/* Title */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="text-center"
+        className="text-center mb-8"
       >
-        <h1 className="text-2xl font-bold text-muted-foreground mb-2">Training Complete</h1>
-        {isNewHighScore && (
-          <motion.div
-            initial={{ scale: 0, rotate: -180 }}
-            animate={{ scale: 1, rotate: 0 }}
-            transition={{ delay: 0.3, type: "spring", stiffness: 200 }}
-            className="mt-4"
-          >
-            <motion.div
-              animate={{ 
-                scale: [1, 1.1, 1],
-                boxShadow: [
-                  '0 0 20px rgba(255, 215, 0, 0.5)',
-                  '0 0 40px rgba(255, 215, 0, 0.8)',
-                  '0 0 20px rgba(255, 215, 0, 0.5)',
-                ]
-              }}
-              transition={{ duration: 1, repeat: Infinity }}
-              className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-gradient-to-r from-yellow-500 to-orange-500 text-black font-black text-xl"
-            >
-              <Sparkles className="w-6 h-6" />
-              NEW BEST!
-              <Trophy className="w-6 h-6" />
-            </motion.div>
-          </motion.div>
-        )}
+        <h1 className="text-4xl font-black uppercase tracking-wider text-gradient-neon mb-2">
+          Training Complete
+        </h1>
+        <p className="text-muted-foreground uppercase tracking-widest text-sm">Session Results</p>
       </motion.div>
 
-      {/* Main Score */}
+      {/* Score Display */}
       <motion.div
-        initial={{ scale: 0.5, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        transition={{ delay: 0.2, type: "spring", stiffness: 100 }}
-        className="text-center"
+        initial={{ scale: 0 }}
+        animate={{ scale: 1 }}
+        transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
+        className="card-glass rounded-3xl p-8 mb-8 text-center w-full max-w-sm"
       >
+        <div className="flex items-center justify-center gap-2 mb-3">
+          <Trophy className="w-8 h-8 text-neon-gold" />
+          <span className="text-sm text-muted-foreground uppercase tracking-widest">Total Score</span>
+        </div>
         <motion.div
-          className="relative"
-          animate={{ 
-            textShadow: [
-              '0 0 20px hsl(var(--neon-lime) / 0.5)',
-              '0 0 40px hsl(var(--neon-lime) / 0.8)',
-              '0 0 20px hsl(var(--neon-lime) / 0.5)',
-            ]
-          }}
-          transition={{ duration: 2, repeat: Infinity }}
+          key={displayScore}
+          className="text-7xl font-black font-mono text-glow-gold"
+          style={{ color: 'hsl(var(--neon-gold))' }}
         >
-          <span className="text-8xl font-black font-mono text-primary">
-            {displayScore}
-          </span>
+          {displayScore.toLocaleString()}
         </motion.div>
-        <p className="text-muted-foreground text-lg mt-2">Total Score</p>
       </motion.div>
 
       {/* Stats Grid */}
@@ -136,65 +135,28 @@ export const ResultScreen = ({ gameState, onPlayAgain, onGoHome, isNewHighScore 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.4 }}
-        className="w-full max-w-sm space-y-4"
+        className="grid grid-cols-3 gap-3 w-full max-w-sm mb-10"
       >
-        {/* Accuracy Card */}
-        <div className="card-glass rounded-2xl p-5">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-xl bg-success/20">
-                <Target className="w-5 h-5 text-success" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Accuracy</p>
-                <p className="text-2xl font-bold font-mono">{accuracy}%</p>
-              </div>
-            </div>
-            <div className="text-right">
-              <p className="text-sm text-muted-foreground">Questions</p>
-              <p className="font-mono">
-                <span className="text-success">{gameState.correct}</span>
-                <span className="text-muted-foreground"> / </span>
-                <span className="text-destructive">{gameState.wrong}</span>
-              </p>
-            </div>
-          </div>
+        <div className="card-glass rounded-2xl p-4 text-center">
+          <Target className="w-5 h-5 text-primary mx-auto mb-2" />
+          <p className="text-3xl font-black text-glow-cyan">{accuracy}%</p>
+          <p className="text-xs text-muted-foreground uppercase tracking-wider">Accuracy</p>
         </div>
-
-        {/* Speed Card */}
-        <div className="card-glass rounded-2xl p-5">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-xl bg-secondary/20">
-                <Clock className="w-5 h-5 text-secondary" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Avg. Speed</p>
-                <p className="text-2xl font-bold font-mono">{avgSpeed}s</p>
-              </div>
-            </div>
-            <div className="text-right">
-              <p className="text-sm text-muted-foreground">Per Question</p>
-            </div>
-          </div>
+        
+        <div className="card-glass rounded-2xl p-4 text-center">
+          <Clock className="w-5 h-5 text-secondary mx-auto mb-2" />
+          <p className="text-3xl font-black">{avgSpeed}s</p>
+          <p className="text-xs text-muted-foreground uppercase tracking-wider">Avg Speed</p>
         </div>
-
-        {/* Performance Indicator */}
-        <div className="card-glass rounded-2xl p-5">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-xl bg-primary/20">
-              <TrendingUp className="w-5 h-5 text-primary" />
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Performance</p>
-              <p className="text-lg font-bold">
-                {accuracy >= 90 ? '🔥 Outstanding!' : 
-                 accuracy >= 70 ? '💪 Great Job!' : 
-                 accuracy >= 50 ? '👍 Keep Practicing!' : 
-                 '🎯 Focus More!'}
-              </p>
-            </div>
-          </div>
+        
+        <div className="card-glass rounded-2xl p-4 text-center">
+          <Zap className="w-5 h-5 text-neon-gold mx-auto mb-2" />
+          <p className="text-3xl font-black">
+            <span className="text-success">{correct}</span>
+            <span className="text-muted-foreground text-lg">/</span>
+            <span className="text-destructive">{wrong}</span>
+          </p>
+          <p className="text-xs text-muted-foreground uppercase tracking-wider">C / W</p>
         </div>
       </motion.div>
 
@@ -203,35 +165,27 @@ export const ResultScreen = ({ gameState, onPlayAgain, onGoHome, isNewHighScore 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.6 }}
-        className="w-full max-w-sm space-y-3"
+        className="w-full max-w-sm space-y-4"
       >
-        {/* HUGE Pulsing Play Again Button */}
+        {/* Epic Play Again Button */}
         <motion.button
-          animate={{ 
-            scale: [1, 1.03, 1],
-            boxShadow: [
-              '0 0 20px hsl(var(--neon-lime) / 0.4)',
-              '0 0 40px hsl(var(--neon-lime) / 0.6)',
-              '0 0 20px hsl(var(--neon-lime) / 0.4)',
-            ]
-          }}
-          transition={{ duration: 1.5, repeat: Infinity }}
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.98 }}
+          whileHover={{ scale: 1.03 }}
+          whileTap={{ scale: 0.97 }}
           onClick={onPlayAgain}
-          className="w-full py-6 rounded-2xl btn-primary-glow text-2xl font-black uppercase tracking-wider flex items-center justify-center gap-3"
+          className="w-full py-6 rounded-3xl btn-primary-glow reactor-pulse text-2xl font-black uppercase tracking-wider flex items-center justify-center gap-3"
         >
           <RotateCcw className="w-7 h-7" />
-          PLAY AGAIN
+          Play Again
         </motion.button>
 
         <motion.button
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
           onClick={onGoHome}
-          className="w-full py-4 rounded-2xl bg-muted text-muted-foreground text-lg font-semibold"
+          className="w-full py-4 rounded-2xl card-glass card-glass-hover text-lg font-bold uppercase tracking-wider flex items-center justify-center gap-3 text-muted-foreground hover:text-foreground transition-colors"
         >
-          Come Back Tomorrow
+          <Home className="w-5 h-5" />
+          Home
         </motion.button>
       </motion.div>
     </div>

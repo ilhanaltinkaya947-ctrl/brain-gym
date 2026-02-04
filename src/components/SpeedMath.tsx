@@ -26,12 +26,14 @@ export const SpeedMath = ({
   const [timeLeft, setTimeLeft] = useState(QUESTION_TIME);
   const [isShaking, setIsShaking] = useState(false);
   const [pressedButton, setPressedButton] = useState<number | null>(null);
+  const [correctButton, setCorrectButton] = useState<number | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const nextQuestion = useCallback(() => {
     setQuestion(generateQuestion());
     setTimeLeft(QUESTION_TIME);
     setPressedButton(null);
+    setCorrectButton(null);
   }, [generateQuestion]);
 
   useEffect(() => {
@@ -64,14 +66,14 @@ export const SpeedMath = ({
     const y = (rect.top + rect.height / 2) / window.innerHeight;
 
     confetti({
-      particleCount: 30 + streak * 5,
-      spread: 60,
+      particleCount: 40 + streak * 8,
+      spread: 70,
       origin: { x, y },
-      colors: ['#D4FF00', '#00D4FF', '#FF6B6B', '#FFE66D'],
-      scalar: 0.8,
+      colors: ['#00D4FF', '#FF00FF', '#FFD700', '#00FF88'],
+      scalar: 1,
       gravity: 1.2,
       drift: 0,
-      ticks: 100,
+      ticks: 120,
     });
   };
 
@@ -82,6 +84,7 @@ export const SpeedMath = ({
     setPressedButton(selected);
 
     if (isCorrect) {
+      setCorrectButton(selected);
       playSound('correct');
       triggerHaptic('light');
       triggerConfetti(event);
@@ -107,13 +110,16 @@ export const SpeedMath = ({
       className="flex flex-col items-center justify-center h-full px-6"
     >
       {/* Timer bar */}
-      <div className="w-full max-w-sm h-2 bg-muted rounded-full overflow-hidden mb-8">
+      <div className="w-full max-w-sm h-2 bg-muted/30 rounded-full overflow-hidden mb-8 border border-border/50">
         <motion.div
           className="h-full rounded-full"
           style={{
             background: progress > 30 
-              ? 'linear-gradient(90deg, hsl(var(--neon-lime)), hsl(var(--cyber-blue)))' 
-              : 'hsl(var(--destructive))'
+              ? 'linear-gradient(90deg, hsl(var(--neon-cyan)), hsl(var(--neon-magenta)))' 
+              : 'hsl(var(--destructive))',
+            boxShadow: progress > 30 
+              ? '0 0 10px hsl(var(--neon-cyan) / 0.5)' 
+              : '0 0 10px hsl(var(--destructive) / 0.5)'
           }}
           animate={{ width: `${progress}%` }}
           transition={{ duration: 0.1 }}
@@ -130,14 +136,14 @@ export const SpeedMath = ({
           transition={{ duration: 0.2 }}
           className="text-center mb-12"
         >
-          <p className="text-lg text-muted-foreground mb-4 uppercase tracking-wider">Solve</p>
-          <h2 className="text-6xl font-bold font-mono text-glow-neon">
+          <p className="text-sm text-muted-foreground mb-4 uppercase tracking-widest">Solve</p>
+          <h2 className="text-7xl font-black font-mono text-glow-cyan">
             {question.question}
           </h2>
         </motion.div>
       </AnimatePresence>
 
-      {/* Answer Grid */}
+      {/* Answer Grid - Energy Cell Buttons */}
       <div className="grid grid-cols-2 gap-4 w-full max-w-sm">
         {question.options.map((option, index) => (
           <motion.button
@@ -151,10 +157,15 @@ export const SpeedMath = ({
               delay: index * 0.05,
               scale: { type: "spring", stiffness: 500, damping: 15 }
             }}
-            whileHover={{ scale: 1.05 }}
+            whileHover={{ scale: 1.05, borderColor: 'hsl(var(--neon-cyan))' }}
             whileTap={{ scale: 1.15 }}
             onClick={(e) => handleAnswer(option, e)}
-            className="card-glass p-6 rounded-2xl text-3xl font-bold font-mono transition-all duration-200 hover:border-primary/50 active:bg-primary/20"
+            className={`btn-energy-cell p-7 rounded-2xl text-4xl font-black font-mono transition-all duration-150 ${
+              correctButton === option ? 'correct' : ''
+            }`}
+            style={{
+              color: correctButton === option ? 'hsl(var(--neon-gold))' : 'hsl(var(--foreground))',
+            }}
           >
             {option}
           </motion.button>
