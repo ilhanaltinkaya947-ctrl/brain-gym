@@ -41,7 +41,7 @@ export const GameConfigPanel = ({
   const canStart = mixableEnabled.length > 0;
 
   return (
-    <div className="w-full max-w-md mx-auto space-y-8">
+    <div className="w-full max-w-md mx-auto space-y-6">
       {/* Section Header */}
       <motion.div
         initial={{ opacity: 0, y: -10 }}
@@ -122,7 +122,7 @@ export const GameConfigPanel = ({
         </div>
       </motion.div>
 
-      {/* Game Filter */}
+      {/* Game Filter - All mixable games */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -130,7 +130,7 @@ export const GameConfigPanel = ({
         className="space-y-3"
       >
         <div className="text-xs uppercase tracking-widest text-muted-foreground text-center mb-4">
-          Active Games
+          Active Games ({mixableEnabled.length}/{MIXABLE_GAMES.length})
         </div>
         
         <div className="grid grid-cols-2 gap-2">
@@ -142,7 +142,7 @@ export const GameConfigPanel = ({
               <button
                 key={gameType}
                 onClick={() => toggleGame(gameType)}
-                className={`relative p-4 rounded-xl border transition-all duration-200 flex items-center gap-3 ${
+                className={`relative p-3 rounded-xl border transition-all duration-200 flex items-center gap-2 ${
                   isEnabled
                     ? 'border-border/50 bg-card/50'
                     : 'border-border/20 bg-card/20 opacity-50'
@@ -152,18 +152,18 @@ export const GameConfigPanel = ({
                   background: theme.bgGradient,
                 } : {}}
               >
-                <span className="text-xl">{theme.icon}</span>
-                <div className="text-left flex-1">
-                  <div className={`text-xs font-bold uppercase tracking-wide ${isEnabled ? 'text-foreground' : 'text-muted-foreground'}`}>
+                <span className="text-lg">{theme.icon}</span>
+                <div className="text-left flex-1 min-w-0">
+                  <div className={`text-[10px] font-bold uppercase tracking-wide truncate ${isEnabled ? 'text-foreground' : 'text-muted-foreground'}`}>
                     {theme.label}
                   </div>
                 </div>
-                <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-colors ${
+                <div className={`w-4 h-4 rounded flex-shrink-0 border flex items-center justify-center transition-colors ${
                   isEnabled 
                     ? 'border-primary bg-primary' 
                     : 'border-muted-foreground/30'
                 }`}>
-                  {isEnabled && <Check className="w-3 h-3 text-primary-foreground" />}
+                  {isEnabled && <Check className="w-2.5 h-2.5 text-primary-foreground" />}
                 </div>
               </button>
             );

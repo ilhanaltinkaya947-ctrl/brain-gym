@@ -1,20 +1,25 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
-import { Clock, Zap, Target, X, Trophy, Infinity as InfinityIcon, Skull } from 'lucide-react';
+import { Clock, Zap, Target, X, Trophy, Infinity as InfinityIcon, Skull, Flame } from 'lucide-react';
 import { SpeedMath } from './SpeedMath';
 import { ColorMatch } from './ColorMatch';
-import { DirectionLogic } from './DirectionLogic';
 import { PatternHunter } from './PatternHunter';
+import { ParadoxFlow } from './games/ParadoxFlow';
+import { NBackGhost } from './games/NBackGhost';
+import { OperatorChaos } from './games/OperatorChaos';
+import { SpatialStack } from './games/SpatialStack';
+import { HeatBackground } from './HeatBackground';
 import { MiniGameType, GAME_THEMES, GameMode, MIXABLE_GAMES } from '@/types/game';
 import { MathQuestion, ColorQuestion } from '@/hooks/useGameEngine';
+import { useAdaptiveEngine, AdaptivePhase } from '@/hooks/useAdaptiveEngine';
 
 interface MixedGameScreenProps {
   mode: GameMode;
   enabledGames: MiniGameType[];
   generateMathQuestion: () => MathQuestion;
   generateColorQuestion: () => ColorQuestion;
-  onGameEnd: (score: number, streak: number, correct: number, wrong: number) => void;
+  onGameEnd: (score: number, streak: number, correct: number, wrong: number, peakSpeed?: number, duration?: number) => void;
   onQuit: () => void;
   playSound: (type: 'correct' | 'wrong' | 'tick' | 'heartbeat') => void;
   triggerHaptic: (type: 'light' | 'medium' | 'heavy') => void;
@@ -55,6 +60,10 @@ export const MixedGameScreen = ({
   
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const heartbeatRef = useRef<NodeJS.Timeout | null>(null);
+  const questionStartTimeRef = useRef(Date.now());
+
+  // Adaptive engine for dynamic difficulty
+  const { state: adaptiveState, processAnswer, getGameParams, getSessionDuration, reset: resetAdaptive } = useAdaptiveEngine();
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -91,9 +100,17 @@ export const MixedGameScreen = ({
     };
   }, [mode, isGameOver]);
 
-  // Endless mode heartbeat (increases with streak)
+  // Adaptive heartbeat based on game speed (overdrive mode)
   useEffect(() => {
-    if (mode === 'endless' && !isGameOver && streak > 5) {
+    if (heartbeatRef.current) clearInterval(heartbeatRef.current);
+    
+    if (!isGameOver && adaptiveState.phase === 'overdrive') {
+      const interval = Math.max(300, 1000 / adaptiveState.gameSpeed);
+      
+      heartbeatRef.current = setInterval(() => {
+        playSound('heartbeat');
+      }, interval);
+    } else if (mode === 'endless' && !isGameOver && streak > 5) {
       const interval = Math.max(400, 1000 - streak * 30);
       
       heartbeatRef.current = setInterval(() => {
@@ -104,16 +121,16 @@ export const MixedGameScreen = ({
     return () => {
       if (heartbeatRef.current) clearInterval(heartbeatRef.current);
     };
-  }, [mode, streak, isGameOver, playSound]);
+  }, [mode, streak, isGameOver, playSound, adaptiveState.phase, adaptiveState.gameSpeed]);
 
   // Game end handler
   useEffect(() => {
     if (isGameOver) {
       if (heartbeatRef.current) clearInterval(heartbeatRef.current);
       if (timerRef.current) clearInterval(timerRef.current);
-      onGameEnd(score, streak, correct, wrong);
+      onGameEnd(score, streak, correct, wrong, adaptiveState.peakGameSpeed, getSessionDuration());
     }
-  }, [isGameOver, score, streak, correct, wrong, onGameEnd]);
+  }, [isGameOver, score, streak, correct, wrong, onGameEnd, adaptiveState.peakGameSpeed, getSessionDuration]);
 
   // Update sound pitch based on streak
   useEffect(() => {
@@ -179,10 +196,16 @@ export const MixedGameScreen = ({
   }, [enabledGames, currentGame]);
 
   const handleAnswer = useCallback((isCorrect: boolean, speedBonus: number = 0) => {
+    const responseTime = Date.now() - questionStartTimeRef.current;
+    
+    // Process through adaptive engine
+    processAnswer(isCorrect, responseTime);
+    
     if (isCorrect) {
       const streakMultiplier = Math.min(1 + streak * 0.1, 2);
+      const speedMultiplier = adaptiveState.gameSpeed;
       const basePoints = 10 + speedBonus;
-      const points = Math.floor(basePoints * streakMultiplier);
+      const points = Math.floor(basePoints * streakMultiplier * speedMultiplier);
       
       setScore(prev => prev + points);
       setStreakState(prev => prev + 1);
@@ -204,9 +227,14 @@ export const MixedGameScreen = ({
       // Still switch game on wrong answer in classic mode
       setCurrentGame(selectNextGame());
     }
-  }, [streak, mode, selectNextGame]);
+    
+    // Reset question start time for next question
+    questionStartTimeRef.current = Date.now();
+  }, [streak, mode, selectNextGame, processAnswer, adaptiveState.gameSpeed]);
 
   const renderCurrentGame = () => {
+    const gameParams = getGameParams(currentGame);
+    
     switch (currentGame) {
       case 'speedMath':
         return (
@@ -230,13 +258,14 @@ export const MixedGameScreen = ({
             onScreenShake={handleScreenShake}
           />
         );
-      case 'directionLogic':
+      case 'paradoxFlow':
         return (
-          <DirectionLogic
+          <ParadoxFlow
             onAnswer={handleAnswer}
             playSound={playSound}
             triggerHaptic={triggerHaptic}
             onScreenShake={handleScreenShake}
+            followChance={gameParams.followChance}
           />
         );
       case 'patternHunter':
@@ -248,8 +277,49 @@ export const MixedGameScreen = ({
             onScreenShake={handleScreenShake}
           />
         );
+      case 'nBackGhost':
+        return (
+          <NBackGhost
+            onAnswer={handleAnswer}
+            playSound={playSound}
+            triggerHaptic={triggerHaptic}
+            onScreenShake={handleScreenShake}
+            nBack={gameParams.nBack}
+            runeCount={gameParams.runeCount}
+          />
+        );
+      case 'operatorChaos':
+        return (
+          <OperatorChaos
+            onAnswer={handleAnswer}
+            playSound={playSound}
+            triggerHaptic={triggerHaptic}
+            onScreenShake={handleScreenShake}
+            operatorCount={gameParams.operatorCount}
+            maxNumber={gameParams.maxNumber}
+          />
+        );
+      case 'spatialStack':
+        return (
+          <SpatialStack
+            onAnswer={handleAnswer}
+            playSound={playSound}
+            triggerHaptic={triggerHaptic}
+            onScreenShake={handleScreenShake}
+            cubeCount={gameParams.cubeCount}
+          />
+        );
       default:
         return null;
+    }
+  };
+
+  // Phase color indicator
+  const getPhaseColor = (phase: AdaptivePhase) => {
+    switch (phase) {
+      case 'warmup': return 'hsl(175, 60%, 50%)';
+      case 'ramping': return 'hsl(280, 70%, 55%)';
+      case 'overdrive': return 'hsl(25, 90%, 55%)';
     }
   };
 
@@ -259,13 +329,16 @@ export const MixedGameScreen = ({
       animate={isScreenShaking ? { x: [-3, 3, -3, 3, 0], y: [-2, 2, -2, 2, 0] } : {}}
       transition={{ duration: 0.2 }}
     >
+      {/* Heat Background - responds to game speed */}
+      <HeatBackground gameSpeed={adaptiveState.gameSpeed} phase={adaptiveState.phase} />
+
       {/* Dynamic Theme Background */}
       <motion.div
         key={currentGame}
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.3 }}
-        className="absolute inset-0 pointer-events-none"
+        className="absolute inset-0 pointer-events-none z-[1]"
         style={{ background: currentTheme.bgGradient }}
       />
 
@@ -371,8 +444,8 @@ export const MixedGameScreen = ({
           </motion.span>
         </div>
 
-        {/* Mode indicator */}
-        <div className="flex justify-center mb-3">
+        {/* Mode + Phase indicator */}
+        <div className="flex justify-center gap-4 mb-3">
           {mode === 'endless' ? (
             <div className="flex items-center gap-2 text-destructive text-xs uppercase tracking-wider">
               <Skull className="w-4 h-4" />
@@ -384,6 +457,20 @@ export const MixedGameScreen = ({
               <span className="font-bold">Classic Mode</span>
             </div>
           )}
+          
+          {/* Adaptive Phase Badge */}
+          <div 
+            className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs uppercase tracking-wider font-bold border"
+            style={{
+              color: getPhaseColor(adaptiveState.phase),
+              borderColor: `${getPhaseColor(adaptiveState.phase)}50`,
+              background: `${getPhaseColor(adaptiveState.phase)}15`,
+            }}
+          >
+            <Flame className="w-3 h-3" />
+            {adaptiveState.phase}
+            <span className="font-mono">×{adaptiveState.gameSpeed.toFixed(1)}</span>
+          </div>
         </div>
 
         {/* Progress bar */}
@@ -469,7 +556,7 @@ export const MixedGameScreen = ({
       <div className="flex-1 relative z-10">
         <AnimatePresence mode="wait">
           <motion.div
-            key={currentGame}
+            key={`${currentGame}-${adaptiveState.questionsAnswered}`}
             initial={{ opacity: 0, x: 50 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -50 }}
