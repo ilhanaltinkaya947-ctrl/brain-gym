@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
 import { Zap, Activity, Settings, HelpCircle } from 'lucide-react';
 import { BrainVisual } from './BrainVisual';
+import { StreakFire } from './StreakFire';
 
 interface DashboardProps {
   onStartGame: () => void;
@@ -13,7 +14,7 @@ interface DashboardProps {
   streak: number;
 }
 
-export const Dashboard = ({ onStartGame, onStartFlashMemory, onOpenSettings, onOpenOnboarding }: DashboardProps) => {
+export const Dashboard = ({ onStartGame, onStartFlashMemory, onOpenSettings, onOpenOnboarding, streak }: DashboardProps) => {
   return (
     <div className="h-screen flex flex-col items-center justify-between px-6 py-10 safe-top safe-bottom relative bg-background overflow-hidden">
       {/* Settings Button - Top Right */}
@@ -40,39 +41,45 @@ export const Dashboard = ({ onStartGame, onStartFlashMemory, onOpenSettings, onO
         <HelpCircle className="w-5 h-5" />
       </motion.button>
 
-      {/* Header - AXON Branding */}
+      {/* Header - AXON Branding with Streak */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="text-center z-10 pt-4"
+        className="text-center z-10 pt-4 w-full"
       >
-        <motion.div 
-          className="flex items-center justify-center gap-3 mb-1"
-          whileHover={{ scale: 1.02 }}
-        >
-          {/* AXON Logo - Stylized neural pulse */}
-          <motion.div
-            animate={{ 
-              boxShadow: [
-                '0 0 20px hsl(25 90% 55% / 0.3)',
-                '0 0 35px hsl(25 90% 55% / 0.5)',
-                '0 0 20px hsl(25 90% 55% / 0.3)',
-              ]
-            }}
-            transition={{ duration: 2, repeat: Infinity }}
-            className="w-8 h-8 rounded-lg bg-gradient-to-br from-bio-orange to-bio-gold flex items-center justify-center"
+        <div className="flex items-center justify-center gap-6">
+          {/* AXON Logo and Title */}
+          <motion.div 
+            className="flex items-center gap-3"
+            whileHover={{ scale: 1.02 }}
           >
-            <Zap className="w-5 h-5 text-black" />
+            <motion.div
+              animate={{ 
+                boxShadow: [
+                  '0 0 20px hsl(25 90% 55% / 0.3)',
+                  '0 0 35px hsl(25 90% 55% / 0.5)',
+                  '0 0 20px hsl(25 90% 55% / 0.3)',
+                ]
+              }}
+              transition={{ duration: 2, repeat: Infinity }}
+              className="w-8 h-8 rounded-lg bg-gradient-to-br from-bio-orange to-bio-gold flex items-center justify-center"
+            >
+              <Zap className="w-5 h-5 text-black" />
+            </motion.div>
+            <h1 className="text-3xl font-black tracking-widest">
+              <span className="text-gradient-speed">AXON</span>
+            </h1>
           </motion.div>
-          <h1 className="text-3xl font-black tracking-widest">
-            <span className="text-gradient-speed">AXON</span>
-          </h1>
-        </motion.div>
+
+          {/* Streak Fire */}
+          <StreakFire streak={streak} />
+        </div>
+
         <motion.p 
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.3 }}
-          className="text-muted-foreground text-[9px] font-medium uppercase tracking-[0.4em]"
+          className="text-muted-foreground text-[9px] font-medium uppercase tracking-[0.4em] mt-2"
         >
           Train Your Neural Pathways
         </motion.p>

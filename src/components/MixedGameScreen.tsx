@@ -9,6 +9,7 @@ import { ParadoxFlow } from './games/ParadoxFlow';
 import { NBackGhost } from './games/NBackGhost';
 import { OperatorChaos } from './games/OperatorChaos';
 import { SpatialStack } from './games/SpatialStack';
+import { WordConnect } from './games/WordConnect';
 import { HeatBackground } from './HeatBackground';
 import { MiniGameType, GAME_THEMES, GameMode, MIXABLE_GAMES } from '@/types/game';
 import { MathQuestion, ColorQuestion } from '@/hooks/useGameEngine';
@@ -307,6 +308,15 @@ export const MixedGameScreen = ({
             triggerHaptic={triggerHaptic}
             onScreenShake={handleScreenShake}
             cubeCount={gameParams.cubeCount}
+          />
+        );
+      case 'wordConnect':
+        return (
+          <WordConnect
+            onAnswer={handleAnswer}
+            playSound={playSound}
+            triggerHaptic={triggerHaptic}
+            onScreenShake={handleScreenShake}
           />
         );
       default:

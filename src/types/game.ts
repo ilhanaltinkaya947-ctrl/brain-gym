@@ -10,7 +10,8 @@ export type MiniGameType =
   | 'patternHunter'
   | 'nBackGhost'
   | 'operatorChaos'
-  | 'spatialStack';
+  | 'spatialStack'
+  | 'wordConnect';
 
 export interface GameConfig {
   mode: GameMode;
@@ -91,11 +92,19 @@ export const GAME_THEMES: Record<MiniGameType, GameTheme> = {
     accentColor: 'hsl(120, 60%, 45%)',
     bgGradient: 'linear-gradient(135deg, hsl(140, 70%, 45% / 0.15), transparent)',
   },
+  wordConnect: {
+    name: 'wordConnect',
+    label: 'Word Connect',
+    icon: '🔤',
+    primaryColor: 'hsl(210, 80%, 55%)',
+    accentColor: 'hsl(230, 70%, 55%)',
+    bgGradient: 'linear-gradient(135deg, hsl(210, 80%, 55% / 0.15), transparent)',
+  },
 };
 
 export const DEFAULT_CONFIG: GameConfig = {
-  mode: 'classic',
-  enabledGames: ['speedMath', 'colorMatch', 'paradoxFlow', 'patternHunter'],
+  mode: 'endless',
+  enabledGames: ['speedMath', 'colorMatch', 'paradoxFlow', 'patternHunter', 'wordConnect'],
 };
 
 // Mixable games (all games that can be mixed in classic/endless modes)
@@ -107,4 +116,5 @@ export const MIXABLE_GAMES: MiniGameType[] = [
   'nBackGhost',
   'operatorChaos',
   'spatialStack',
+  'wordConnect',
 ];

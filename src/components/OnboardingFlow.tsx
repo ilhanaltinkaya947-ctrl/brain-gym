@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronRight, ChevronLeft, X, Zap, Brain, Grid3X3, GitCompare, Calculator, Box, ArrowUpDown } from 'lucide-react';
+import { ChevronRight, ChevronLeft, X, Zap, Brain, Grid3X3, GitCompare, Calculator, Box, ArrowUpDown, Type } from 'lucide-react';
 
 interface OnboardingProps {
   isOpen: boolean;
@@ -32,6 +32,14 @@ const ONBOARDING_SCREENS = [
     subtitle: 'Visual Working Memory',
     description: 'Numbers appear briefly on a grid, then hide. Tap them in order (1 → 2 → 3...). The grid grows larger and numbers appear faster as you improve.',
     color: 'hsl(280 70% 55%)',
+  },
+  {
+    id: 'word-connect',
+    icon: Type,
+    title: 'Word Connect',
+    subtitle: 'Verbal Fluency',
+    description: 'Drag through letters arranged in a circle to form words. Find the target word to advance. Bonus words earn extra points! Tests vocabulary and pattern recognition.',
+    color: 'hsl(210 80% 55%)',
   },
   {
     id: 'nback',
