@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Trophy, Target, Zap, Clock, TrendingUp, RotateCcw } from 'lucide-react';
+import confetti from 'canvas-confetti';
+import { Trophy, Target, Clock, TrendingUp, RotateCcw, Sparkles } from 'lucide-react';
 import { GameState } from '../hooks/useGameEngine';
 
 interface ResultScreenProps {
@@ -18,6 +19,36 @@ export const ResultScreen = ({ gameState, onPlayAgain, onGoHome, isNewHighScore 
   const avgSpeed = gameState.totalQuestions > 0 
     ? (120 / gameState.totalQuestions).toFixed(1) 
     : '0';
+
+  // Massive confetti for new high score
+  useEffect(() => {
+    if (isNewHighScore) {
+      const duration = 4000;
+      const end = Date.now() + duration;
+
+      const frame = () => {
+        confetti({
+          particleCount: 10,
+          angle: 60,
+          spread: 80,
+          origin: { x: 0, y: 0.6 },
+          colors: ['#D4FF00', '#00D4FF', '#FFD700', '#FF6B6B'],
+        });
+        confetti({
+          particleCount: 10,
+          angle: 120,
+          spread: 80,
+          origin: { x: 1, y: 0.6 },
+          colors: ['#D4FF00', '#00D4FF', '#FFD700', '#FF6B6B'],
+        });
+
+        if (Date.now() < end) {
+          requestAnimationFrame(frame);
+        }
+      };
+      frame();
+    }
+  }, [isNewHighScore]);
 
   // Animate score counting up
   useEffect(() => {
@@ -50,13 +81,27 @@ export const ResultScreen = ({ gameState, onPlayAgain, onGoHome, isNewHighScore 
         <h1 className="text-2xl font-bold text-muted-foreground mb-2">Training Complete</h1>
         {isNewHighScore && (
           <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ delay: 0.5, type: "spring" }}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/20 text-primary"
+            initial={{ scale: 0, rotate: -180 }}
+            animate={{ scale: 1, rotate: 0 }}
+            transition={{ delay: 0.3, type: "spring", stiffness: 200 }}
+            className="mt-4"
           >
-            <Trophy className="w-5 h-5" />
-            <span className="font-bold">NEW HIGH SCORE!</span>
+            <motion.div
+              animate={{ 
+                scale: [1, 1.1, 1],
+                boxShadow: [
+                  '0 0 20px rgba(255, 215, 0, 0.5)',
+                  '0 0 40px rgba(255, 215, 0, 0.8)',
+                  '0 0 20px rgba(255, 215, 0, 0.5)',
+                ]
+              }}
+              transition={{ duration: 1, repeat: Infinity }}
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-gradient-to-r from-yellow-500 to-orange-500 text-black font-black text-xl"
+            >
+              <Sparkles className="w-6 h-6" />
+              NEW BEST!
+              <Trophy className="w-6 h-6" />
+            </motion.div>
           </motion.div>
         )}
       </motion.div>
@@ -160,14 +205,24 @@ export const ResultScreen = ({ gameState, onPlayAgain, onGoHome, isNewHighScore 
         transition={{ delay: 0.6 }}
         className="w-full max-w-sm space-y-3"
       >
+        {/* HUGE Pulsing Play Again Button */}
         <motion.button
-          whileHover={{ scale: 1.02 }}
+          animate={{ 
+            scale: [1, 1.03, 1],
+            boxShadow: [
+              '0 0 20px hsl(var(--neon-lime) / 0.4)',
+              '0 0 40px hsl(var(--neon-lime) / 0.6)',
+              '0 0 20px hsl(var(--neon-lime) / 0.4)',
+            ]
+          }}
+          transition={{ duration: 1.5, repeat: Infinity }}
+          whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.98 }}
           onClick={onPlayAgain}
-          className="w-full py-4 rounded-2xl btn-primary-glow text-lg font-bold uppercase tracking-wider flex items-center justify-center gap-3"
+          className="w-full py-6 rounded-2xl btn-primary-glow text-2xl font-black uppercase tracking-wider flex items-center justify-center gap-3"
         >
-          <RotateCcw className="w-5 h-5" />
-          Train Again
+          <RotateCcw className="w-7 h-7" />
+          PLAY AGAIN
         </motion.button>
 
         <motion.button

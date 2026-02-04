@@ -4,12 +4,17 @@ type SoundType = 'correct' | 'wrong' | 'tick' | 'start' | 'complete';
 
 export const useSounds = () => {
   const audioContextRef = useRef<AudioContext | null>(null);
+  const streakRef = useRef(0);
 
   const getAudioContext = useCallback(() => {
     if (!audioContextRef.current) {
       audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
     }
     return audioContextRef.current;
+  }, []);
+
+  const setStreak = useCallback((streak: number) => {
+    streakRef.current = streak;
   }, []);
 
   const playSound = useCallback((type: SoundType) => {
@@ -20,10 +25,15 @@ export const useSounds = () => {
     oscillator.connect(gainNode);
     gainNode.connect(ctx.destination);
 
+    // Pitch ramping: base frequency increases with streak
+    const pitchMultiplier = 1 + Math.min(streakRef.current * 0.08, 0.5); // Max 1.5x pitch
+
     switch (type) {
       case 'correct':
-        oscillator.frequency.setValueAtTime(880, ctx.currentTime);
-        oscillator.frequency.exponentialRampToValueAtTime(1320, ctx.currentTime + 0.1);
+        const baseFreq = 880 * pitchMultiplier;
+        const peakFreq = 1320 * pitchMultiplier;
+        oscillator.frequency.setValueAtTime(baseFreq, ctx.currentTime);
+        oscillator.frequency.exponentialRampToValueAtTime(peakFreq, ctx.currentTime + 0.1);
         gainNode.gain.setValueAtTime(0.3, ctx.currentTime);
         gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.15);
         oscillator.start(ctx.currentTime);
@@ -86,5 +96,5 @@ export const useSounds = () => {
     }
   }, []);
 
-  return { playSound, triggerHaptic };
+  return { playSound, triggerHaptic, setStreak };
 };
