@@ -64,6 +64,13 @@ export default {
         },
         warning: "hsl(var(--warning))",
         success: "hsl(var(--success))",
+        game: {
+          math: "hsl(var(--game-math))",
+          color: "hsl(var(--game-color))",
+          memory: "hsl(var(--game-memory))",
+          direction: "hsl(var(--game-direction))",
+          pattern: "hsl(var(--game-pattern))",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",

@@ -51,6 +51,18 @@
     --warning: 35 100% 55%;
     --success: 145 80% 45%;
 
+    /* Game theme colors */
+    --game-math: 120 60% 45%;
+    --game-math-accent: 150 70% 50%;
+    --game-color: 300 100% 60%;
+    --game-color-accent: 330 100% 65%;
+    --game-memory: 270 70% 55%;
+    --game-memory-accent: 290 80% 60%;
+    --game-direction: 30 100% 55%;
+    --game-direction-accent: 45 100% 60%;
+    --game-pattern: 200 100% 55%;
+    --game-pattern-accent: 220 100% 60%;
+
     /* Glass effects */
     --glass-bg: 260 30% 12%;
     --glass-border: 260 30% 25%;
