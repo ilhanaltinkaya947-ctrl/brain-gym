@@ -7,14 +7,36 @@ import { ResultScreen } from '../components/ResultScreen';
 import { FlashMemoryScreen } from '../components/FlashMemoryScreen';
 import { FlashMemoryResult } from '../components/FlashMemoryResult';
 import { NeuralBackground } from '../components/NeuralBackground';
+import { SettingsModal, AppSettings } from '../components/SettingsModal';
 import { useGameEngine } from '../hooks/useGameEngine';
 import { useSounds } from '../hooks/useSounds';
 import { GameConfig, DEFAULT_CONFIG, MiniGameType, MIXABLE_GAMES } from '@/types/game';
 
 type Screen = 'dashboard' | 'config' | 'game' | 'result' | 'flashMemory' | 'flashResult';
 
+const DEFAULT_SETTINGS: AppSettings = {
+  soundEnabled: true,
+  hapticsEnabled: true,
+  language: 'en',
+  theme: 'dark',
+};
+
 const Index = () => {
   const [currentScreen, setCurrentScreen] = useState<Screen>('dashboard');
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  
+  // App settings
+  const [appSettings, setAppSettings] = useState<AppSettings>(() => {
+    const saved = localStorage.getItem('axon-settings');
+    if (saved) {
+      try {
+        return { ...DEFAULT_SETTINGS, ...JSON.parse(saved) };
+      } catch {
+        return DEFAULT_SETTINGS;
+      }
+    }
+    return DEFAULT_SETTINGS;
+  });
   
   // Game configuration
   const [gameConfig, setGameConfig] = useState<GameConfig>(() => {
@@ -49,6 +71,7 @@ const Index = () => {
   const [lastCorrect, setLastCorrect] = useState(0);
   const [lastWrong, setLastWrong] = useState(0);
   const [isNewHighScore, setIsNewHighScore] = useState(false);
+  const [wasEndlessMode, setWasEndlessMode] = useState(false);
   
   // Flash memory state
   const [flashLastLevel, setFlashLastLevel] = useState(1);
@@ -67,19 +90,32 @@ const Index = () => {
     return lastPlayed === today ? 100 : 0;
   });
 
-  const { playSound, triggerHaptic, setStreak } = useSounds();
+  const { playSound, triggerHaptic: triggerHapticBase, setStreak } = useSounds(appSettings.soundEnabled);
   const { generateMathQuestion, generateColorQuestion } = useGameEngine();
+
+  // Wrapped haptic that respects settings
+  const triggerHaptic = useCallback((type: 'light' | 'medium' | 'heavy') => {
+    if (appSettings.hapticsEnabled) {
+      triggerHapticBase(type);
+    }
+  }, [appSettings.hapticsEnabled, triggerHapticBase]);
+
+  // Save settings changes
+  useEffect(() => {
+    localStorage.setItem('axon-settings', JSON.stringify(appSettings));
+  }, [appSettings]);
 
   // Save config changes
   useEffect(() => {
     localStorage.setItem('neuroflow-config', JSON.stringify(gameConfig));
   }, [gameConfig]);
 
-  const handleOpenConfig = () => {
+  const handleOpenSettings = () => {
     playSound('tick');
-    setCurrentScreen('config');
+    setSettingsOpen(true);
   };
 
+  // Skip config and go straight to game
   const handleStartGame = () => {
     playSound('start');
     triggerHaptic('medium');
@@ -94,7 +130,15 @@ const Index = () => {
   };
 
   const handleGameEnd = useCallback((score: number, streak: number, correct: number, wrong: number) => {
-    playSound('complete');
+    // Play lose sound in endless mode (game ends on mistake), complete sound in classic
+    const isEndlessLoss = gameConfig.mode === 'endless' && wrong > 0;
+    setWasEndlessMode(gameConfig.mode === 'endless');
+    
+    if (isEndlessLoss) {
+      playSound('lose');
+    } else {
+      playSound('complete');
+    }
     triggerHaptic('medium');
     
     setLastScore(score);
@@ -200,8 +244,9 @@ const Index = () => {
             transition={{ duration: 0.3 }}
           >
             <Dashboard
-              onStartGame={handleOpenConfig}
+              onStartGame={handleStartGame}
               onStartFlashMemory={handleStartFlashMemory}
+              onOpenSettings={handleOpenSettings}
               brainCharge={brainCharge}
               highScore={Math.max(highScoreClassic, highScoreEndless)}
               flashHighScore={flashHighLevel}
@@ -330,6 +375,14 @@ const Index = () => {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Settings Modal */}
+      <SettingsModal
+        isOpen={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+        settings={appSettings}
+        onSettingsChange={setAppSettings}
+      />
     </div>
   );
 };
