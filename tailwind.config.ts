@@ -17,6 +17,11 @@ export default {
         sans: ['Inter', 'system-ui', 'sans-serif'],
         mono: ['JetBrains Mono', 'monospace'],
       },
+      fontWeight: {
+        'thin': '100',
+        'extralight': '200',
+        'light': '300',
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
@@ -51,6 +56,16 @@ export default {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        // Bio-gradient colors
+        bio: {
+          teal: "hsl(var(--bio-teal))",
+          blue: "hsl(var(--bio-blue))",
+          purple: "hsl(var(--bio-purple))",
+          pink: "hsl(var(--bio-pink))",
+          orange: "hsl(var(--bio-orange))",
+          gold: "hsl(var(--bio-gold))",
+        },
+        // Legacy neon colors (compatibility)
         neon: {
           cyan: "hsl(var(--neon-cyan))",
           "cyan-glow": "hsl(var(--neon-cyan-glow))",
@@ -90,44 +105,49 @@ export default {
         },
         pulse: {
           "0%, 100%": { opacity: "1", transform: "scale(1)" },
-          "50%": { opacity: "0.8", transform: "scale(1.05)" },
+          "50%": { opacity: "0.9", transform: "scale(1.02)" },
         },
         "pulse-glow": {
           "0%, 100%": { 
-            boxShadow: "0 0 30px hsl(var(--neon-lime) / 0.5), 0 0 60px hsl(var(--neon-lime) / 0.3)"
+            boxShadow: "0 0 20px hsl(var(--bio-teal) / 0.2)"
           },
           "50%": { 
-            boxShadow: "0 0 50px hsl(var(--neon-lime) / 0.7), 0 0 100px hsl(var(--neon-lime) / 0.5)"
+            boxShadow: "0 0 35px hsl(var(--bio-teal) / 0.35)"
           },
         },
         shake: {
           "0%, 100%": { transform: "translateX(0)" },
-          "10%, 30%, 50%, 70%, 90%": { transform: "translateX(-4px)" },
-          "20%, 40%, 60%, 80%": { transform: "translateX(4px)" },
+          "10%, 30%, 50%, 70%, 90%": { transform: "translateX(-3px)" },
+          "20%, 40%, 60%, 80%": { transform: "translateX(3px)" },
         },
         "score-pop": {
-          "0%": { transform: "scale(0.5)", opacity: "0" },
-          "50%": { transform: "scale(1.2)" },
+          "0%": { transform: "scale(0.8)", opacity: "0" },
+          "50%": { transform: "scale(1.1)" },
           "100%": { transform: "scale(1)", opacity: "1" },
         },
         float: {
           "0%, 100%": { transform: "translateY(0)" },
-          "50%": { transform: "translateY(-10px)" },
+          "50%": { transform: "translateY(-8px)" },
         },
         "ring-progress": {
           "0%": { strokeDashoffset: "440" },
           "100%": { strokeDashoffset: "var(--progress)" },
         },
+        "fade-up": {
+          "0%": { opacity: "0", transform: "translateY(10px)" },
+          "100%": { opacity: "1", transform: "translateY(0)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
-        pulse: "pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite",
-        "pulse-glow": "pulse-glow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite",
-        shake: "shake 0.5s cubic-bezier(.36,.07,.19,.97)",
+        pulse: "pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite",
+        "pulse-glow": "pulse-glow 3s cubic-bezier(0.4, 0, 0.6, 1) infinite",
+        shake: "shake 0.4s cubic-bezier(.36,.07,.19,.97)",
         "score-pop": "score-pop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)",
-        float: "float 3s ease-in-out infinite",
-        "ring-progress": "ring-progress 1s ease-out forwards",
+        float: "float 4s ease-in-out infinite",
+        "ring-progress": "ring-progress 1.5s ease-out forwards",
+        "fade-up": "fade-up 0.5s ease-out forwards",
       },
     },
   },
