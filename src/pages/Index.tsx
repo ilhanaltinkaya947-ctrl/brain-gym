@@ -36,7 +36,7 @@ const Index = () => {
   // Key to force remount FlashMemory for instant restart
   const [flashKey, setFlashKey] = useState(0);
 
-  const { playSound, triggerHaptic } = useSounds();
+  const { playSound, triggerHaptic, setStreak } = useSounds();
   const { 
     gameState, 
     startGame, 
@@ -180,6 +180,8 @@ const Index = () => {
               onQuit={handleQuit}
               playSound={playSound}
               triggerHaptic={triggerHaptic}
+              setStreak={setStreak}
+              bestScore={highScore}
             />
           </motion.div>
         )}

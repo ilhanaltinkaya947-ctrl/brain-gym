@@ -1,27 +1,37 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import confetti from 'canvas-confetti';
 import { ColorQuestion } from '../hooks/useGameEngine';
-import { ParticleExplosion } from './ParticleExplosion';
 
 interface ColorMatchProps {
   generateQuestion: () => ColorQuestion;
   onAnswer: (correct: boolean, speedBonus: number) => void;
   playSound: (type: 'correct' | 'wrong' | 'tick') => void;
   triggerHaptic: (type: 'light' | 'medium' | 'heavy') => void;
+  streak: number;
+  onScreenShake: () => void;
 }
 
 const QUESTION_TIME = 2500; // 2.5 seconds - faster pace
 
-export const ColorMatch = ({ generateQuestion, onAnswer, playSound, triggerHaptic }: ColorMatchProps) => {
+export const ColorMatch = ({ 
+  generateQuestion, 
+  onAnswer, 
+  playSound, 
+  triggerHaptic, 
+  streak,
+  onScreenShake 
+}: ColorMatchProps) => {
   const [question, setQuestion] = useState<ColorQuestion>(generateQuestion);
   const [timeLeft, setTimeLeft] = useState(QUESTION_TIME);
   const [isShaking, setIsShaking] = useState(false);
-  const [showParticles, setShowParticles] = useState(false);
-  const [particleKey, setParticleKey] = useState(0);
+  const [pressedButton, setPressedButton] = useState<string | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const nextQuestion = useCallback(() => {
     setQuestion(generateQuestion());
     setTimeLeft(QUESTION_TIME);
+    setPressedButton(null);
   }, [generateQuestion]);
 
   useEffect(() => {
@@ -48,16 +58,34 @@ export const ColorMatch = ({ generateQuestion, onAnswer, playSound, triggerHapti
     return () => clearInterval(interval);
   }, [question, onAnswer, playSound, triggerHaptic, nextQuestion]);
 
-  const handleAnswer = (selectedColor: string) => {
+  const triggerConfetti = (event: React.MouseEvent) => {
+    const rect = (event.target as HTMLElement).getBoundingClientRect();
+    const x = (rect.left + rect.width / 2) / window.innerWidth;
+    const y = (rect.top + rect.height / 2) / window.innerHeight;
+
+    confetti({
+      particleCount: 30 + streak * 5,
+      spread: 60,
+      origin: { x, y },
+      colors: ['#D4FF00', '#00D4FF', '#FF6B6B', '#FFE66D'],
+      scalar: 0.8,
+      gravity: 1.2,
+      drift: 0,
+      ticks: 100,
+    });
+  };
+
+  const handleAnswer = (selectedColor: string, event: React.MouseEvent) => {
     const isCorrect = selectedColor === question.correctColor;
     const speedBonus = Math.floor((timeLeft / QUESTION_TIME) * 10);
+
+    setPressedButton(selectedColor);
 
     if (isCorrect) {
       playSound('correct');
       triggerHaptic('light');
-      setShowParticles(true);
-      setParticleKey(prev => prev + 1);
-      setTimeout(() => setShowParticles(false), 100);
+      triggerConfetti(event);
+      onScreenShake();
     } else {
       playSound('wrong');
       triggerHaptic('heavy');
@@ -66,19 +94,18 @@ export const ColorMatch = ({ generateQuestion, onAnswer, playSound, triggerHapti
     }
 
     onAnswer(isCorrect, speedBonus);
-    nextQuestion();
+    setTimeout(() => nextQuestion(), 100);
   };
 
   const progress = (timeLeft / QUESTION_TIME) * 100;
 
   return (
     <motion.div
-      animate={isShaking ? { x: [-4, 4, -4, 4, 0] } : {}}
+      ref={containerRef}
+      animate={isShaking ? { x: [-8, 8, -8, 8, 0] } : {}}
       transition={{ duration: 0.4 }}
       className="flex flex-col items-center justify-center h-full px-6"
     >
-      <ParticleExplosion key={particleKey} trigger={showParticles} x={50} y={40} />
-
       {/* Timer bar */}
       <div className="w-full max-w-sm h-2 bg-muted rounded-full overflow-hidden mb-8">
         <motion.div
@@ -130,11 +157,17 @@ export const ColorMatch = ({ generateQuestion, onAnswer, playSound, triggerHapti
           <motion.button
             key={`${question.word}-${option.label}`}
             initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: index * 0.05 }}
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => handleAnswer(option.label)}
+            animate={{ 
+              opacity: 1, 
+              scale: pressedButton === option.label ? 1.15 : 1,
+            }}
+            transition={{ 
+              delay: index * 0.05,
+              scale: { type: "spring", stiffness: 500, damping: 15 }
+            }}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 1.15 }}
+            onClick={(e) => handleAnswer(option.label, e)}
             className="p-6 rounded-2xl text-xl font-bold uppercase tracking-wide transition-all duration-200 border-2"
             style={{
               backgroundColor: `${option.color}20`,
