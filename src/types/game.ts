@@ -1,8 +1,16 @@
-// Game type definitions for the Brain Platform
+// Game type definitions for the AXON Brain Platform
 
 export type GameMode = 'classic' | 'endless';
 
-export type MiniGameType = 'speedMath' | 'colorMatch' | 'flashMemory' | 'directionLogic' | 'patternHunter';
+export type MiniGameType = 
+  | 'speedMath' 
+  | 'colorMatch' 
+  | 'flashMemory' 
+  | 'paradoxFlow' 
+  | 'patternHunter'
+  | 'nBackGhost'
+  | 'operatorChaos'
+  | 'spatialStack';
 
 export interface GameConfig {
   mode: GameMode;
@@ -43,9 +51,9 @@ export const GAME_THEMES: Record<MiniGameType, GameTheme> = {
     accentColor: 'hsl(var(--game-memory-accent))',
     bgGradient: 'linear-gradient(135deg, hsl(var(--game-memory) / 0.15), transparent)',
   },
-  directionLogic: {
-    name: 'directionLogic',
-    label: 'Direction Logic',
+  paradoxFlow: {
+    name: 'paradoxFlow',
+    label: 'Paradox Flow',
     icon: '🧭',
     primaryColor: 'hsl(var(--game-direction))',
     accentColor: 'hsl(var(--game-direction-accent))',
@@ -59,12 +67,44 @@ export const GAME_THEMES: Record<MiniGameType, GameTheme> = {
     accentColor: 'hsl(var(--game-pattern-accent))',
     bgGradient: 'linear-gradient(135deg, hsl(var(--game-pattern) / 0.15), transparent)',
   },
+  nBackGhost: {
+    name: 'nBackGhost',
+    label: 'N-Back Ghost',
+    icon: '👻',
+    primaryColor: 'hsl(175, 60%, 50%)',
+    accentColor: 'hsl(180, 70%, 45%)',
+    bgGradient: 'linear-gradient(135deg, hsl(175, 60%, 50% / 0.15), transparent)',
+  },
+  operatorChaos: {
+    name: 'operatorChaos',
+    label: 'Operator Chaos',
+    icon: '➗',
+    primaryColor: 'hsl(45, 90%, 55%)',
+    accentColor: 'hsl(25, 90%, 55%)',
+    bgGradient: 'linear-gradient(135deg, hsl(45, 90%, 55% / 0.15), transparent)',
+  },
+  spatialStack: {
+    name: 'spatialStack',
+    label: 'Spatial Stack',
+    icon: '📦',
+    primaryColor: 'hsl(140, 70%, 45%)',
+    accentColor: 'hsl(120, 60%, 45%)',
+    bgGradient: 'linear-gradient(135deg, hsl(140, 70%, 45% / 0.15), transparent)',
+  },
 };
 
 export const DEFAULT_CONFIG: GameConfig = {
   mode: 'classic',
-  enabledGames: ['speedMath', 'colorMatch', 'directionLogic', 'patternHunter'],
+  enabledGames: ['speedMath', 'colorMatch', 'paradoxFlow', 'patternHunter'],
 };
 
-// Mixable games (exclude flashMemory as it has different flow)
-export const MIXABLE_GAMES: MiniGameType[] = ['speedMath', 'colorMatch', 'directionLogic', 'patternHunter'];
+// Mixable games (all games that can be mixed in classic/endless modes)
+export const MIXABLE_GAMES: MiniGameType[] = [
+  'speedMath', 
+  'colorMatch', 
+  'paradoxFlow', 
+  'patternHunter',
+  'nBackGhost',
+  'operatorChaos',
+  'spatialStack',
+];
