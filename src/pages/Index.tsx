@@ -1,12 +1,161 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import { useState, useEffect } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
+import { Dashboard } from '../components/Dashboard';
+import { GameScreen } from '../components/GameScreen';
+import { ResultScreen } from '../components/ResultScreen';
+import { useGameEngine } from '../hooks/useGameEngine';
+import { useSounds } from '../hooks/useSounds';
+
+type Screen = 'dashboard' | 'game' | 'result';
 
 const Index = () => {
+  const [currentScreen, setCurrentScreen] = useState<Screen>('dashboard');
+  const [highScore, setHighScore] = useState(() => {
+    const saved = localStorage.getItem('neuroflow-highscore');
+    return saved ? parseInt(saved, 10) : 0;
+  });
+  const [dayStreak, setDayStreak] = useState(() => {
+    const saved = localStorage.getItem('neuroflow-streak');
+    return saved ? parseInt(saved, 10) : 0;
+  });
+  const [brainCharge, setBrainCharge] = useState(() => {
+    const lastPlayed = localStorage.getItem('neuroflow-lastplayed');
+    const today = new Date().toDateString();
+    return lastPlayed === today ? 100 : 0;
+  });
+  const [isNewHighScore, setIsNewHighScore] = useState(false);
+
+  const { playSound, triggerHaptic } = useSounds();
+  const { 
+    gameState, 
+    startGame, 
+    stopGame,
+    submitAnswer, 
+    generateMathQuestion, 
+    generateColorQuestion 
+  } = useGameEngine();
+
+  // Watch for game end
+  useEffect(() => {
+    if (!gameState.isRunning && gameState.totalQuestions > 0 && currentScreen === 'game') {
+      playSound('complete');
+      triggerHaptic('medium');
+      
+      // Update high score
+      if (gameState.score > highScore) {
+        setHighScore(gameState.score);
+        localStorage.setItem('neuroflow-highscore', gameState.score.toString());
+        setIsNewHighScore(true);
+      } else {
+        setIsNewHighScore(false);
+      }
+
+      // Update streak and brain charge
+      const today = new Date().toDateString();
+      const lastPlayed = localStorage.getItem('neuroflow-lastplayed');
+      
+      if (lastPlayed !== today) {
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        
+        if (lastPlayed === yesterday.toDateString()) {
+          setDayStreak(prev => {
+            const newStreak = prev + 1;
+            localStorage.setItem('neuroflow-streak', newStreak.toString());
+            return newStreak;
+          });
+        } else if (lastPlayed !== today) {
+          setDayStreak(1);
+          localStorage.setItem('neuroflow-streak', '1');
+        }
+        
+        localStorage.setItem('neuroflow-lastplayed', today);
+        setBrainCharge(100);
+      }
+
+      setCurrentScreen('result');
+    }
+  }, [gameState.isRunning, gameState.totalQuestions, currentScreen, gameState.score, highScore, playSound, triggerHaptic]);
+
+  const handleStartGame = () => {
+    playSound('start');
+    triggerHaptic('medium');
+    setCurrentScreen('game');
+    startGame();
+  };
+
+  const handleQuit = () => {
+    stopGame();
+    setCurrentScreen('dashboard');
+  };
+
+  const handlePlayAgain = () => {
+    setCurrentScreen('game');
+    startGame();
+  };
+
+  const handleGoHome = () => {
+    setCurrentScreen('dashboard');
+  };
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background">
-      <div className="text-center">
-        <h1 className="mb-4 text-4xl font-bold">Welcome to Your Blank App</h1>
-        <p className="text-xl text-muted-foreground">Start building your amazing project here!</p>
-      </div>
+    <div className="min-h-screen overflow-hidden">
+      <AnimatePresence mode="wait">
+        {currentScreen === 'dashboard' && (
+          <motion.div
+            key="dashboard"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0, x: -100 }}
+            transition={{ duration: 0.3 }}
+          >
+            <Dashboard
+              onStartGame={handleStartGame}
+              brainCharge={brainCharge}
+              highScore={highScore}
+              streak={dayStreak}
+            />
+          </motion.div>
+        )}
+
+        {currentScreen === 'game' && (
+          <motion.div
+            key="game"
+            initial={{ opacity: 0, x: 100 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -100 }}
+            transition={{ duration: 0.3 }}
+            className="h-screen"
+          >
+            <GameScreen
+              gameState={gameState}
+              generateMathQuestion={generateMathQuestion}
+              generateColorQuestion={generateColorQuestion}
+              onAnswer={submitAnswer}
+              onQuit={handleQuit}
+              playSound={playSound}
+              triggerHaptic={triggerHaptic}
+            />
+          </motion.div>
+        )}
+
+        {currentScreen === 'result' && (
+          <motion.div
+            key="result"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3 }}
+          >
+            <ResultScreen
+              gameState={gameState}
+              onPlayAgain={handlePlayAgain}
+              onGoHome={handleGoHome}
+              isNewHighScore={isNewHighScore}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
