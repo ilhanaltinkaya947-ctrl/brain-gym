@@ -63,7 +63,7 @@ export const SettingsModal = ({ isOpen, onClose, settings, onSettingsChange }: S
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 100, scale: 0.95 }}
             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-            className="fixed bottom-0 left-0 right-0 z-50 max-h-[85vh] overflow-hidden"
+            className="fixed bottom-0 left-0 right-0 z-[60] max-h-[85vh] overflow-hidden"
           >
             <div className="bg-card rounded-t-3xl border-t border-border/50 safe-bottom">
               {/* Handle */}
