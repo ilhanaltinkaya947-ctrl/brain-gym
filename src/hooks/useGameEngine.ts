@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef } from 'react';
 
-export type GameType = 'speedMath' | 'colorMatch';
+export type GameType = 'speedMath' | 'colorMatch' | 'flashMemory';
 
 export interface GameState {
   score: number;
@@ -35,6 +35,16 @@ const COLORS = [
   { name: 'GREEN', hsl: 'hsl(120, 60%, 45%)' },
   { name: 'YELLOW', hsl: 'hsl(45, 90%, 55%)' },
 ];
+
+// Fisher-Yates shuffle - ensures true randomization
+const shuffleArray = <T,>(array: T[]): T[] => {
+  const result = [...array];
+  for (let i = result.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [result[i], result[j]] = [result[j], result[i]];
+  }
+  return result;
+};
 
 export const useGameEngine = () => {
   const [gameState, setGameState] = useState<GameState>({
@@ -86,22 +96,29 @@ export const useGameEngine = () => {
       }
     }
 
+    // Use Fisher-Yates shuffle for true randomization
     return {
       question: `${a} ${op} ${b}`,
       answer,
-      options: Array.from(options).sort(() => Math.random() - 0.5),
+      options: shuffleArray(Array.from(options)),
     };
   }, []);
 
   const generateColorQuestion = useCallback((): ColorQuestion => {
-    const shuffledColors = [...COLORS].sort(() => Math.random() - 0.5);
+    // Use Fisher-Yates for proper randomization
+    const shuffledColors = shuffleArray([...COLORS]);
     const wordColor = shuffledColors[0];
     const textColor = shuffledColors[1];
+
+    // Shuffle options again to ensure answer position is random
+    const options = shuffleArray(
+      shuffledColors.slice(0, 4).map(c => ({ label: c.name, color: c.hsl }))
+    );
 
     return {
       word: wordColor.name,
       wordColor: textColor.hsl,
-      options: shuffledColors.slice(0, 4).map(c => ({ label: c.name, color: c.hsl })),
+      options,
       correctColor: textColor.name,
     };
   }, []);
