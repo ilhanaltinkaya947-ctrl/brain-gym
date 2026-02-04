@@ -1,18 +1,19 @@
 import { motion } from 'framer-motion';
-import { Zap, Activity, Settings } from 'lucide-react';
-import { AnimatedBrain } from './AnimatedBrain';
+import { Zap, Activity, Settings, HelpCircle } from 'lucide-react';
+import { BrainVisual } from './BrainVisual';
 
 interface DashboardProps {
   onStartGame: () => void;
   onStartFlashMemory: () => void;
   onOpenSettings: () => void;
+  onOpenOnboarding: () => void;
   brainCharge: number;
   highScore: number;
   flashHighScore: number;
   streak: number;
 }
 
-export const Dashboard = ({ onStartGame, onStartFlashMemory, onOpenSettings }: DashboardProps) => {
+export const Dashboard = ({ onStartGame, onStartFlashMemory, onOpenSettings, onOpenOnboarding }: DashboardProps) => {
   return (
     <div className="h-screen flex flex-col items-center justify-between px-6 py-10 safe-top safe-bottom relative bg-background overflow-hidden">
       {/* Settings Button - Top Right */}
@@ -25,6 +26,18 @@ export const Dashboard = ({ onStartGame, onStartFlashMemory, onOpenSettings }: D
         className="absolute top-6 right-6 p-3 rounded-full bg-muted/30 backdrop-blur-sm text-muted-foreground hover:text-foreground transition-colors border border-border/30 z-10"
       >
         <Settings className="w-5 h-5" />
+      </motion.button>
+
+      {/* Help/Onboarding Button - Top Left */}
+      <motion.button
+        initial={{ opacity: 0, scale: 0.8 }}
+        animate={{ opacity: 1, scale: 1 }}
+        whileHover={{ scale: 1.1 }}
+        whileTap={{ scale: 0.9 }}
+        onClick={onOpenOnboarding}
+        className="absolute top-6 left-6 p-3 rounded-full bg-muted/30 backdrop-blur-sm text-muted-foreground hover:text-foreground transition-colors border border-border/30 z-10"
+      >
+        <HelpCircle className="w-5 h-5" />
       </motion.button>
 
       {/* Header - AXON Branding */}
@@ -65,24 +78,24 @@ export const Dashboard = ({ onStartGame, onStartFlashMemory, onOpenSettings }: D
         </motion.p>
       </motion.div>
 
-      {/* Animated Brain - Hero Element */}
+      {/* Brain Visual - Hero Element */}
       <motion.div
         initial={{ scale: 0.8, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ delay: 0.2, type: "spring", stiffness: 60 }}
         className="flex-1 flex items-center justify-center z-0"
       >
-        <AnimatedBrain />
+        <BrainVisual />
       </motion.div>
 
-      {/* Action Buttons - Brilliant-style micro-interactions */}
+      {/* Action Buttons */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.5 }}
         className="w-full max-w-sm space-y-3 z-10 pb-4"
       >
-        {/* Primary Start Button - Big, juicy, satisfying */}
+        {/* Primary Start Button */}
         <motion.button
           whileHover={{ scale: 1.03, y: -2 }}
           whileTap={{ scale: 0.97, y: 0 }}
@@ -90,7 +103,6 @@ export const Dashboard = ({ onStartGame, onStartFlashMemory, onOpenSettings }: D
           onClick={onStartGame}
           className="w-full py-5 rounded-2xl btn-primary-glow text-lg font-semibold tracking-wide flex items-center justify-center gap-3 relative overflow-hidden group"
         >
-          {/* Shine effect on hover */}
           <motion.div
             className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"
           />
