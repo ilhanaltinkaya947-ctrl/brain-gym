@@ -1,6 +1,6 @@
 import { useCallback, useRef } from 'react';
 
-type SoundType = 'correct' | 'wrong' | 'tick' | 'start' | 'complete' | 'milestone';
+type SoundType = 'correct' | 'wrong' | 'tick' | 'start' | 'complete' | 'milestone' | 'heartbeat';
 
 // C Major Pentatonic Scale - pleasant, never harsh
 const PENTATONIC_SCALE = [
@@ -180,6 +180,39 @@ export const useSounds = () => {
 
       case 'milestone': {
         playMilestoneChord(ctx);
+        break;
+      }
+
+      case 'heartbeat': {
+        // Deep, subtle heartbeat for tension in endless mode
+        const beat1 = ctx.createOscillator();
+        const beat2 = ctx.createOscillator();
+        const gain1 = ctx.createGain();
+        const gain2 = ctx.createGain();
+        
+        beat1.type = 'sine';
+        beat2.type = 'sine';
+        beat1.frequency.setValueAtTime(60, time);
+        beat2.frequency.setValueAtTime(55, time + 0.12);
+        
+        // First thump (louder)
+        gain1.gain.setValueAtTime(0.12, time);
+        gain1.gain.exponentialRampToValueAtTime(0.001, time + 0.1);
+        
+        // Second thump (softer, delayed)
+        gain2.gain.setValueAtTime(0, time);
+        gain2.gain.setValueAtTime(0.08, time + 0.12);
+        gain2.gain.exponentialRampToValueAtTime(0.001, time + 0.22);
+        
+        beat1.connect(gain1);
+        beat2.connect(gain2);
+        gain1.connect(ctx.destination);
+        gain2.connect(ctx.destination);
+        
+        beat1.start(time);
+        beat2.start(time + 0.12);
+        beat1.stop(time + 0.15);
+        beat2.stop(time + 0.3);
         break;
       }
     }
