@@ -5,10 +5,9 @@ import { GameState, getDifficultyTier, getDifficultyLabel } from '../hooks/useGa
 
 // Game Imports
 import { SpeedMath } from './SpeedMath';
-import { ColorMatch } from './ColorMatch';
-import { FlashMemory } from './FlashMemory';
-import { NBackGhost } from './games/NBackGhost';
 import { ParadoxFlow } from './games/ParadoxFlow';
+import { SuitDeception } from './games/SuitDeception';
+import { ChimpMemory } from './games/ChimpMemory';
 import { MathQuestion, ColorQuestion } from '@/hooks/useGameEngine';
 
 interface GameScreenProps {
@@ -95,29 +94,30 @@ export const GameScreen = ({
     switch (gameState.currentGame) {
       case 'speedMath':
         return <SpeedMath generateQuestion={generateMathQuestion} {...commonProps} />;
-      case 'colorMatch':
-        return <ColorMatch generateQuestion={generateColorQuestion} {...commonProps} />;
-      case 'flashMemory':
+      case 'paradox':
         return (
-          <FlashMemory
-            onGameOver={() => onAnswer(false, 0)}
-            playSound={playSound}
-            triggerHaptic={triggerHaptic}
-          />
-        );
-      case 'nBack':
-        return (
-          <NBackGhost
+          <ParadoxFlow
             onAnswer={onAnswer}
             playSound={playSound}
             triggerHaptic={triggerHaptic}
             onScreenShake={handleScreenShake}
-            nBack={gameState.difficulty >= 2 ? 3 : 2}
+            streak={gameState.streak}
+            mode={gameState.mode}
           />
         );
-      case 'paradox':
+      case 'suitDeception':
         return (
-          <ParadoxFlow
+          <SuitDeception
+            onAnswer={onAnswer}
+            playSound={playSound}
+            triggerHaptic={triggerHaptic}
+            onScreenShake={handleScreenShake}
+            streak={gameState.streak}
+          />
+        );
+      case 'chimpMemory':
+        return (
+          <ChimpMemory
             onAnswer={onAnswer}
             playSound={playSound}
             triggerHaptic={triggerHaptic}
@@ -195,15 +195,19 @@ export const GameScreen = ({
         <div className="flex flex-col items-center mt-2">
           <div className="flex items-center gap-2 mb-1">
             <Activity
-              className={`w-3 h-3 ${isOverdrive ? 'text-primary animate-pulse' : 'text-muted-foreground'}`}
+              className={`w-3 h-3 ${currentTier === 5 ? 'text-destructive animate-pulse' : isOverdrive ? 'text-primary animate-pulse' : 'text-muted-foreground'}`}
             />
-            <span className="text-[10px] uppercase tracking-[0.2em] opacity-60 font-medium">
-              Flow State
+            <span className={`text-[10px] uppercase tracking-[0.2em] font-medium ${currentTier === 5 ? 'text-destructive animate-pulse' : 'opacity-60'}`}>
+              {currentTier === 5 ? '⚡ GOD MODE' : 'Flow State'}
             </span>
           </div>
           <span
             className={`font-mono text-3xl font-light tracking-tighter tabular-nums ${
-              isOverdrive ? 'text-primary drop-shadow-[0_0_10px_hsl(var(--primary)/0.6)]' : ''
+              currentTier === 5 
+                ? 'text-destructive drop-shadow-[0_0_15px_hsl(var(--destructive)/0.8)] animate-pulse' 
+                : isOverdrive 
+                ? 'text-primary drop-shadow-[0_0_10px_hsl(var(--primary)/0.6)]' 
+                : ''
             }`}
           >
             x{(gameState.speedMultiplier || 1.0).toFixed(1)}

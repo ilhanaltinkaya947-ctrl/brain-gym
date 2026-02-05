@@ -327,8 +327,8 @@ export const useGameEngine = (initialMode: 'classic' | 'endless' = 'classic') =>
       
       const newDifficulty = Math.floor(newSpeed * 1.5);
 
-      // Game rotation: switch game every 5 correct answers
-      const shouldSwitchGame = isCorrect && (prev.correct + 1) % 5 === 0;
+      // Game rotation: switch game every 3 correct answers for faster variety
+      const shouldSwitchGame = isCorrect && (prev.correct + 1) % 3 === 0;
       const nextGame = shouldSwitchGame ? pickNextGame(prev.currentGame) : prev.currentGame;
 
       return {
