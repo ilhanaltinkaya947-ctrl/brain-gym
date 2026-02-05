@@ -11,6 +11,22 @@ import { ChimpMemory } from './games/ChimpMemory';
 import { CubeCount } from './games/CubeCount';
 import { MathQuestion, ColorQuestion } from '@/hooks/useGameEngine';
 
+// ============================================
+// GAME REGISTRY - Add new games here!
+// ============================================
+// Maps game ID (from engine) directly to the Component.
+// When adding a new game:
+// 1. Import the component above
+// 2. Add entry here: 'gameId': ComponentName
+// ============================================
+const GAMES_MAP: Record<string, React.ComponentType<any>> = {
+  'speedMath': SpeedMath,
+  'paradoxFlow': ParadoxFlow,
+  'suitDeception': SuitDeception,
+  'chimpMemory': ChimpMemory,
+  'cubeCount': CubeCount,
+};
+
 interface GameScreenProps {
   gameState: GameState;
   generateMathQuestion: () => MathQuestion;
@@ -82,8 +98,12 @@ export const GameScreen = ({
     onScreenShake?.();
   };
 
-  // --- RENDER CURRENT GAME ---
+  // --- RENDER CURRENT GAME (Registry Pattern) ---
   const renderCurrentGame = () => {
+    // 1. Get the component from the registry
+    const ActiveGameComponent = GAMES_MAP[gameState.currentGame];
+
+    // 2. Common props for all games
     const commonProps = {
       onAnswer,
       playSound,
@@ -94,20 +114,27 @@ export const GameScreen = ({
       mode: gameState.mode,
     };
 
-    switch (gameState.currentGame) {
-      case 'speedMath':
-        return <SpeedMath generateQuestion={generateMathQuestion} {...commonProps} />;
-      case 'suitDeception':
-        return <SuitDeception {...commonProps} />;
-      case 'chimpMemory':
-        return <ChimpMemory {...commonProps} />;
-      case 'paradoxFlow':
-        return <ParadoxFlow {...commonProps} />;
-      case 'cubeCount':
-        return <CubeCount {...commonProps} />;
-      default:
-        return <SpeedMath generateQuestion={generateMathQuestion} {...commonProps} />;
+    // 3. SAFETY CHECK - Shows visible error for missing games
+    if (!ActiveGameComponent) {
+      return (
+        <div className="flex flex-col items-center justify-center h-full text-center p-6 border-2 border-destructive bg-destructive/10 rounded-xl">
+          <h2 className="text-xl font-bold text-destructive">DEV ERROR: MISSING COMPONENT</h2>
+          <p className="mt-2 text-sm">
+            Engine selected: <span className="font-mono font-bold bg-black/20 px-2 py-1 rounded">{gameState.currentGame}</span>
+          </p>
+          <p className="mt-4 text-xs opacity-70">
+            Add this game to <code className="bg-muted px-1 rounded">GAMES_MAP</code> in GameScreen.tsx
+          </p>
+        </div>
+      );
     }
+
+    // 4. Render the game (SpeedMath needs extra prop)
+    if (gameState.currentGame === 'speedMath') {
+      return <ActiveGameComponent generateQuestion={generateMathQuestion} {...commonProps} />;
+    }
+
+    return <ActiveGameComponent {...commonProps} />;
   };
 
   return (
