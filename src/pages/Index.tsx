@@ -99,12 +99,19 @@ const Index = () => {
     };
   });
 
-  // Game configuration
+  // Game configuration - always merge with defaults to ensure new games are included
   const [gameConfig, setGameConfig] = useState<GameConfig>(() => {
     const saved = localStorage.getItem('neuroflow-config');
     if (saved) {
       try {
-        return JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        // Merge saved enabled games with ALL mixable games to ensure new games appear
+        const mergedGames = [...new Set([...MIXABLE_GAMES, ...(parsed.enabledGames || [])])];
+        return {
+          ...DEFAULT_CONFIG,
+          ...parsed,
+          enabledGames: mergedGames.filter(g => MIXABLE_GAMES.includes(g)) as MiniGameType[],
+        };
       } catch {
         return DEFAULT_CONFIG;
       }

@@ -49,9 +49,11 @@ export const MixedGameScreen = ({
   bestStreak,
   startTier = 1,
 }: MixedGameScreenProps) => {
+  // Always use MIXABLE_GAMES directly for random game selection to ensure new games appear
   const [currentGame, setCurrentGame] = useState<MiniGameType>(() => {
-    const mixable = enabledGames.filter(g => MIXABLE_GAMES.includes(g));
-    return mixable[Math.floor(Math.random() * mixable.length)];
+    // Use MIXABLE_GAMES directly, not enabledGames which might be stale from localStorage
+    const games = MIXABLE_GAMES;
+    return games[Math.floor(Math.random() * games.length)];
   });
   const [score, setScore] = useState(0);
   const [streak, setStreakState] = useState(() => {
@@ -200,13 +202,14 @@ export const MixedGameScreen = ({
   }, []);
 
   const selectNextGame = useCallback(() => {
-    const mixable = enabledGames.filter(g => MIXABLE_GAMES.includes(g));
+    // Always use MIXABLE_GAMES directly for consistent game rotation
+    const mixable = MIXABLE_GAMES;
     if (mixable.length > 1) {
       const others = mixable.filter(g => g !== currentGame);
       return others[Math.floor(Math.random() * others.length)];
     }
     return currentGame;
-  }, [enabledGames, currentGame]);
+  }, [currentGame]);
 
   const handleAnswer = useCallback((isCorrect: boolean, speedBonus: number = 0, tier: number = 1) => {
     const responseTime = Date.now() - questionStartTimeRef.current;
