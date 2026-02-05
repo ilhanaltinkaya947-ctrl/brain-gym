@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Zap, Settings, HelpCircle, Star } from 'lucide-react';
+ import { Zap, Settings, HelpCircle, Star } from 'lucide-react';
 import { BrainVisual } from './BrainVisual';
 import { StreakFire } from './StreakFire';
 
@@ -54,30 +54,7 @@ export const Dashboard = ({ onStartGame, onOpenSettings, onOpenOnboarding, total
         animate={{ opacity: 1, y: 0 }}
         className="text-center z-10 pt-4 w-full"
       >
-        <div className="flex items-center justify-center gap-6">
-          {/* AXON Logo and Title */}
-          <motion.div 
-            className="flex items-center gap-3"
-            whileHover={{ scale: 1.02 }}
-          >
-            <motion.div
-              animate={{ 
-                boxShadow: [
-                  '0 0 20px hsl(25 90% 55% / 0.3)',
-                  '0 0 35px hsl(25 90% 55% / 0.5)',
-                  '0 0 20px hsl(25 90% 55% / 0.3)',
-                ]
-              }}
-              transition={{ duration: 2, repeat: Infinity }}
-              className="w-8 h-8 rounded-lg bg-gradient-to-br from-bio-orange to-bio-gold flex items-center justify-center"
-            >
-              <Zap className="w-5 h-5 text-black" />
-            </motion.div>
-            <h1 className="text-3xl font-black tracking-widest">
-              <span className="text-gradient-speed">AXON</span>
-            </h1>
-          </motion.div>
-
+         <div className="flex items-center justify-center gap-4">
           {/* Streak Fire */}
           <StreakFire streak={streak} />
 
@@ -93,15 +70,6 @@ export const Dashboard = ({ onStartGame, onOpenSettings, onOpenOnboarding, total
             </motion.div>
           )}
         </div>
-
-        <motion.p 
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.3 }}
-          className="text-muted-foreground text-[9px] font-medium uppercase tracking-[0.4em] mt-2"
-        >
-          Train Your Neural Pathways
-        </motion.p>
       </motion.div>
 
       {/* Brain Visual - Hero Element */}
