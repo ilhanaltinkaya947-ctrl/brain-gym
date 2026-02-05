@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef } from 'react';
 
-export type GameType = 'speedMath' | 'colorMatch' | 'flashMemory' | 'nBack' | 'paradox';
+export type GameType = 'speedMath' | 'colorMatch' | 'flashMemory' | 'nBack' | 'paradox' | 'suitDeception' | 'chimpMemory';
 
 export interface GameState {
   score: number;
@@ -31,8 +31,9 @@ export interface ColorQuestion {
   correctColor: string;
 }
 
-// Game rotation configuration - colorMatch removed (too primitive)
-const ENABLED_GAMES: GameType[] = ['speedMath', 'paradox', 'nBack', 'flashMemory'];
+// Game rotation configuration - focused on high cognitive load
+// nBackGhost replaced with suitDeception, flashMemory replaced with chimpMemory
+const ENABLED_GAMES: GameType[] = ['speedMath', 'paradox', 'suitDeception', 'chimpMemory'];
 const TOTAL_GAME_TIME = 180; // 3 minutes for Classic mode
 
 const COLORS = [
