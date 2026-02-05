@@ -334,16 +334,18 @@ export const MixedGameScreen = ({
             onScreenShake={handleScreenShake}
           />
         );
-      case 'suitDeception':
+      case 'suitDeception': {
+        const calculatedTier = streak < 6 ? 1 : streak < 13 ? 2 : streak < 21 ? 3 : streak < 31 ? 4 : 5;
         return (
           <SuitDeception
+            tier={calculatedTier}
+            streak={streak}
             onAnswer={handleAnswer}
             playSound={playSound}
             triggerHaptic={triggerHaptic}
-            onScreenShake={handleScreenShake}
-            streak={streak}
           />
         );
+      }
       case 'chimpMemory':
         return (
           <ChimpMemory

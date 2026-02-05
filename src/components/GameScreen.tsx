@@ -108,11 +108,11 @@ export const GameScreen = ({
       case 'suitDeception':
         return (
           <SuitDeception
+            tier={currentTier}
+            streak={gameState.streak}
             onAnswer={onAnswer}
             playSound={playSound}
             triggerHaptic={triggerHaptic}
-            onScreenShake={handleScreenShake}
-            streak={gameState.streak}
           />
         );
       case 'chimpMemory':
