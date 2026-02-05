@@ -89,44 +89,20 @@ export const GameScreen = ({
       triggerHaptic,
       streak: gameState.streak,
       onScreenShake: handleScreenShake,
+      tier: currentTier,
+      mode: gameState.mode,
     };
 
     switch (gameState.currentGame) {
       case 'speedMath':
         return <SpeedMath generateQuestion={generateMathQuestion} {...commonProps} />;
-      case 'paradoxFlow':
-        return (
-          <ParadoxFlow
-            onAnswer={onAnswer}
-            playSound={playSound}
-            triggerHaptic={triggerHaptic}
-            onScreenShake={handleScreenShake}
-            streak={gameState.streak}
-            mode={gameState.mode}
-          />
-        );
       case 'suitDeception':
-        return (
-          <SuitDeception
-            tier={currentTier}
-            streak={gameState.streak}
-            onAnswer={onAnswer}
-            playSound={playSound}
-            triggerHaptic={triggerHaptic}
-          />
-        );
+        return <SuitDeception {...commonProps} />;
       case 'chimpMemory':
-        return (
-          <ChimpMemory
-            tier={currentTier}
-            streak={gameState.streak}
-            onAnswer={onAnswer}
-            playSound={playSound}
-            triggerHaptic={triggerHaptic}
-          />
-        );
+        return <ChimpMemory {...commonProps} />;
+      case 'paradoxFlow':
+        return <ParadoxFlow {...commonProps} />;
       default:
-        // Default to random game from enabled list
         return <SpeedMath generateQuestion={generateMathQuestion} {...commonProps} />;
     }
   };
