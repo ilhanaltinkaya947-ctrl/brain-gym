@@ -169,20 +169,24 @@ export const GameScreen = ({
           >
             <X className="w-6 h-6" />
           </button>
-          {/* Difficulty Level Indicator */}
+          {/* Difficulty Level Indicator - 5 Tiers with color progression */}
           <motion.div
             key={difficultyLabel}
             initial={{ scale: 0.8, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            className={`mt-2 flex items-center gap-1.5 px-2 py-1 rounded-full ${
-              currentTier === 4 
-                ? 'bg-destructive/20 text-destructive' 
-                : currentTier >= 3 
+            className={`mt-2 flex items-center gap-1.5 px-2.5 py-1 rounded-full ${
+              currentTier === 5 
+                ? 'bg-gradient-to-r from-destructive/30 to-primary/30 text-destructive animate-pulse' 
+                : currentTier === 4 
+                ? 'bg-destructive/20 text-destructive'
+                : currentTier === 3 
                 ? 'bg-primary/20 text-primary'
+                : currentTier === 2
+                ? 'bg-accent/20 text-accent-foreground'
                 : 'bg-muted/30 text-muted-foreground'
             }`}
           >
-            <Zap className={`w-3 h-3 ${currentTier === 4 ? 'animate-pulse' : ''}`} />
+            <Zap className={`w-3 h-3 ${currentTier >= 4 ? 'animate-pulse' : ''}`} />
             <span className="text-[10px] font-bold uppercase tracking-wider tabular-nums">
               {difficultyLabel}
             </span>
