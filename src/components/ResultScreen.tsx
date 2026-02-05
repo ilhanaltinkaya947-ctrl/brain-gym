@@ -10,6 +10,8 @@ interface ResultScreenProps {
   isNewHighScore: boolean;
   onPlayAgain: () => void;
   onGoHome: () => void;
+  xpGained?: number;
+  totalXP?: number;
 }
 
 export const ResultScreen = ({
@@ -19,6 +21,8 @@ export const ResultScreen = ({
   isNewHighScore,
   onPlayAgain,
   onGoHome,
+  xpGained = 0,
+  totalXP = 0,
 }: ResultScreenProps) => {
   const [displayScore, setDisplayScore] = useState(0);
   const accuracy = correct + wrong > 0 ? Math.round((correct / (correct + wrong)) * 100) : 0;
@@ -129,6 +133,24 @@ export const ResultScreen = ({
           {displayScore.toLocaleString()}
         </motion.div>
       </motion.div>
+
+      {/* XP Gained */}
+      {xpGained > 0 && (
+        <motion.div
+          initial={{ opacity: 0, scale: 0 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.5, type: "spring" }}
+          className="mb-6"
+        >
+          <div className="flex items-center gap-3 px-6 py-3 rounded-2xl bg-neon-gold/10 border border-neon-gold/30">
+            <Star className="w-6 h-6 text-neon-gold fill-neon-gold" />
+            <div className="flex flex-col">
+              <span className="text-neon-gold font-black text-2xl">+{xpGained} XP</span>
+              <span className="text-xs text-muted-foreground">Total: {totalXP.toLocaleString()} XP</span>
+            </div>
+          </div>
+        </motion.div>
+      )}
 
       {/* Stats Grid */}
       <motion.div

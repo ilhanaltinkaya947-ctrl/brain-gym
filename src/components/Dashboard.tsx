@@ -1,20 +1,27 @@
 import { motion } from 'framer-motion';
-import { Zap, Activity, Settings, HelpCircle } from 'lucide-react';
+import { Zap, Settings, HelpCircle, Star } from 'lucide-react';
 import { BrainVisual } from './BrainVisual';
 import { StreakFire } from './StreakFire';
 
 interface DashboardProps {
   onStartGame: () => void;
-  onStartFlashMemory: () => void;
   onOpenSettings: () => void;
   onOpenOnboarding: () => void;
   brainCharge: number;
   highScore: number;
-  flashHighScore: number;
+  totalXP: number;
   streak: number;
 }
 
-export const Dashboard = ({ onStartGame, onStartFlashMemory, onOpenSettings, onOpenOnboarding, streak }: DashboardProps) => {
+export const Dashboard = ({ onStartGame, onOpenSettings, onOpenOnboarding, totalXP, streak }: DashboardProps) => {
+  // Format XP for display
+  const formatXP = (xp: number) => {
+    if (xp >= 1000) {
+      return `${(xp / 1000).toFixed(1)}k`;
+    }
+    return xp.toString();
+  };
+
   return (
     <div className="h-screen flex flex-col items-center justify-between px-6 py-10 safe-top safe-bottom relative bg-background overflow-hidden">
       {/* Settings Button - Top Right */}
@@ -73,6 +80,18 @@ export const Dashboard = ({ onStartGame, onStartFlashMemory, onOpenSettings, onO
 
           {/* Streak Fire */}
           <StreakFire streak={streak} />
+
+          {/* XP Display */}
+          {totalXP > 0 && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-neon-gold/10 border border-neon-gold/30"
+            >
+              <Star className="w-3.5 h-3.5 text-neon-gold fill-neon-gold" />
+              <span className="text-xs font-bold text-neon-gold">{formatXP(totalXP)} XP</span>
+            </motion.div>
+          )}
         </div>
 
         <motion.p 
@@ -120,18 +139,6 @@ export const Dashboard = ({ onStartGame, onStartFlashMemory, onOpenSettings, onO
             <Zap className="w-5 h-5" />
           </motion.div>
           Start Training
-        </motion.button>
-
-        {/* Secondary Flash Memory Button */}
-        <motion.button
-          whileHover={{ scale: 1.02, y: -1 }}
-          whileTap={{ scale: 0.98, y: 0 }}
-          transition={{ type: 'spring', stiffness: 400, damping: 15 }}
-          onClick={onStartFlashMemory}
-          className="w-full py-4 rounded-xl btn-secondary-glow text-base font-medium tracking-wide flex items-center justify-center gap-3"
-        >
-          <Activity className="w-4 h-4" />
-          Flash Memory
         </motion.button>
       </motion.div>
     </div>
