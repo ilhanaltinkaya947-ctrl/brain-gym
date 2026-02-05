@@ -8,6 +8,7 @@ import { SpeedMath } from './SpeedMath';
 import { ParadoxFlow } from './games/ParadoxFlow';
 import { SuitDeception } from './games/SuitDeception';
 import { ChimpMemory } from './games/ChimpMemory';
+import { CubeCount } from './games/CubeCount';
 import { MathQuestion, ColorQuestion } from '@/hooks/useGameEngine';
 
 interface GameScreenProps {
@@ -102,6 +103,8 @@ export const GameScreen = ({
         return <ChimpMemory {...commonProps} />;
       case 'paradoxFlow':
         return <ParadoxFlow {...commonProps} />;
+      case 'cubeCount':
+        return <CubeCount {...commonProps} />;
       default:
         return <SpeedMath generateQuestion={generateMathQuestion} {...commonProps} />;
     }
