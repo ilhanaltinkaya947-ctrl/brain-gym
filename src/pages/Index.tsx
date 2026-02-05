@@ -248,19 +248,21 @@ const Index = () => {
     ? userStats.classicHighScore 
     : userStats.endlessBestStreak;
 
-  return (
-    <div className="min-h-screen overflow-hidden relative">
-      <NeuralBackground />
-      
-      <AnimatePresence mode="wait">
-         {showSplash && (
-           <SplashScreen
-             key="splash"
-             onComplete={() => setShowSplash(false)}
-           />
-         )}
+   // Splash screen - early return for cleaner architecture
+   if (showSplash) {
+     return (
+       <AnimatePresence>
+         <SplashScreen onComplete={() => setShowSplash(false)} />
+       </AnimatePresence>
+     );
+   }
  
-         {!showSplash && currentScreen === 'dashboard' && (
+   return (
+     <div className="min-h-screen overflow-hidden relative">
+       <NeuralBackground />
+       
+       <AnimatePresence mode="wait">
+         {currentScreen === 'dashboard' && (
           <motion.div
             key="dashboard"
             initial={{ opacity: 0 }}
@@ -280,7 +282,7 @@ const Index = () => {
           </motion.div>
         )}
 
-         {!showSplash && currentScreen === 'game' && (
+         {currentScreen === 'game' && (
           <motion.div
             key="game"
             initial={{ opacity: 0, x: 100 }}
@@ -305,7 +307,7 @@ const Index = () => {
           </motion.div>
         )}
 
-         {!showSplash && currentScreen === 'result' && (
+         {currentScreen === 'result' && (
           <motion.div
             key="result"
             initial={{ opacity: 0, scale: 0.9 }}
