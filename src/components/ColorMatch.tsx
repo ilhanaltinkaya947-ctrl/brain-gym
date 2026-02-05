@@ -5,7 +5,7 @@ import { ColorQuestion } from '../hooks/useGameEngine';
 
 interface ColorMatchProps {
   generateQuestion: () => ColorQuestion;
-  onAnswer: (correct: boolean, speedBonus: number) => void;
+  onAnswer: (correct: boolean, speedBonus: number, tier?: number) => void;
   playSound: (type: 'correct' | 'wrong' | 'tick') => void;
   triggerHaptic: (type: 'light' | 'medium' | 'heavy') => void;
   streak: number;
@@ -40,7 +40,9 @@ export const ColorMatch = ({
     const interval = setInterval(() => {
       setTimeLeft(prev => {
         if (prev <= 100) {
-          onAnswer(false, 0);
+          // Color match is considered tier 1-2 based on reaction speed
+          const tier = streak >= 10 ? 2 : 1;
+          onAnswer(false, 0, tier);
           playSound('wrong');
           triggerHaptic('heavy');
           setIsShaking(true);
@@ -58,7 +60,7 @@ export const ColorMatch = ({
     }, 100);
 
     return () => clearInterval(interval);
-  }, [question, onAnswer, playSound, triggerHaptic, nextQuestion]);
+  }, [question, onAnswer, playSound, triggerHaptic, nextQuestion, streak]);
 
   const triggerConfetti = (event: React.MouseEvent) => {
     const rect = (event.target as HTMLElement).getBoundingClientRect();
@@ -96,7 +98,9 @@ export const ColorMatch = ({
       setTimeout(() => setIsShaking(false), 500);
     }
 
-    onAnswer(isCorrect, speedBonus);
+    // Color match tier based on streak
+    const tier = streak >= 10 ? 2 : 1;
+    onAnswer(isCorrect, speedBonus, tier);
     setTimeout(() => nextQuestion(), 100);
   };
 

@@ -196,7 +196,7 @@ export const MixedGameScreen = ({
     return currentGame;
   }, [enabledGames, currentGame]);
 
-  const handleAnswer = useCallback((isCorrect: boolean, speedBonus: number = 0) => {
+  const handleAnswer = useCallback((isCorrect: boolean, speedBonus: number = 0, tier: number = 1) => {
     const responseTime = Date.now() - questionStartTimeRef.current;
     
     // Process through adaptive engine
@@ -205,8 +205,9 @@ export const MixedGameScreen = ({
     if (isCorrect) {
       const streakMultiplier = Math.min(1 + streak * 0.1, 2);
       const speedMultiplier = adaptiveState.gameSpeed;
+      const tierMultiplier = tier === 1 ? 1 : tier === 2 ? 1.5 : tier === 3 ? 2.5 : 3;
       const basePoints = 10 + speedBonus;
-      const points = Math.floor(basePoints * streakMultiplier * speedMultiplier);
+      const points = Math.floor(basePoints * streakMultiplier * speedMultiplier * tierMultiplier);
       
       setScore(prev => prev + points);
       setStreakState(prev => prev + 1);
@@ -216,7 +217,8 @@ export const MixedGameScreen = ({
       setCurrentGame(selectNextGame());
     } else {
       if (mode === 'endless') {
-        // Sudden death - game over immediately
+        // Sudden death - increment wrong before game over
+        setWrong(prev => prev + 1);
         setIsGameOver(true);
         return;
       }
@@ -267,6 +269,8 @@ export const MixedGameScreen = ({
             triggerHaptic={triggerHaptic}
             onScreenShake={handleScreenShake}
             followChance={gameParams.followChance}
+            streak={streak}
+            mode={mode}
           />
         );
       case 'patternHunter':

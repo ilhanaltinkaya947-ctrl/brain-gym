@@ -5,7 +5,7 @@ import { MathQuestion } from '../hooks/useGameEngine';
 
 interface SpeedMathProps {
   generateQuestion: () => MathQuestion;
-  onAnswer: (correct: boolean, speedBonus: number) => void;
+  onAnswer: (correct: boolean, speedBonus: number, tier?: number) => void;
   playSound: (type: 'correct' | 'wrong' | 'tick') => void;
   triggerHaptic: (type: 'light' | 'medium' | 'heavy') => void;
   streak: number;
@@ -40,7 +40,7 @@ export const SpeedMath = ({
     const interval = setInterval(() => {
       setTimeLeft(prev => {
         if (prev <= 100) {
-          onAnswer(false, 0);
+          onAnswer(false, 0, question.tier || 1);
           playSound('wrong');
           triggerHaptic('heavy');
           setIsShaking(true);
@@ -96,7 +96,7 @@ export const SpeedMath = ({
       setTimeout(() => setIsShaking(false), 500);
     }
 
-    onAnswer(isCorrect, speedBonus);
+    onAnswer(isCorrect, speedBonus, question.tier || 1);
     setTimeout(() => nextQuestion(), 100);
   };
 

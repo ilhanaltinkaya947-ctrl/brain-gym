@@ -21,6 +21,7 @@ export interface MathQuestion {
   question: string;
   answer: number;
   options: number[];
+  tier?: number; // Difficulty tier for scoring
 }
 
 export interface ColorQuestion {
@@ -41,6 +42,9 @@ const COLORS = [
   { name: 'YELLOW', hsl: 'hsl(45, 90%, 55%)' },
 ];
 
+// Perfect squares for tier 3
+const PERFECT_SQUARES = [4, 9, 16, 25, 36, 49, 64, 81, 100, 121, 144, 169, 196, 225];
+
 // Fisher-Yates shuffle - ensures true randomization
 const shuffleArray = <T,>(array: T[]): T[] => {
   const result = [...array];
@@ -49,6 +53,28 @@ const shuffleArray = <T,>(array: T[]): T[] => {
     [result[i], result[j]] = [result[j], result[i]];
   }
   return result;
+};
+
+// Calculate difficulty tier based on streak and mode
+export const getDifficultyTier = (streak: number, mode: 'classic' | 'endless'): number => {
+  // Endless ramps up faster
+  const multiplier = mode === 'endless' ? 1.5 : 1;
+  const effectiveStreak = Math.floor(streak * multiplier);
+  
+  if (effectiveStreak < 5) return 1;
+  if (effectiveStreak < 12) return 2;
+  if (effectiveStreak < 20) return 3;
+  return 4; // MAX difficulty
+};
+
+export const getDifficultyLabel = (tier: number): string => {
+  switch (tier) {
+    case 1: return 'LVL 1';
+    case 2: return 'LVL 2';
+    case 3: return 'LVL 3';
+    case 4: return 'MAX';
+    default: return 'LVL 1';
+  }
 };
 
 export const useGameEngine = (initialMode: 'classic' | 'endless' = 'classic') => {
@@ -76,35 +102,98 @@ export const useGameEngine = (initialMode: 'classic' | 'endless' = 'classic') =>
   }, []);
 
   const generateMathQuestion = useCallback((): MathQuestion => {
-    const operations = ['+', '-', '×'];
-    const op = operations[Math.floor(Math.random() * operations.length)];
-    let a: number, b: number, answer: number;
+    const tier = getDifficultyTier(gameState.streak, gameState.mode);
+    let question: string;
+    let answer: number;
 
-    switch (op) {
-      case '+':
-        a = Math.floor(Math.random() * 50) + 5;
-        b = Math.floor(Math.random() * 50) + 5;
+    if (tier === 1) {
+      // TIER 1: Simple addition/subtraction (1-50)
+      const ops = ['+', '-'];
+      const op = ops[Math.floor(Math.random() * ops.length)];
+      const a = Math.floor(Math.random() * 45) + 5;
+      const b = Math.floor(Math.random() * 40) + 5;
+      if (op === '+') {
         answer = a + b;
-        break;
-      case '-':
-        a = Math.floor(Math.random() * 50) + 30;
-        b = Math.floor(Math.random() * 30) + 5;
-        answer = a - b;
-        break;
-      case '×':
-        a = Math.floor(Math.random() * 12) + 2;
-        b = Math.floor(Math.random() * 12) + 2;
+        question = `${a} + ${b}`;
+      } else {
+        const larger = Math.max(a, b);
+        const smaller = Math.min(a, b);
+        answer = larger - smaller;
+        question = `${larger} - ${smaller}`;
+      }
+    } else if (tier === 2) {
+      // TIER 2: Multiplication (up to 12x12) & three-number addition
+      const questionType = Math.random();
+      if (questionType < 0.5) {
+        // Multiplication
+        const a = Math.floor(Math.random() * 11) + 2;
+        const b = Math.floor(Math.random() * 11) + 2;
         answer = a * b;
-        break;
-      default:
-        a = 10;
-        b = 5;
-        answer = 15;
+        question = `${a} × ${b}`;
+      } else {
+        // Three-number addition
+        const a = Math.floor(Math.random() * 30) + 10;
+        const b = Math.floor(Math.random() * 30) + 10;
+        const c = Math.floor(Math.random() * 20) + 5;
+        answer = a + b + c;
+        question = `${a} + ${b} + ${c}`;
+      }
+    } else if (tier === 3) {
+      // TIER 3: Square roots & simple algebra
+      const questionType = Math.random();
+      if (questionType < 0.4) {
+        // Square root
+        const square = PERFECT_SQUARES[Math.floor(Math.random() * PERFECT_SQUARES.length)];
+        answer = Math.sqrt(square);
+        question = `√${square}`;
+      } else if (questionType < 0.7) {
+        // Simple algebra: ax + b = c, find x
+        const x = Math.floor(Math.random() * 10) + 2;
+        const a = Math.floor(Math.random() * 5) + 2;
+        const b = Math.floor(Math.random() * 20) - 10;
+        const c = a * x + b;
+        answer = x;
+        question = b >= 0 ? `${a}x + ${b} = ${c}` : `${a}x - ${Math.abs(b)} = ${c}`;
+      } else {
+        // Large multiplication
+        const a = Math.floor(Math.random() * 20) + 10;
+        const b = Math.floor(Math.random() * 12) + 2;
+        answer = a * b;
+        question = `${a} × ${b}`;
+      }
+    } else {
+      // TIER 4 (MAX): Complex operations
+      const questionType = Math.random();
+      if (questionType < 0.3) {
+        // Division with clean results
+        const divisor = Math.floor(Math.random() * 10) + 2;
+        const quotient = Math.floor(Math.random() * 15) + 5;
+        const dividend = divisor * quotient;
+        answer = quotient;
+        question = `${dividend} ÷ ${divisor}`;
+      } else if (questionType < 0.6) {
+        // Two-step algebra: (a × x) - b = c
+        const x = Math.floor(Math.random() * 12) + 3;
+        const a = Math.floor(Math.random() * 6) + 2;
+        const b = Math.floor(Math.random() * 30) + 5;
+        const c = (a * x) - b;
+        answer = x;
+        question = `(${a} × x) - ${b} = ${c}`;
+      } else {
+        // Large three-number operations
+        const a = Math.floor(Math.random() * 100) + 100;
+        const b = Math.floor(Math.random() * 80) + 20;
+        const c = Math.floor(Math.random() * 50) + 10;
+        answer = a - b + c;
+        question = `${a} - ${b} + ${c}`;
+      }
     }
 
+    // Generate wrong options based on tier
     const options = new Set<number>([answer]);
+    const variance = tier <= 2 ? 10 : tier === 3 ? 15 : 20;
     while (options.size < 4) {
-      const offset = Math.floor(Math.random() * 20) - 10;
+      const offset = Math.floor(Math.random() * variance * 2) - variance;
       const wrongAnswer = answer + offset;
       if (wrongAnswer !== answer && wrongAnswer > 0) {
         options.add(wrongAnswer);
@@ -112,11 +201,12 @@ export const useGameEngine = (initialMode: 'classic' | 'endless' = 'classic') =>
     }
 
     return {
-      question: `${a} ${op} ${b}`,
+      question,
       answer,
       options: shuffleArray(Array.from(options)),
+      tier, // Include tier for scoring
     };
-  }, []);
+  }, [gameState.streak, gameState.mode]);
 
   const generateColorQuestion = useCallback((): ColorQuestion => {
     const shuffledColors = shuffleArray([...COLORS]);
@@ -168,23 +258,25 @@ export const useGameEngine = (initialMode: 'classic' | 'endless' = 'classic') =>
     }, 1000);
   }, []);
 
-  const submitAnswer = useCallback((isCorrect: boolean, speedBonus: number = 0) => {
+  const submitAnswer = useCallback((isCorrect: boolean, speedBonus: number = 0, tier: number = 1) => {
     setGameState(prev => {
-      // End Endless mode on wrong answer
+      // End Endless mode on wrong answer - increment wrong BEFORE stopping
       if (!isCorrect && prev.mode === 'endless') {
         if (timerRef.current) clearInterval(timerRef.current);
         return { 
           ...prev, 
-          wrong: prev.wrong + 1, 
+          wrong: prev.wrong + 1,
+          totalQuestions: prev.totalQuestions + 1,
           lastResult: 'wrong', 
           isRunning: false 
         };
       }
 
-      // Score calculation (quality over quantity)
+      // Tier-based scoring: Hard tasks give 3x more points
+      const tierMultiplier = tier === 1 ? 1 : tier === 2 ? 1.5 : tier === 3 ? 2.5 : 3;
       const streakMultiplier = Math.min(1 + prev.streak * 0.1, 3.0);
       const difficultyBonus = prev.difficulty * 5;
-      const basePoints = isCorrect ? (10 + speedBonus * 20 + difficultyBonus) : -25;
+      const basePoints = isCorrect ? (10 + speedBonus * 20 + difficultyBonus) * tierMultiplier : -25;
       const points = Math.floor(basePoints * (isCorrect ? streakMultiplier : 1));
       
       // Adaptive difficulty and speed

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Activity, Trophy } from 'lucide-react';
-import { GameState } from '../hooks/useGameEngine';
+import { X, Activity, Trophy, Zap } from 'lucide-react';
+import { GameState, getDifficultyTier, getDifficultyLabel } from '../hooks/useGameEngine';
 
 // Game Imports
 import { SpeedMath } from './SpeedMath';
@@ -15,7 +15,7 @@ interface GameScreenProps {
   gameState: GameState;
   generateMathQuestion: () => MathQuestion;
   generateColorQuestion: () => ColorQuestion;
-  onAnswer: (correct: boolean, speedBonus: number) => void;
+  onAnswer: (correct: boolean, speedBonus: number, tier?: number) => void;
   onQuit: () => void;
   playSound: (type: 'correct' | 'wrong' | 'tick' | 'heatup' | 'lose' | 'complete') => void;
   triggerHaptic: (type: 'light' | 'medium' | 'heavy') => void;
@@ -36,6 +36,8 @@ export const GameScreen = ({
   bestScore,
   onScreenShake,
 }: GameScreenProps) => {
+  const currentTier = getDifficultyTier(gameState.streak, gameState.mode);
+  const difficultyLabel = getDifficultyLabel(currentTier);
   const [isScreenShaking, setIsScreenShaking] = useState(false);
   const [showComboText, setShowComboText] = useState(false);
   const [showRedFlash, setShowRedFlash] = useState(false);
@@ -120,6 +122,8 @@ export const GameScreen = ({
             playSound={playSound}
             triggerHaptic={triggerHaptic}
             onScreenShake={handleScreenShake}
+            streak={gameState.streak}
+            mode={gameState.mode}
           />
         );
       default:
@@ -158,12 +162,32 @@ export const GameScreen = ({
 
       {/* --- HUD HEADER --- */}
       <div className="safe-top px-6 pt-6 pb-2 flex justify-between items-start z-20">
-        <button
-          onClick={onQuit}
-          className="p-2 -ml-2 opacity-50 hover:opacity-100 transition-opacity rounded-full hover:bg-muted/20"
-        >
-          <X className="w-6 h-6" />
-        </button>
+        <div className="flex flex-col items-start">
+          <button
+            onClick={onQuit}
+            className="p-2 -ml-2 opacity-50 hover:opacity-100 transition-opacity rounded-full hover:bg-muted/20"
+          >
+            <X className="w-6 h-6" />
+          </button>
+          {/* Difficulty Level Indicator */}
+          <motion.div
+            key={difficultyLabel}
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className={`mt-2 flex items-center gap-1.5 px-2 py-1 rounded-full ${
+              currentTier === 4 
+                ? 'bg-destructive/20 text-destructive' 
+                : currentTier >= 3 
+                ? 'bg-primary/20 text-primary'
+                : 'bg-muted/30 text-muted-foreground'
+            }`}
+          >
+            <Zap className={`w-3 h-3 ${currentTier === 4 ? 'animate-pulse' : ''}`} />
+            <span className="text-[10px] font-bold uppercase tracking-wider tabular-nums">
+              {difficultyLabel}
+            </span>
+          </motion.div>
+        </div>
         <div className="flex flex-col items-center mt-2">
           <div className="flex items-center gap-2 mb-1">
             <Activity
