@@ -1,12 +1,13 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Dashboard } from '../components/Dashboard';
- import { SplashScreen } from '../components/SplashScreen';
+import { SplashScreen } from '../components/SplashScreen';
 import { MixedGameScreen } from '../components/MixedGameScreen';
 import { ResultScreen } from '../components/ResultScreen';
 import { NeuralBackground } from '../components/NeuralBackground';
 import { SettingsModal, AppSettings } from '../components/SettingsModal';
 import { OnboardingFlow } from '../components/OnboardingFlow';
+import { ModeSelectionOverlay } from '../components/ModeSelectionOverlay';
 import { useGameEngine } from '../hooks/useGameEngine';
 import { useSounds } from '../hooks/useSounds';
 import { GameConfig, DEFAULT_CONFIG, MiniGameType, MIXABLE_GAMES } from '@/types/game';
@@ -51,10 +52,11 @@ const DEFAULT_SETTINGS: AppSettings = {
 };
 
 const Index = () => {
-   const [showSplash, setShowSplash] = useState(true);
+  const [showSplash, setShowSplash] = useState(true);
   const [currentScreen, setCurrentScreen] = useState<Screen>('dashboard');
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [onboardingOpen, setOnboardingOpen] = useState(false);
+  const [modeSelectionOpen, setModeSelectionOpen] = useState(false);
   
   // App settings
   const [appSettings, setAppSettings] = useState<AppSettings>(() => {
@@ -118,6 +120,9 @@ const Index = () => {
   const [isNewHighScore, setIsNewHighScore] = useState(false);
   const [wasEndlessMode, setWasEndlessMode] = useState(false);
   const [lastXPGained, setLastXPGained] = useState(0);
+  const [lastSessionDuration, setLastSessionDuration] = useState(0);
+  const [gameStartTime, setGameStartTime] = useState<number>(0);
+  const [lastPreviousBest, setLastPreviousBest] = useState(0);
 
   // Derived state: brain charge based on today's play
   const brainCharge = useMemo(() => {
@@ -156,14 +161,35 @@ const Index = () => {
   };
 
   const handleStartGame = () => {
+    playSound('tick');
+    triggerHaptic('light');
+    setModeSelectionOpen(true);
+  };
+
+  const handleSelectMode = (mode: 'classic' | 'endless') => {
     playSound('start');
     triggerHaptic('medium');
+    setModeSelectionOpen(false);
+    
+    // Update game config with selected mode
+    setGameConfig(prev => ({ ...prev, mode }));
+    
+    // Record game start time for duration tracking
+    setGameStartTime(Date.now());
+    
+    // Store previous best for comparison
+    setLastPreviousBest(mode === 'classic' ? userStats.classicHighScore : userStats.endlessBestStreak);
+    
     setCurrentScreen('game');
   };
 
   const handleGameEnd = useCallback((score: number, streak: number, correct: number, wrong: number) => {
     const isEndlessLoss = gameConfig.mode === 'endless' && wrong > 0;
     setWasEndlessMode(gameConfig.mode === 'endless');
+    
+    // Calculate session duration
+    const sessionDuration = Math.floor((Date.now() - gameStartTime) / 1000);
+    setLastSessionDuration(sessionDuration);
     
     if (isEndlessLoss) {
       playSound('lose');
@@ -229,13 +255,15 @@ const Index = () => {
     });
 
     setCurrentScreen('result');
-  }, [gameConfig.mode, playSound, triggerHaptic]);
+  }, [gameConfig.mode, gameStartTime, playSound, triggerHaptic]);
 
   const handleQuit = () => {
     setCurrentScreen('dashboard');
   };
 
   const handlePlayAgain = () => {
+    // Record new game start time
+    setGameStartTime(Date.now());
     setCurrentScreen('game');
   };
 
@@ -325,7 +353,8 @@ const Index = () => {
               xpGained={lastXPGained}
               totalXP={userStats.totalXP}
               mode={wasEndlessMode ? 'endless' : 'classic'}
-              sessionDuration={wasEndlessMode ? Math.floor(lastCorrect * 2) : 120}
+              sessionDuration={lastSessionDuration}
+              previousBest={lastPreviousBest}
             />
           </motion.div>
         )}
@@ -344,6 +373,13 @@ const Index = () => {
         isOpen={onboardingOpen}
         onClose={() => setOnboardingOpen(false)}
         onComplete={() => setOnboardingOpen(false)}
+      />
+
+      {/* Mode Selection Overlay */}
+      <ModeSelectionOverlay
+        isOpen={modeSelectionOpen}
+        onClose={() => setModeSelectionOpen(false)}
+        onSelectMode={handleSelectMode}
       />
     </div>
   );

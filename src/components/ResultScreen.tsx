@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { RefreshCw, Home, Trophy, Target, Zap, Flame, Clock } from 'lucide-react';
+import { RefreshCw, Home, Trophy, Target, Zap, Flame, Clock, TrendingUp } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
 interface ResultScreenProps {
@@ -15,6 +15,7 @@ interface ResultScreenProps {
   totalXP?: number;
   mode?: 'classic' | 'endless';
   sessionDuration?: number; // in seconds
+  previousBest?: number; // Previous high score (classic) or best streak (endless)
 }
 
 export const ResultScreen = ({
@@ -28,9 +29,11 @@ export const ResultScreen = ({
   xpGained = 0,
   mode = 'classic',
   sessionDuration = 0,
+  previousBest = 0,
 }: ResultScreenProps) => {
   const [displayScore, setDisplayScore] = useState(0);
   const [displayXP, setDisplayXP] = useState(0);
+  const [displayStreak, setDisplayStreak] = useState(0);
 
   // Calculate Bio-Metrics with correct formula
   const totalAttempts = correct + wrong;
@@ -44,8 +47,23 @@ export const ResultScreen = ({
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  // Count-up animation logic
+  // Format large numbers with commas
+  const formatNumber = (num: number) => {
+    return num.toLocaleString();
+  };
+
+  const isEndless = mode === 'endless';
+  const heroValue = isEndless ? streak : score;
+  const currentBest = isEndless ? streak : score;
+  const showPreviousBest = previousBest > 0 && !isNewHighScore;
+
+  // Count-up animation for score (Classic hero)
   useEffect(() => {
+    if (isEndless) {
+      setDisplayScore(score);
+      return;
+    }
+    
     let start = 0;
     const duration = 1000;
     const stepTime = 20;
@@ -64,7 +82,34 @@ export const ResultScreen = ({
     }, stepTime);
 
     return () => clearInterval(timer);
-  }, [score, isNewHighScore]);
+  }, [score, isNewHighScore, isEndless]);
+
+  // Count-up animation for streak (Endless hero)
+  useEffect(() => {
+    if (!isEndless) {
+      setDisplayStreak(streak);
+      return;
+    }
+
+    let start = 0;
+    const duration = 800;
+    const stepTime = 30;
+    const steps = duration / stepTime;
+    const increment = streak / steps;
+
+    const timer = setInterval(() => {
+      start += increment;
+      if (start >= streak) {
+        setDisplayStreak(streak);
+        clearInterval(timer);
+        if (isNewHighScore) triggerConfetti();
+      } else {
+        setDisplayStreak(Math.floor(start));
+      }
+    }, stepTime);
+
+    return () => clearInterval(timer);
+  }, [streak, isNewHighScore, isEndless]);
 
   // XP count-up animation
   useEffect(() => {
@@ -101,8 +146,6 @@ export const ResultScreen = ({
     show: { opacity: 1, y: 0 }
   };
 
-  const isEndless = mode === 'endless';
-
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col items-center justify-center p-6 relative overflow-hidden">
       
@@ -128,24 +171,46 @@ export const ResultScreen = ({
                 <Flame className="w-8 h-8 text-primary" />
               </div>
               <h1 className="text-6xl font-thin tracking-tighter text-foreground tabular-nums">
-                {streak}
+                {displayStreak}
               </h1>
               <p className="text-xs text-muted-foreground uppercase tracking-wider mt-1">Max Streak</p>
             </>
           ) : (
-            <h1 className="text-5xl font-thin tracking-tighter text-foreground tabular-nums">
-              {displayScore}
-            </h1>
+            <>
+              <h1 className="text-5xl font-thin tracking-tighter text-foreground tabular-nums">
+                {formatNumber(displayScore)}
+              </h1>
+              <p className="text-xs text-muted-foreground uppercase tracking-wider mt-1">Total Score</p>
+            </>
           )}
           
+          {/* New Personal Best Badge */}
           {isNewHighScore && (
             <motion.div 
               initial={{ scale: 0 }} 
               animate={{ scale: 1 }}
-              className="inline-flex items-center gap-1 mt-3 px-3 py-1 rounded-full bg-neon-gold/20 text-neon-gold border border-neon-gold/20"
+              transition={{ delay: 0.5, type: 'spring', stiffness: 300 }}
+              className="inline-flex items-center gap-1 mt-3 px-3 py-1.5 rounded-full bg-neon-gold/20 text-neon-gold border border-neon-gold/20"
             >
               <Trophy className="w-3 h-3" />
-              <span className="text-[10px] font-bold uppercase tracking-wider">New Personal Best</span>
+              <span className="text-[10px] font-bold uppercase tracking-wider">
+                {isEndless ? 'New Longevity Record' : 'New Personal Best'}
+              </span>
+            </motion.div>
+          )}
+
+          {/* Previous Best Comparison */}
+          {showPreviousBest && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.6 }}
+              className="flex items-center justify-center gap-2 mt-3 text-muted-foreground"
+            >
+              <TrendingUp className="w-3 h-3" />
+              <span className="text-xs font-thin">
+                Previous Best: <span className="tabular-nums">{formatNumber(previousBest)}</span>
+              </span>
             </motion.div>
           )}
         </motion.div>
@@ -161,14 +226,14 @@ export const ResultScreen = ({
                 <span className="text-2xl font-light text-foreground tabular-nums">
                   {formatDuration(sessionDuration)}
                 </span>
-                <span className="text-[9px] uppercase tracking-widest text-muted-foreground">Flow Duration</span>
+                <span className="text-[9px] uppercase tracking-widest text-muted-foreground">Survival Time</span>
               </div>
 
-              {/* Score - Endless Mode */}
+              {/* XP Earned - Endless Mode */}
               <div className="glass-panel p-4 rounded-2xl flex flex-col items-center justify-center gap-1">
-                <Trophy className="w-5 h-5 text-neon-gold mb-1" />
-                <span className="text-2xl font-light text-foreground tabular-nums">{displayScore}</span>
-                <span className="text-[9px] uppercase tracking-widest text-muted-foreground">Total Score</span>
+                <Zap className="w-5 h-5 text-neon-gold mb-1" />
+                <span className="text-2xl font-light text-foreground tabular-nums">+{displayXP}</span>
+                <span className="text-[9px] uppercase tracking-widest text-muted-foreground">XP Gained</span>
               </div>
             </>
           ) : (
@@ -180,20 +245,30 @@ export const ResultScreen = ({
                 <span className="text-[9px] uppercase tracking-widest text-muted-foreground">Accuracy</span>
               </div>
 
-              {/* Streak - Classic Mode */}
+              {/* Total Correct - Classic Mode */}
               <div className="glass-panel p-4 rounded-2xl flex flex-col items-center justify-center gap-1">
-                <Flame className="w-5 h-5 text-primary mb-1" />
-                <span className="text-2xl font-light text-foreground tabular-nums">{streak}</span>
-                <span className="text-[9px] uppercase tracking-widest text-muted-foreground">Best Streak</span>
+                <Zap className="w-5 h-5 text-neon-gold mb-1" />
+                <span className="text-2xl font-light text-foreground tabular-nums">{correct}</span>
+                <span className="text-[9px] uppercase tracking-widest text-muted-foreground">Total Correct</span>
               </div>
             </>
           )}
 
-          {/* XP Earned - Both Modes */}
+          {/* XP Earned (Classic) or Score (Endless) */}
           <div className="glass-panel p-4 rounded-2xl flex flex-col items-center justify-center gap-1">
-            <Zap className="w-5 h-5 text-neon-gold mb-1" />
-            <span className="text-2xl font-light text-foreground tabular-nums">+{displayXP}</span>
-            <span className="text-[9px] uppercase tracking-widest text-muted-foreground">XP Gained</span>
+            {isEndless ? (
+              <>
+                <Trophy className="w-5 h-5 text-neon-cyan mb-1" />
+                <span className="text-2xl font-light text-foreground tabular-nums">{formatNumber(displayScore)}</span>
+                <span className="text-[9px] uppercase tracking-widest text-muted-foreground">Total Score</span>
+              </>
+            ) : (
+              <>
+                <Flame className="w-5 h-5 text-primary mb-1" />
+                <span className="text-2xl font-light text-foreground tabular-nums">+{displayXP}</span>
+                <span className="text-[9px] uppercase tracking-widest text-muted-foreground">XP Gained</span>
+              </>
+            )}
           </div>
 
           {/* Correct/Wrong - Both Modes */}
