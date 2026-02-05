@@ -100,6 +100,25 @@ export const GameScreen = ({
             triggerHaptic={triggerHaptic}
           />
         );
+      case 'nBack':
+        return (
+          <NBackGhost
+            onAnswer={onAnswer}
+            playSound={playSound}
+            triggerHaptic={triggerHaptic}
+            onScreenShake={handleScreenShake}
+            nBack={gameState.difficulty >= 2 ? 3 : 2}
+          />
+        );
+      case 'paradox':
+        return (
+          <ParadoxFlow
+            onAnswer={onAnswer}
+            playSound={playSound}
+            triggerHaptic={triggerHaptic}
+            onScreenShake={handleScreenShake}
+          />
+        );
       default:
         return <SpeedMath generateQuestion={generateMathQuestion} {...commonProps} />;
     }

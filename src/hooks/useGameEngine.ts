@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef } from 'react';
 
-export type GameType = 'speedMath' | 'colorMatch' | 'flashMemory';
+export type GameType = 'speedMath' | 'colorMatch' | 'flashMemory' | 'nBack' | 'paradox';
 
 export interface GameState {
   score: number;
