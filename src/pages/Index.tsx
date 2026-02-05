@@ -298,14 +298,14 @@ const Index = () => {
             exit={{ opacity: 0, x: -100 }}
             transition={{ duration: 0.3 }}
           >
-            <Dashboard
-              onStartGame={handleStartGame}
-              onOpenSettings={handleOpenSettings}
-              brainCharge={brainCharge}
-              highScore={Math.max(userStats.classicHighScore, userStats.endlessBestStreak)}
-              totalXP={userStats.totalXP}
-              streak={userStats.dayStreak}
-            />
+           <Dashboard
+             onStartGame={handleStartGame}
+             onOpenSettings={handleOpenSettings}
+             brainCharge={brainCharge}
+             totalXP={userStats.totalXP}
+             classicHighScore={userStats.classicHighScore}
+             endlessBestStreak={userStats.endlessBestStreak}
+           />
           </motion.div>
         )}
 

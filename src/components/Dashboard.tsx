@@ -1,14 +1,14 @@
 import { motion } from 'framer-motion';
-import { Zap, Settings, Star, Flame } from 'lucide-react';
+import { Zap, Settings, Star, Flame, Trophy } from 'lucide-react';
 import { NeuralBrain } from './NeuralBrain';
 
 interface DashboardProps {
   onStartGame: () => void;
   onOpenSettings: () => void;
   brainCharge: number;
-  highScore: number;
   totalXP: number;
-  streak: number;
+  classicHighScore: number;
+  endlessBestStreak: number;
 }
 
 export const Dashboard = ({ 
@@ -16,7 +16,8 @@ export const Dashboard = ({
   onOpenSettings, 
   brainCharge,
   totalXP, 
-  streak 
+  classicHighScore,
+  endlessBestStreak,
 }: DashboardProps) => {
   // Format large numbers
   const formatNumber = (num: number) => {
@@ -93,44 +94,62 @@ export const Dashboard = ({
           </div>
         </motion.div>
 
-        {/* Metric Cards Row */}
-        <div className="grid grid-cols-2 gap-4">
-          {/* Streak Card */}
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.2 }}
-            className="glass-panel rounded-2xl p-5 flex flex-col items-center justify-center"
-          >
-            <div className="flex items-center gap-2 mb-2">
-              <Flame className="w-5 h-5 text-bio-orange" />
-            </div>
-            <span className="text-3xl font-extralight text-foreground">
-              {streak}
-            </span>
-            <span className="text-[9px] uppercase tracking-[0.2em] text-muted-foreground mt-1">
-              Day Streak
-            </span>
-          </motion.div>
+      {/* Metric Cards - 3 Block Layout */}
+      <div className="grid grid-cols-3 gap-3">
+        {/* Max Streak Card (Endless Style - Warm) */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="glass-panel rounded-2xl p-4 flex flex-col items-center justify-center relative overflow-hidden"
+        >
+          {/* Warm glow background */}
+          <div className="absolute inset-0 bg-gradient-to-br from-bio-orange/10 to-transparent pointer-events-none" />
+          <Flame className="w-5 h-5 text-bio-orange mb-2" />
+          <span className="text-2xl font-extralight text-foreground tabular-nums">
+            {endlessBestStreak}
+          </span>
+          <span className="text-[8px] uppercase tracking-[0.15em] text-muted-foreground mt-1">
+            Max Streak
+          </span>
+        </motion.div>
 
-          {/* XP Card */}
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.25 }}
-            className="glass-panel rounded-2xl p-5 flex flex-col items-center justify-center"
-          >
-            <div className="flex items-center gap-2 mb-2">
-              <Star className="w-5 h-5 text-neon-gold fill-neon-gold/50" />
-            </div>
-            <span className="text-3xl font-extralight text-foreground">
-              {formatNumber(totalXP)}
-            </span>
-            <span className="text-[9px] uppercase tracking-[0.2em] text-muted-foreground mt-1">
-              Total XP
-            </span>
-          </motion.div>
-        </div>
+        {/* XP Card (Currency Style - Gold) */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.25 }}
+          className="glass-panel rounded-2xl p-4 flex flex-col items-center justify-center relative overflow-hidden"
+        >
+          {/* Gold glow background */}
+          <div className="absolute inset-0 bg-gradient-to-br from-neon-gold/10 to-transparent pointer-events-none" />
+          <Star className="w-5 h-5 text-neon-gold fill-neon-gold/50 mb-2" />
+          <span className="text-2xl font-extralight text-foreground tabular-nums">
+            {formatNumber(totalXP)}
+          </span>
+          <span className="text-[8px] uppercase tracking-[0.15em] text-muted-foreground mt-1">
+            Total XP
+          </span>
+        </motion.div>
+
+        {/* Personal Best Card (Classic Style - Cool/Teal) */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="glass-panel rounded-2xl p-4 flex flex-col items-center justify-center relative overflow-hidden"
+        >
+          {/* Cool glow background */}
+          <div className="absolute inset-0 bg-gradient-to-br from-bio-teal/10 to-transparent pointer-events-none" />
+          <Trophy className="w-5 h-5 text-bio-teal mb-2" />
+          <span className="text-2xl font-extralight text-foreground tabular-nums">
+            {formatNumber(classicHighScore)}
+          </span>
+          <span className="text-[8px] uppercase tracking-[0.15em] text-muted-foreground mt-1">
+            Personal Best
+          </span>
+        </motion.div>
+      </div>
       </div>
 
       {/* Floating Action Button - Start Training */}
