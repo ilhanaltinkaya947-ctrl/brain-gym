@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Dashboard } from '../components/Dashboard';
+ import { SplashScreen } from '../components/SplashScreen';
 import { MixedGameScreen } from '../components/MixedGameScreen';
 import { ResultScreen } from '../components/ResultScreen';
 import { NeuralBackground } from '../components/NeuralBackground';
@@ -50,6 +51,7 @@ const DEFAULT_SETTINGS: AppSettings = {
 };
 
 const Index = () => {
+   const [showSplash, setShowSplash] = useState(true);
   const [currentScreen, setCurrentScreen] = useState<Screen>('dashboard');
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [onboardingOpen, setOnboardingOpen] = useState(false);
@@ -251,7 +253,14 @@ const Index = () => {
       <NeuralBackground />
       
       <AnimatePresence mode="wait">
-        {currentScreen === 'dashboard' && (
+         {showSplash && (
+           <SplashScreen
+             key="splash"
+             onComplete={() => setShowSplash(false)}
+           />
+         )}
+ 
+         {!showSplash && currentScreen === 'dashboard' && (
           <motion.div
             key="dashboard"
             initial={{ opacity: 0 }}
@@ -271,7 +280,7 @@ const Index = () => {
           </motion.div>
         )}
 
-        {currentScreen === 'game' && (
+         {!showSplash && currentScreen === 'game' && (
           <motion.div
             key="game"
             initial={{ opacity: 0, x: 100 }}
@@ -296,7 +305,7 @@ const Index = () => {
           </motion.div>
         )}
 
-        {currentScreen === 'result' && (
+         {!showSplash && currentScreen === 'result' && (
           <motion.div
             key="result"
             initial={{ opacity: 0, scale: 0.9 }}
