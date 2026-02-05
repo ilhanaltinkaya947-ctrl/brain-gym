@@ -12,6 +12,7 @@ import { SpatialStack } from './games/SpatialStack';
 import { WordConnect } from './games/WordConnect';
 import { SuitDeception } from './games/SuitDeception';
 import { ChimpMemory } from './games/ChimpMemory';
+import { CubeCount } from './games/CubeCount';
 import { HeatBackground } from './HeatBackground';
 import { MiniGameType, GAME_THEMES, GameMode, MIXABLE_GAMES } from '@/types/game';
 import { MathQuestion, ColorQuestion } from '@/hooks/useGameEngine';
@@ -352,6 +353,17 @@ export const MixedGameScreen = ({
           <ChimpMemory
             tier={calculatedTier}
             streak={streak}
+            onAnswer={handleAnswer}
+            playSound={playSound}
+            triggerHaptic={triggerHaptic}
+          />
+        );
+      }
+      case 'cubeCount': {
+        const calculatedTier = streak < 6 ? 1 : streak < 13 ? 2 : streak < 21 ? 3 : streak < 31 ? 4 : 5;
+        return (
+          <CubeCount
+            tier={calculatedTier}
             onAnswer={handleAnswer}
             playSound={playSound}
             triggerHaptic={triggerHaptic}
