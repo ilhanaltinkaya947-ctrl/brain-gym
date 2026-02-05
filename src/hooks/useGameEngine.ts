@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef } from 'react';
 
-export type GameType = 'speedMath' | 'colorMatch' | 'flashMemory' | 'nBack' | 'paradox' | 'suitDeception' | 'chimpMemory';
+export type GameType = 'speedMath' | 'paradoxFlow' | 'suitDeception' | 'chimpMemory';
 
 export interface GameState {
   score: number;
@@ -33,7 +33,7 @@ export interface ColorQuestion {
 
 // Game rotation configuration - focused on high cognitive load
 // nBackGhost replaced with suitDeception, flashMemory replaced with chimpMemory
-const ENABLED_GAMES: GameType[] = ['speedMath', 'paradox', 'suitDeception', 'chimpMemory'];
+const ENABLED_GAMES: GameType[] = ['speedMath', 'paradoxFlow', 'suitDeception', 'chimpMemory'];
 const TOTAL_GAME_TIME = 180; // 3 minutes for Classic mode
 
 const COLORS = [
@@ -327,8 +327,9 @@ export const useGameEngine = (initialMode: 'classic' | 'endless' = 'classic') =>
       
       const newDifficulty = Math.floor(newSpeed * 1.5);
 
-      // Game rotation: switch game every 3 correct answers for faster variety
-      const shouldSwitchGame = isCorrect && (prev.correct + 1) % 3 === 0;
+      // Game rotation: switch game every 3 attempts (correct + incorrect combined)
+      const totalAttempts = prev.correct + prev.wrong;
+      const shouldSwitchGame = (totalAttempts + 1) % 3 === 0;
       const nextGame = shouldSwitchGame ? pickNextGame(prev.currentGame) : prev.currentGame;
 
       return {

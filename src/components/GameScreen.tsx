@@ -94,7 +94,7 @@ export const GameScreen = ({
     switch (gameState.currentGame) {
       case 'speedMath':
         return <SpeedMath generateQuestion={generateMathQuestion} {...commonProps} />;
-      case 'paradox':
+      case 'paradoxFlow':
         return (
           <ParadoxFlow
             onAnswer={onAnswer}
@@ -127,6 +127,7 @@ export const GameScreen = ({
           />
         );
       default:
+        // Default to random game from enabled list
         return <SpeedMath generateQuestion={generateMathQuestion} {...commonProps} />;
     }
   };
