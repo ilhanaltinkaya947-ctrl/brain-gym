@@ -1,11 +1,8 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Dashboard } from '../components/Dashboard';
-import { GameConfigPanel } from '../components/GameConfigPanel';
 import { MixedGameScreen } from '../components/MixedGameScreen';
 import { ResultScreen } from '../components/ResultScreen';
-import { FlashMemoryScreen } from '../components/FlashMemoryScreen';
-import { FlashMemoryResult } from '../components/FlashMemoryResult';
 import { NeuralBackground } from '../components/NeuralBackground';
 import { SettingsModal, AppSettings } from '../components/SettingsModal';
 import { OnboardingFlow } from '../components/OnboardingFlow';
@@ -13,7 +10,37 @@ import { useGameEngine } from '../hooks/useGameEngine';
 import { useSounds } from '../hooks/useSounds';
 import { GameConfig, DEFAULT_CONFIG, MiniGameType, MIXABLE_GAMES } from '@/types/game';
 
-type Screen = 'dashboard' | 'config' | 'game' | 'result' | 'flashMemory' | 'flashResult';
+type Screen = 'dashboard' | 'game' | 'result';
+
+// Unified UserStats interface for scalable state management
+export interface UserStats {
+  classicHighScore: number;
+  endlessBestStreak: number;
+  totalXP: number;
+  totalGamesPlayed: number;
+  totalCorrectAnswers: number;
+  gameLevels: Record<string, number>;
+  lastPlayedDate: string | null;
+  dayStreak: number;
+}
+
+const DEFAULT_STATS: UserStats = {
+  classicHighScore: 0,
+  endlessBestStreak: 0,
+  totalXP: 0,
+  totalGamesPlayed: 0,
+  totalCorrectAnswers: 0,
+  gameLevels: {
+    flashMemory: 1,
+    nBackGhost: 1,
+    operatorChaos: 1,
+    spatialStack: 1,
+    paradoxFlow: 1,
+    wordConnect: 1,
+  },
+  lastPlayedDate: null,
+  dayStreak: 0,
+};
 
 const DEFAULT_SETTINGS: AppSettings = {
   soundEnabled: true,
@@ -40,6 +67,34 @@ const Index = () => {
     return DEFAULT_SETTINGS;
   });
   
+  // Unified user stats (replaces individual high score states)
+  const [userStats, setUserStats] = useState<UserStats>(() => {
+    const saved = localStorage.getItem('axon-user-stats');
+    if (saved) {
+      try {
+        return { ...DEFAULT_STATS, ...JSON.parse(saved) };
+      } catch {
+        return DEFAULT_STATS;
+      }
+    }
+    // Migrate from old localStorage keys if they exist
+    const oldClassic = localStorage.getItem('neuroflow-highscore-classic');
+    const oldEndless = localStorage.getItem('neuroflow-highscore-endless');
+    const oldStreak = localStorage.getItem('neuroflow-streak');
+    const oldFlashLevel = localStorage.getItem('neuroflow-flash-highlevel');
+    
+    return {
+      ...DEFAULT_STATS,
+      classicHighScore: oldClassic ? parseInt(oldClassic, 10) : 0,
+      endlessBestStreak: oldEndless ? parseInt(oldEndless, 10) : 0,
+      dayStreak: oldStreak ? parseInt(oldStreak, 10) : 0,
+      gameLevels: {
+        ...DEFAULT_STATS.gameLevels,
+        flashMemory: oldFlashLevel ? parseInt(oldFlashLevel, 10) : 1,
+      },
+    };
+  });
+
   // Game configuration
   const [gameConfig, setGameConfig] = useState<GameConfig>(() => {
     const saved = localStorage.getItem('neuroflow-config');
@@ -53,20 +108,6 @@ const Index = () => {
     return DEFAULT_CONFIG;
   });
 
-  // High scores
-  const [highScoreClassic, setHighScoreClassic] = useState(() => {
-    const saved = localStorage.getItem('neuroflow-highscore-classic');
-    return saved ? parseInt(saved, 10) : 0;
-  });
-  const [highScoreEndless, setHighScoreEndless] = useState(() => {
-    const saved = localStorage.getItem('neuroflow-highscore-endless');
-    return saved ? parseInt(saved, 10) : 0;
-  });
-  const [flashHighLevel, setFlashHighLevel] = useState(() => {
-    const saved = localStorage.getItem('neuroflow-flash-highlevel');
-    return saved ? parseInt(saved, 10) : 1;
-  });
-
   // Last game results
   const [lastScore, setLastScore] = useState(0);
   const [lastStreak, setLastStreak] = useState(0);
@@ -74,23 +115,13 @@ const Index = () => {
   const [lastWrong, setLastWrong] = useState(0);
   const [isNewHighScore, setIsNewHighScore] = useState(false);
   const [wasEndlessMode, setWasEndlessMode] = useState(false);
-  
-  // Flash memory state
-  const [flashLastLevel, setFlashLastLevel] = useState(1);
-  const [flashLastScore, setFlashLastScore] = useState(0);
-  const [isNewFlashHighLevel, setIsNewFlashHighLevel] = useState(false);
-  const [flashKey, setFlashKey] = useState(0);
+  const [lastXPGained, setLastXPGained] = useState(0);
 
-  // Dashboard stats
-  const [dayStreak, setDayStreak] = useState(() => {
-    const saved = localStorage.getItem('neuroflow-streak');
-    return saved ? parseInt(saved, 10) : 0;
-  });
-  const [brainCharge, setBrainCharge] = useState(() => {
-    const lastPlayed = localStorage.getItem('neuroflow-lastplayed');
+  // Derived state: brain charge based on today's play
+  const brainCharge = useMemo(() => {
     const today = new Date().toDateString();
-    return lastPlayed === today ? 100 : 0;
-  });
+    return userStats.lastPlayedDate === today ? 100 : 0;
+  }, [userStats.lastPlayedDate]);
 
   const { playSound, triggerHaptic: triggerHapticBase, setStreak } = useSounds(appSettings.soundEnabled);
   const { generateMathQuestion, generateColorQuestion } = useGameEngine();
@@ -107,10 +138,10 @@ const Index = () => {
     localStorage.setItem('axon-settings', JSON.stringify(appSettings));
   }, [appSettings]);
 
-  // Save config changes
+  // Persist user stats
   useEffect(() => {
-    localStorage.setItem('neuroflow-config', JSON.stringify(gameConfig));
-  }, [gameConfig]);
+    localStorage.setItem('axon-user-stats', JSON.stringify(userStats));
+  }, [userStats]);
 
   const handleOpenSettings = () => {
     playSound('tick');
@@ -122,22 +153,13 @@ const Index = () => {
     setOnboardingOpen(true);
   };
 
-  // Skip config and go straight to game
   const handleStartGame = () => {
     playSound('start');
     triggerHaptic('medium');
     setCurrentScreen('game');
   };
 
-  const handleStartFlashMemory = () => {
-    playSound('start');
-    triggerHaptic('medium');
-    setFlashKey(prev => prev + 1);
-    setCurrentScreen('flashMemory');
-  };
-
   const handleGameEnd = useCallback((score: number, streak: number, correct: number, wrong: number) => {
-    // Play lose sound in endless mode (game ends on mistake), complete sound in classic
     const isEndlessLoss = gameConfig.mode === 'endless' && wrong > 0;
     setWasEndlessMode(gameConfig.mode === 'endless');
     
@@ -148,70 +170,64 @@ const Index = () => {
     }
     triggerHaptic('medium');
     
+    // Calculate XP gained (10 XP per correct answer + streak bonus)
+    const baseXP = correct * 10;
+    const streakBonus = Math.floor(streak / 5) * 25; // Bonus every 5 streak
+    const xpGained = baseXP + streakBonus;
+    
     setLastScore(score);
     setLastStreak(streak);
     setLastCorrect(correct);
     setLastWrong(wrong);
+    setLastXPGained(xpGained);
     
-    // Update high scores based on mode
-    if (gameConfig.mode === 'classic') {
-      if (score > highScoreClassic) {
-        setHighScoreClassic(score);
-        localStorage.setItem('neuroflow-highscore-classic', score.toString());
-        setIsNewHighScore(true);
-      } else {
-        setIsNewHighScore(false);
-      }
-    } else {
-      if (streak > highScoreEndless) {
-        setHighScoreEndless(streak);
-        localStorage.setItem('neuroflow-highscore-endless', streak.toString());
-        setIsNewHighScore(true);
-      } else {
-        setIsNewHighScore(false);
-      }
-    }
-
-    // Update daily stats
+    // Update unified user stats
     const today = new Date().toDateString();
-    const lastPlayed = localStorage.getItem('neuroflow-lastplayed');
     
-    if (lastPlayed !== today) {
-      const yesterday = new Date();
-      yesterday.setDate(yesterday.getDate() - 1);
+    setUserStats(prev => {
+      const isNewDay = prev.lastPlayedDate !== today;
+      let newDayStreak = prev.dayStreak;
       
-      if (lastPlayed === yesterday.toDateString()) {
-        setDayStreak(prev => {
-          const newStreak = prev + 1;
-          localStorage.setItem('neuroflow-streak', newStreak.toString());
-          return newStreak;
-        });
-      } else {
-        setDayStreak(1);
-        localStorage.setItem('neuroflow-streak', '1');
+      if (isNewDay) {
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        
+        if (prev.lastPlayedDate === yesterday.toDateString()) {
+          newDayStreak = prev.dayStreak + 1;
+        } else {
+          newDayStreak = 1;
+        }
       }
       
-      localStorage.setItem('neuroflow-lastplayed', today);
-      setBrainCharge(100);
-    }
+      const newClassicHigh = gameConfig.mode === 'classic' 
+        ? Math.max(prev.classicHighScore, score)
+        : prev.classicHighScore;
+      
+      const newEndlessHigh = gameConfig.mode === 'endless'
+        ? Math.max(prev.endlessBestStreak, streak)
+        : prev.endlessBestStreak;
+      
+      // Check if new high score
+      const isNewHigh = gameConfig.mode === 'classic'
+        ? score > prev.classicHighScore
+        : streak > prev.endlessBestStreak;
+      
+      setIsNewHighScore(isNewHigh);
+      
+      return {
+        ...prev,
+        classicHighScore: newClassicHigh,
+        endlessBestStreak: newEndlessHigh,
+        totalXP: prev.totalXP + xpGained,
+        totalGamesPlayed: prev.totalGamesPlayed + 1,
+        totalCorrectAnswers: prev.totalCorrectAnswers + correct,
+        lastPlayedDate: today,
+        dayStreak: newDayStreak,
+      };
+    });
 
     setCurrentScreen('result');
-  }, [gameConfig.mode, highScoreClassic, highScoreEndless, playSound, triggerHaptic]);
-
-  const handleFlashGameOver = useCallback((level: number, score: number) => {
-    setFlashLastLevel(level);
-    setFlashLastScore(score);
-    
-    if (level > flashHighLevel) {
-      setFlashHighLevel(level);
-      localStorage.setItem('neuroflow-flash-highlevel', level.toString());
-      setIsNewFlashHighLevel(true);
-    } else {
-      setIsNewFlashHighLevel(false);
-    }
-    
-    setCurrentScreen('flashResult');
-  }, [flashHighLevel]);
+  }, [gameConfig.mode, playSound, triggerHaptic]);
 
   const handleQuit = () => {
     setCurrentScreen('dashboard');
@@ -221,21 +237,14 @@ const Index = () => {
     setCurrentScreen('game');
   };
 
-  const handleFlashPlayAgain = () => {
-    setFlashKey(prev => prev + 1);
-    setCurrentScreen('flashMemory');
-  };
-
   const handleGoHome = () => {
     setCurrentScreen('dashboard');
   };
 
-  const handleBackFromConfig = () => {
-    setCurrentScreen('dashboard');
-  };
-
-  // Calculate display high score based on mode
-  const displayHighScore = gameConfig.mode === 'classic' ? highScoreClassic : highScoreEndless;
+  // Derived: display high score based on mode
+  const displayHighScore = gameConfig.mode === 'classic' 
+    ? userStats.classicHighScore 
+    : userStats.endlessBestStreak;
 
   return (
     <div className="min-h-screen overflow-hidden relative">
@@ -252,52 +261,12 @@ const Index = () => {
           >
             <Dashboard
               onStartGame={handleStartGame}
-              onStartFlashMemory={handleStartFlashMemory}
               onOpenSettings={handleOpenSettings}
               onOpenOnboarding={handleOpenOnboarding}
               brainCharge={brainCharge}
-              highScore={Math.max(highScoreClassic, highScoreEndless)}
-              flashHighScore={flashHighLevel}
-              streak={dayStreak}
-            />
-          </motion.div>
-        )}
-
-        {currentScreen === 'config' && (
-          <motion.div
-            key="config"
-            initial={{ opacity: 0, x: 100 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -100 }}
-            transition={{ duration: 0.3 }}
-            className="min-h-screen flex flex-col items-center justify-center px-6 py-12 safe-top safe-bottom relative z-10"
-          >
-            {/* Back Button */}
-            <button
-              onClick={handleBackFromConfig}
-              className="absolute top-6 left-6 p-2 rounded-full bg-muted/30 backdrop-blur-sm text-muted-foreground hover:text-foreground transition-colors border border-border/30"
-            >
-              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M19 12H5M12 19l-7-7 7-7" />
-              </svg>
-            </button>
-
-            <motion.h2
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="text-2xl font-black uppercase tracking-widest text-foreground mb-8"
-            >
-              <span className="text-gradient-neon">Brain</span> Training
-            </motion.h2>
-
-            <GameConfigPanel
-              config={gameConfig}
-              onConfigChange={setGameConfig}
-              onStart={handleStartGame}
-              onStartFlashMemory={handleStartFlashMemory}
-              highScoreClassic={highScoreClassic}
-              highScoreEndless={highScoreEndless}
-              flashHighLevel={flashHighLevel}
+              highScore={Math.max(userStats.classicHighScore, userStats.endlessBestStreak)}
+              totalXP={userStats.totalXP}
+              streak={userStats.dayStreak}
             />
           </motion.div>
         )}
@@ -321,8 +290,8 @@ const Index = () => {
               playSound={playSound}
               triggerHaptic={triggerHaptic}
               setStreak={setStreak}
-              bestScore={highScoreClassic}
-              bestStreak={highScoreEndless}
+              bestScore={userStats.classicHighScore}
+              bestStreak={userStats.endlessBestStreak}
             />
           </motion.div>
         )}
@@ -342,43 +311,8 @@ const Index = () => {
               onPlayAgain={handlePlayAgain}
               onGoHome={handleGoHome}
               isNewHighScore={isNewHighScore}
-            />
-          </motion.div>
-        )}
-
-        {currentScreen === 'flashMemory' && (
-          <motion.div
-            key={`flash-${flashKey}`}
-            initial={{ opacity: 0, x: 100 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.15 }}
-            className="h-screen"
-          >
-            <FlashMemoryScreen
-              onGameOver={handleFlashGameOver}
-              onQuit={handleQuit}
-              playSound={playSound}
-              triggerHaptic={triggerHaptic}
-            />
-          </motion.div>
-        )}
-
-        {currentScreen === 'flashResult' && (
-          <motion.div
-            key="flash-result"
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.15 }}
-          >
-            <FlashMemoryResult
-              level={flashLastLevel}
-              score={flashLastScore}
-              highLevel={flashHighLevel}
-              isNewHighLevel={isNewFlashHighLevel}
-              onPlayAgain={handleFlashPlayAgain}
-              onGoHome={handleGoHome}
+              xpGained={lastXPGained}
+              totalXP={userStats.totalXP}
             />
           </motion.div>
         )}
