@@ -11,7 +11,9 @@ export type MiniGameType =
   | 'nBackGhost'
   | 'operatorChaos'
   | 'spatialStack'
-  | 'wordConnect';
+  | 'wordConnect'
+  | 'suitDeception'
+  | 'chimpMemory';
 
 export interface GameConfig {
   mode: GameMode;
@@ -100,20 +102,35 @@ export const GAME_THEMES: Record<MiniGameType, GameTheme> = {
     accentColor: 'hsl(230, 70%, 55%)',
     bgGradient: 'linear-gradient(135deg, hsl(210, 80%, 55% / 0.15), transparent)',
   },
+  suitDeception: {
+    name: 'suitDeception',
+    label: 'Suit Deception',
+    icon: '♠️',
+    primaryColor: 'hsl(0, 70%, 55%)',
+    accentColor: 'hsl(0, 80%, 45%)',
+    bgGradient: 'linear-gradient(135deg, hsl(0, 70%, 55% / 0.15), transparent)',
+  },
+  chimpMemory: {
+    name: 'chimpMemory',
+    label: 'Chimp Memory',
+    icon: '🐒',
+    primaryColor: 'hsl(280, 70%, 55%)',
+    accentColor: 'hsl(300, 60%, 50%)',
+    bgGradient: 'linear-gradient(135deg, hsl(280, 70%, 55% / 0.15), transparent)',
+  },
 };
 
 export const DEFAULT_CONFIG: GameConfig = {
   mode: 'endless',
-  enabledGames: ['speedMath', 'paradoxFlow', 'nBackGhost', 'wordConnect'],
+  enabledGames: ['speedMath', 'paradoxFlow', 'suitDeception', 'chimpMemory'],
 };
 
-// Mixable games (all games that can be mixed in classic/endless modes)
-// NOTE: colorMatch removed - too primitive
+// Mixable games - focused on high cognitive load
+// NOTE: nBackGhost and colorMatch removed - replaced with suitDeception and chimpMemory
 export const MIXABLE_GAMES: MiniGameType[] = [
   'speedMath', 
   'paradoxFlow', 
-  'nBackGhost',
-  'operatorChaos',
-  'spatialStack',
+  'suitDeception',
+  'chimpMemory',
   'wordConnect',
 ];
