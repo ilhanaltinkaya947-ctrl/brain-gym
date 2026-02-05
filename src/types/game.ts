@@ -104,15 +104,14 @@ export const GAME_THEMES: Record<MiniGameType, GameTheme> = {
 
 export const DEFAULT_CONFIG: GameConfig = {
   mode: 'endless',
-  enabledGames: ['speedMath', 'colorMatch', 'paradoxFlow', 'patternHunter', 'wordConnect'],
+  enabledGames: ['speedMath', 'paradoxFlow', 'nBackGhost', 'wordConnect'],
 };
 
 // Mixable games (all games that can be mixed in classic/endless modes)
+// NOTE: colorMatch removed - too primitive
 export const MIXABLE_GAMES: MiniGameType[] = [
   'speedMath', 
-  'colorMatch', 
   'paradoxFlow', 
-  'patternHunter',
   'nBackGhost',
   'operatorChaos',
   'spatialStack',

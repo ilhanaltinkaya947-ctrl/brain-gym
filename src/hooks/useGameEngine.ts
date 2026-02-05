@@ -31,9 +31,9 @@ export interface ColorQuestion {
   correctColor: string;
 }
 
-// Game rotation configuration
-const ENABLED_GAMES: GameType[] = ['speedMath', 'colorMatch', 'paradox', 'nBack', 'flashMemory'];
-const TOTAL_GAME_TIME = 120; // 2 minutes for Classic mode
+// Game rotation configuration - colorMatch removed (too primitive)
+const ENABLED_GAMES: GameType[] = ['speedMath', 'paradox', 'nBack', 'flashMemory'];
+const TOTAL_GAME_TIME = 180; // 3 minutes for Classic mode
 
 const COLORS = [
   { name: 'RED', hsl: 'hsl(0, 85%, 55%)' },
@@ -253,19 +253,27 @@ export const useGameEngine = (initialMode: 'classic' | 'endless' = 'classic') =>
     };
   }, []);
 
-  const startGame = useCallback((mode: 'classic' | 'endless' = 'classic') => {
+  const startGame = useCallback((mode: 'classic' | 'endless' = 'classic', startTier: number = 1) => {
+    // Calculate initial streak to match starting tier
+    // Tier 1: streak 0, Tier 2: streak 6, Tier 3: streak 13, Tier 4: streak 21, Tier 5: streak 31
+    const tierStreakMap: Record<number, number> = { 1: 0, 2: 6, 3: 13, 4: 21, 5: 31 };
+    const initialStreak = tierStreakMap[startTier] || 0;
+    
+    // God Tier (tier 4+) starts with 2.5x speed multiplier
+    const initialSpeedMultiplier = startTier >= 4 ? 2.5 : startTier === 3 ? 1.5 : 1.0;
+    
     setGameState({
       score: 0,
-      streak: 0,
+      streak: initialStreak,
       correct: 0,
       wrong: 0,
       totalQuestions: 0,
       currentGame: 'speedMath',
       isRunning: true,
       timeLeft: mode === 'classic' ? TOTAL_GAME_TIME : 999,
-      speedMultiplier: 1.0,
+      speedMultiplier: initialSpeedMultiplier,
       lastResult: null,
-      difficulty: 1,
+      difficulty: startTier,
       mode: mode
     });
 

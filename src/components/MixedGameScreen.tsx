@@ -27,6 +27,7 @@ interface MixedGameScreenProps {
   setStreak: (streak: number) => void;
   bestScore: number;
   bestStreak: number;
+  startTier?: number;
 }
 
 const CLASSIC_DURATION = 180; // 3 minutes
@@ -43,13 +44,18 @@ export const MixedGameScreen = ({
   setStreak,
   bestScore,
   bestStreak,
+  startTier = 1,
 }: MixedGameScreenProps) => {
   const [currentGame, setCurrentGame] = useState<MiniGameType>(() => {
     const mixable = enabledGames.filter(g => MIXABLE_GAMES.includes(g));
     return mixable[Math.floor(Math.random() * mixable.length)];
   });
   const [score, setScore] = useState(0);
-  const [streak, setStreakState] = useState(0);
+  const [streak, setStreakState] = useState(() => {
+    // Initialize streak based on starting tier
+    const tierStreakMap: Record<number, number> = { 1: 0, 2: 6, 3: 13, 4: 21, 5: 31 };
+    return tierStreakMap[startTier] || 0;
+  });
   const [correct, setCorrect] = useState(0);
   const [wrong, setWrong] = useState(0);
   const [timeLeft, setTimeLeft] = useState(mode === 'classic' ? CLASSIC_DURATION : 0);
@@ -58,6 +64,9 @@ export const MixedGameScreen = ({
   const [scoreKey, setScoreKey] = useState(0);
   const [showComboText, setShowComboText] = useState(false);
   const [hasTriggeredNewRecord, setHasTriggeredNewRecord] = useState(false);
+  
+  // Is God Tier active (tier 4+)
+  const isGodTier = startTier >= 4;
   
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const heartbeatRef = useRef<NodeJS.Timeout | null>(null);
@@ -380,6 +389,41 @@ export const MixedGameScreen = ({
         )}
       </AnimatePresence>
 
+      {/* God Tier Electric Aura */}
+      <AnimatePresence>
+        {isGodTier && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 pointer-events-none z-40"
+          >
+            <motion.div
+              className="absolute inset-0"
+              animate={{
+                boxShadow: [
+                  'inset 0 0 60px hsl(var(--destructive) / 0.4), inset 0 0 100px hsl(var(--destructive) / 0.2)',
+                  'inset 0 0 80px hsl(var(--destructive) / 0.6), inset 0 0 130px hsl(var(--destructive) / 0.3)',
+                  'inset 0 0 60px hsl(var(--destructive) / 0.4), inset 0 0 100px hsl(var(--destructive) / 0.2)',
+                ],
+              }}
+              transition={{ duration: 1.2, repeat: Infinity, ease: 'easeInOut' }}
+            />
+            {/* Electric sparks at edges */}
+            <motion.div
+              className="absolute top-0 left-1/4 w-px h-4 bg-destructive/80"
+              animate={{ opacity: [0, 1, 0], scaleY: [0.5, 1, 0.5] }}
+              transition={{ duration: 0.3, repeat: Infinity, repeatDelay: 0.8 }}
+            />
+            <motion.div
+              className="absolute top-0 right-1/3 w-px h-6 bg-destructive/60"
+              animate={{ opacity: [0, 1, 0], scaleY: [0.5, 1, 0.5] }}
+              transition={{ duration: 0.4, repeat: Infinity, repeatDelay: 1.2, delay: 0.3 }}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Floating Combo Text */}
       <AnimatePresence>
         {showComboText && (
@@ -485,6 +529,28 @@ export const MixedGameScreen = ({
             {adaptiveState.phase}
             <span className="font-mono">×{adaptiveState.gameSpeed.toFixed(1)}</span>
           </div>
+
+          {/* God Tier Badge */}
+          {isGodTier && (
+            <motion.div
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs uppercase tracking-wider font-black border"
+              style={{
+                color: 'hsl(var(--destructive))',
+                borderColor: 'hsl(var(--destructive) / 0.5)',
+                background: 'linear-gradient(135deg, hsl(var(--destructive) / 0.2), hsl(var(--destructive) / 0.05))',
+              }}
+            >
+              <motion.span
+                animate={{ scale: [1, 1.2, 1] }}
+                transition={{ duration: 0.8, repeat: Infinity }}
+              >
+                👑
+              </motion.span>
+              GOD TIER
+            </motion.div>
+          )}
         </div>
 
         {/* Progress bar */}
