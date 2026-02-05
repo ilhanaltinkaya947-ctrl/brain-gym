@@ -273,7 +273,6 @@ const Index = () => {
             <Dashboard
               onStartGame={handleStartGame}
               onOpenSettings={handleOpenSettings}
-              onOpenOnboarding={handleOpenOnboarding}
               brainCharge={brainCharge}
               highScore={Math.max(userStats.classicHighScore, userStats.endlessBestStreak)}
               totalXP={userStats.totalXP}

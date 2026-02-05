@@ -1,26 +1,18 @@
 import { motion } from 'framer-motion';
- import { Zap, Settings, HelpCircle, Star, Calendar } from 'lucide-react';
+ import { Zap, Settings, Star } from 'lucide-react';
 import { BrainVisual } from './BrainVisual';
 import { StreakFire } from './StreakFire';
 
 interface DashboardProps {
   onStartGame: () => void;
   onOpenSettings: () => void;
-  onOpenOnboarding: () => void;
   brainCharge: number;
   highScore: number;
   totalXP: number;
   streak: number;
 }
 
-export const Dashboard = ({ onStartGame, onOpenSettings, onOpenOnboarding, totalXP, streak }: DashboardProps) => {
-   // Format today's date
-   const today = new Date().toLocaleDateString('en-US', { 
-     weekday: 'short', 
-     month: 'short', 
-     day: 'numeric' 
-   });
- 
+ export const Dashboard = ({ onStartGame, onOpenSettings, totalXP, streak }: DashboardProps) => {
   // Format XP for display
   const formatXP = (xp: number) => {
     if (xp >= 1000) {
@@ -32,41 +24,24 @@ export const Dashboard = ({ onStartGame, onOpenSettings, onOpenOnboarding, total
   return (
     <div className="h-screen flex flex-col items-center justify-between px-6 py-10 safe-top safe-bottom relative bg-background overflow-hidden">
       {/* Settings Button - Top Right */}
-       {/* Clean Header */}
+       {/* Minimal Header */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-         className="w-full z-10 pt-2"
+         className="w-full z-10"
       >
-         <div className="flex justify-between items-center mb-4">
-           <div>
-             <div className="flex items-center gap-2 text-muted-foreground mb-1">
-               <Calendar className="w-3 h-3" />
-               <span className="text-[10px] uppercase tracking-[0.2em] font-bold">{today}</span>
-             </div>
-             <h1 className="text-xl font-light tracking-tight text-foreground/80">
-               Dashboard
-             </h1>
-           </div>
-           
-           <div className="flex items-center gap-2">
-             <motion.button
-               whileHover={{ scale: 1.1 }}
-               whileTap={{ scale: 0.9 }}
-               onClick={onOpenOnboarding}
-               className="p-3 bg-muted/30 rounded-full hover:bg-muted/50 transition-colors border border-border/30 backdrop-blur-md"
-             >
-               <HelpCircle className="w-5 h-5 text-muted-foreground" />
-             </motion.button>
-             <motion.button
-               whileHover={{ scale: 1.1, rotate: 15 }}
-               whileTap={{ scale: 0.9 }}
-               onClick={onOpenSettings}
-               className="p-3 bg-muted/30 rounded-full hover:bg-muted/50 transition-colors border border-border/30 backdrop-blur-md"
-             >
-               <Settings className="w-5 h-5 text-muted-foreground" />
-             </motion.button>
-           </div>
+         <div className="flex justify-between items-center mb-8">
+           <h1 className="text-xl font-light tracking-tight text-foreground/50">
+             Dashboard
+           </h1>
+           <motion.button
+             whileHover={{ scale: 1.1, rotate: 15 }}
+             whileTap={{ scale: 0.9 }}
+             onClick={onOpenSettings}
+             className="p-3 bg-muted/30 rounded-full hover:bg-muted/50 transition-colors border border-border/30 backdrop-blur-md"
+           >
+             <Settings className="w-5 h-5 text-muted-foreground" />
+           </motion.button>
          </div>
 
          {/* Stats Row */}
