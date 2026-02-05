@@ -55,16 +55,17 @@ const shuffleArray = <T,>(array: T[]): T[] => {
   return result;
 };
 
-// Calculate difficulty tier based on streak and mode
+// Calculate difficulty tier based on streak and mode (5-tier system)
 export const getDifficultyTier = (streak: number, mode: 'classic' | 'endless'): number => {
-  // Endless ramps up faster
+  // Endless ramps up 1.5x faster
   const multiplier = mode === 'endless' ? 1.5 : 1;
   const effectiveStreak = Math.floor(streak * multiplier);
   
-  if (effectiveStreak < 5) return 1;
-  if (effectiveStreak < 12) return 2;
-  if (effectiveStreak < 20) return 3;
-  return 4; // MAX difficulty
+  if (effectiveStreak <= 5) return 1;   // Basics
+  if (effectiveStreak <= 12) return 2;  // Focus
+  if (effectiveStreak <= 20) return 3;  // Flow
+  if (effectiveStreak <= 30) return 4;  // Elite
+  return 5; // God Mode
 };
 
 export const getDifficultyLabel = (tier: number): string => {
@@ -72,8 +73,20 @@ export const getDifficultyLabel = (tier: number): string => {
     case 1: return 'LVL 1';
     case 2: return 'LVL 2';
     case 3: return 'LVL 3';
-    case 4: return 'MAX';
+    case 4: return 'LVL 4';
+    case 5: return 'GOD';
     default: return 'LVL 1';
+  }
+};
+
+export const getTierName = (tier: number): string => {
+  switch (tier) {
+    case 1: return 'Basics';
+    case 2: return 'Focus';
+    case 3: return 'Flow';
+    case 4: return 'Elite';
+    case 5: return 'God Mode';
+    default: return 'Basics';
   }
 };
 
@@ -107,7 +120,7 @@ export const useGameEngine = (initialMode: 'classic' | 'endless' = 'classic') =>
     let answer: number;
 
     if (tier === 1) {
-      // TIER 1: Simple addition/subtraction (1-50)
+      // TIER 1 "Basics": Simple addition/subtraction (1-50)
       const ops = ['+', '-'];
       const op = ops[Math.floor(Math.random() * ops.length)];
       const a = Math.floor(Math.random() * 45) + 5;
@@ -122,7 +135,7 @@ export const useGameEngine = (initialMode: 'classic' | 'endless' = 'classic') =>
         question = `${larger} - ${smaller}`;
       }
     } else if (tier === 2) {
-      // TIER 2: Multiplication (up to 12x12) & three-number addition
+      // TIER 2 "Focus": Multiplication (up to 12x12) & three-number addition
       const questionType = Math.random();
       if (questionType < 0.5) {
         // Multiplication
@@ -139,21 +152,38 @@ export const useGameEngine = (initialMode: 'classic' | 'endless' = 'classic') =>
         question = `${a} + ${b} + ${c}`;
       }
     } else if (tier === 3) {
-      // TIER 3: Square roots & simple algebra
+      // TIER 3 "Flow": Division & large-scale add/subtract (100-500)
       const questionType = Math.random();
       if (questionType < 0.4) {
-        // Square root
-        const square = PERFECT_SQUARES[Math.floor(Math.random() * PERFECT_SQUARES.length)];
-        answer = Math.sqrt(square);
-        question = `√${square}`;
-      } else if (questionType < 0.7) {
+        // Division with clean results
+        const divisor = Math.floor(Math.random() * 10) + 2;
+        const quotient = Math.floor(Math.random() * 15) + 5;
+        const dividend = divisor * quotient;
+        answer = quotient;
+        question = `${dividend} ÷ ${divisor}`;
+      } else {
+        // Large subtraction (100-500 range)
+        const a = Math.floor(Math.random() * 300) + 200;
+        const b = Math.floor(Math.random() * 150) + 50;
+        answer = a - b;
+        question = `${a} - ${b}`;
+      }
+    } else if (tier === 4) {
+      // TIER 4 "Elite": Simple algebra & squares up to 20
+      const questionType = Math.random();
+      if (questionType < 0.4) {
         // Simple algebra: ax + b = c, find x
         const x = Math.floor(Math.random() * 10) + 2;
         const a = Math.floor(Math.random() * 5) + 2;
-        const b = Math.floor(Math.random() * 20) - 10;
+        const b = Math.floor(Math.random() * 20) + 5;
         const c = a * x + b;
         answer = x;
-        question = b >= 0 ? `${a}x + ${b} = ${c}` : `${a}x - ${Math.abs(b)} = ${c}`;
+        question = `${a}x + ${b} = ${c}`;
+      } else if (questionType < 0.7) {
+        // Squares of numbers (2-20)
+        const base = Math.floor(Math.random() * 18) + 2;
+        answer = base * base;
+        question = `${base}²`;
       } else {
         // Large multiplication
         const a = Math.floor(Math.random() * 20) + 10;
@@ -162,36 +192,34 @@ export const useGameEngine = (initialMode: 'classic' | 'endless' = 'classic') =>
         question = `${a} × ${b}`;
       }
     } else {
-      // TIER 4 (MAX): Complex operations
+      // TIER 5 "God Mode": Square roots & multi-step operations
       const questionType = Math.random();
-      if (questionType < 0.3) {
-        // Division with clean results
-        const divisor = Math.floor(Math.random() * 10) + 2;
-        const quotient = Math.floor(Math.random() * 15) + 5;
-        const dividend = divisor * quotient;
-        answer = quotient;
-        question = `${dividend} ÷ ${divisor}`;
-      } else if (questionType < 0.6) {
-        // Two-step algebra: (a × x) - b = c
+      if (questionType < 0.35) {
+        // Square root of perfect squares
+        const square = PERFECT_SQUARES[Math.floor(Math.random() * PERFECT_SQUARES.length)];
+        answer = Math.sqrt(square);
+        question = `√${square}`;
+      } else if (questionType < 0.7) {
+        // Multi-step: (a × b) + c
+        const a = Math.floor(Math.random() * 12) + 2;
+        const b = Math.floor(Math.random() * 10) + 2;
+        const c = Math.floor(Math.random() * 30) + 10;
+        answer = (a * b) + c;
+        question = `(${a} × ${b}) + ${c}`;
+      } else {
+        // Complex algebra: (a × x) - b = c
         const x = Math.floor(Math.random() * 12) + 3;
         const a = Math.floor(Math.random() * 6) + 2;
         const b = Math.floor(Math.random() * 30) + 5;
         const c = (a * x) - b;
         answer = x;
         question = `(${a} × x) - ${b} = ${c}`;
-      } else {
-        // Large three-number operations
-        const a = Math.floor(Math.random() * 100) + 100;
-        const b = Math.floor(Math.random() * 80) + 20;
-        const c = Math.floor(Math.random() * 50) + 10;
-        answer = a - b + c;
-        question = `${a} - ${b} + ${c}`;
       }
     }
 
     // Generate wrong options based on tier
     const options = new Set<number>([answer]);
-    const variance = tier <= 2 ? 10 : tier === 3 ? 15 : 20;
+    const variance = tier <= 2 ? 10 : tier === 3 ? 15 : tier === 4 ? 20 : 25;
     while (options.size < 4) {
       const offset = Math.floor(Math.random() * variance * 2) - variance;
       const wrongAnswer = answer + offset;
@@ -204,7 +232,7 @@ export const useGameEngine = (initialMode: 'classic' | 'endless' = 'classic') =>
       question,
       answer,
       options: shuffleArray(Array.from(options)),
-      tier, // Include tier for scoring
+      tier,
     };
   }, [gameState.streak, gameState.mode]);
 
@@ -260,7 +288,7 @@ export const useGameEngine = (initialMode: 'classic' | 'endless' = 'classic') =>
 
   const submitAnswer = useCallback((isCorrect: boolean, speedBonus: number = 0, tier: number = 1) => {
     setGameState(prev => {
-      // End Endless mode on wrong answer - increment wrong BEFORE stopping
+      // End Endless mode on wrong answer
       if (!isCorrect && prev.mode === 'endless') {
         if (timerRef.current) clearInterval(timerRef.current);
         return { 
@@ -272,8 +300,9 @@ export const useGameEngine = (initialMode: 'classic' | 'endless' = 'classic') =>
         };
       }
 
-      // Tier-based scoring: Hard tasks give 3x more points
-      const tierMultiplier = tier === 1 ? 1 : tier === 2 ? 1.5 : tier === 3 ? 2.5 : 3;
+      // 5-Tier scoring: Tier 1=1x, Tier 2=1.5x, Tier 3=2x, Tier 4=3x, Tier 5=5x
+      const tierMultipliers: Record<number, number> = { 1: 1, 2: 1.5, 3: 2, 4: 3, 5: 5 };
+      const tierMultiplier = tierMultipliers[tier] || 1;
       const streakMultiplier = Math.min(1 + prev.streak * 0.1, 3.0);
       const difficultyBonus = prev.difficulty * 5;
       const basePoints = isCorrect ? (10 + speedBonus * 20 + difficultyBonus) * tierMultiplier : -25;
