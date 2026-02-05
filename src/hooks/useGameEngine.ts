@@ -11,6 +11,9 @@ export interface GameState {
   currentGame: GameType;
   isRunning: boolean;
   timeLeft: number;
+  speedMultiplier: number;
+  lastResult: 'correct' | 'wrong' | null;
+  difficulty: number;
 }
 
 export interface MathQuestion {
@@ -56,6 +59,9 @@ export const useGameEngine = () => {
     currentGame: 'speedMath',
     isRunning: false,
     timeLeft: TOTAL_GAME_TIME,
+    speedMultiplier: 1.0,
+    lastResult: null,
+    difficulty: 1,
   });
 
   const timerRef = useRef<NodeJS.Timeout | null>(null);
@@ -133,6 +139,9 @@ export const useGameEngine = () => {
       currentGame: 'speedMath',
       isRunning: true,
       timeLeft: TOTAL_GAME_TIME,
+      speedMultiplier: 1.0,
+      lastResult: null,
+      difficulty: 1,
     });
 
     if (timerRef.current) clearInterval(timerRef.current);
@@ -162,6 +171,17 @@ export const useGameEngine = () => {
       const streakMultiplier = Math.min(1 + prev.streak * 0.1, 2);
       const basePoints = isCorrect ? 10 + speedBonus : -50;
       const points = isCorrect ? Math.floor(basePoints * streakMultiplier) : basePoints;
+      
+      // Adaptive speed logic
+      let newSpeed = prev.speedMultiplier;
+      if (isCorrect) {
+        newSpeed = Math.min(2.5, prev.speedMultiplier + 0.05);
+      } else {
+        newSpeed = Math.max(0.5, prev.speedMultiplier * 0.9);
+      }
+      
+      // Difficulty based on speed
+      const newDifficulty = newSpeed < 1.2 ? 1 : newSpeed < 1.6 ? 2 : 3;
 
       return {
         ...prev,
@@ -170,6 +190,9 @@ export const useGameEngine = () => {
         correct: prev.correct + (isCorrect ? 1 : 0),
         wrong: prev.wrong + (isCorrect ? 0 : 1),
         totalQuestions: prev.totalQuestions + 1,
+        speedMultiplier: newSpeed,
+        lastResult: isCorrect ? 'correct' : 'wrong',
+        difficulty: newDifficulty,
       };
     });
   }, []);
