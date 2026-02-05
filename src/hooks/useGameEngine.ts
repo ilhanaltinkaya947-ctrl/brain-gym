@@ -14,6 +14,7 @@ export interface GameState {
   speedMultiplier: number;
   lastResult: 'correct' | 'wrong' | null;
   difficulty: number;
+  mode: 'classic' | 'endless';
 }
 
 export interface MathQuestion {
@@ -29,8 +30,9 @@ export interface ColorQuestion {
   correctColor: string;
 }
 
-const GAME_DURATION = 60; // seconds per game
-const TOTAL_GAME_TIME = 120; // 2 minutes total
+// Game rotation configuration
+const ENABLED_GAMES: GameType[] = ['speedMath', 'colorMatch', 'paradox', 'nBack', 'flashMemory'];
+const TOTAL_GAME_TIME = 120; // 2 minutes for Classic mode
 
 const COLORS = [
   { name: 'RED', hsl: 'hsl(0, 85%, 55%)' },
@@ -49,7 +51,7 @@ const shuffleArray = <T,>(array: T[]): T[] => {
   return result;
 };
 
-export const useGameEngine = () => {
+export const useGameEngine = (initialMode: 'classic' | 'endless' = 'classic') => {
   const [gameState, setGameState] = useState<GameState>({
     score: 0,
     streak: 0,
@@ -62,9 +64,16 @@ export const useGameEngine = () => {
     speedMultiplier: 1.0,
     lastResult: null,
     difficulty: 1,
+    mode: initialMode
   });
 
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Dynamic game switching
+  const pickNextGame = useCallback((current: GameType): GameType => {
+    const available = ENABLED_GAMES.filter(g => g !== current);
+    return available[Math.floor(Math.random() * available.length)];
+  }, []);
 
   const generateMathQuestion = useCallback((): MathQuestion => {
     const operations = ['+', '-', '×'];
@@ -102,7 +111,6 @@ export const useGameEngine = () => {
       }
     }
 
-    // Use Fisher-Yates shuffle for true randomization
     return {
       question: `${a} ${op} ${b}`,
       answer,
@@ -111,12 +119,10 @@ export const useGameEngine = () => {
   }, []);
 
   const generateColorQuestion = useCallback((): ColorQuestion => {
-    // Use Fisher-Yates for proper randomization
     const shuffledColors = shuffleArray([...COLORS]);
     const wordColor = shuffledColors[0];
     const textColor = shuffledColors[1];
 
-    // Shuffle options again to ensure answer position is random
     const options = shuffleArray(
       shuffledColors.slice(0, 4).map(c => ({ label: c.name, color: c.hsl }))
     );
@@ -129,7 +135,7 @@ export const useGameEngine = () => {
     };
   }, []);
 
-  const startGame = useCallback(() => {
+  const startGame = useCallback((mode: 'classic' | 'endless' = 'classic') => {
     setGameState({
       score: 0,
       streak: 0,
@@ -138,29 +144,25 @@ export const useGameEngine = () => {
       totalQuestions: 0,
       currentGame: 'speedMath',
       isRunning: true,
-      timeLeft: TOTAL_GAME_TIME,
+      timeLeft: mode === 'classic' ? TOTAL_GAME_TIME : 999,
       speedMultiplier: 1.0,
       lastResult: null,
       difficulty: 1,
+      mode: mode
     });
 
     if (timerRef.current) clearInterval(timerRef.current);
     
     timerRef.current = setInterval(() => {
       setGameState(prev => {
-        if (prev.timeLeft <= 1) {
+        if (prev.mode === 'classic' && prev.timeLeft <= 1) {
           if (timerRef.current) clearInterval(timerRef.current);
           return { ...prev, timeLeft: 0, isRunning: false };
         }
         
-        // Switch games at halftime
-        const newTimeLeft = prev.timeLeft - 1;
-        const switchGame = prev.timeLeft === GAME_DURATION + 1 && prev.currentGame === 'speedMath';
-        
         return {
           ...prev,
-          timeLeft: newTimeLeft,
-          currentGame: switchGame ? 'colorMatch' : prev.currentGame,
+          timeLeft: prev.mode === 'classic' ? prev.timeLeft - 1 : prev.timeLeft
         };
       });
     }, 1000);
@@ -168,20 +170,36 @@ export const useGameEngine = () => {
 
   const submitAnswer = useCallback((isCorrect: boolean, speedBonus: number = 0) => {
     setGameState(prev => {
-      const streakMultiplier = Math.min(1 + prev.streak * 0.1, 2);
-      const basePoints = isCorrect ? 10 + speedBonus : -50;
-      const points = isCorrect ? Math.floor(basePoints * streakMultiplier) : basePoints;
+      // End Endless mode on wrong answer
+      if (!isCorrect && prev.mode === 'endless') {
+        if (timerRef.current) clearInterval(timerRef.current);
+        return { 
+          ...prev, 
+          wrong: prev.wrong + 1, 
+          lastResult: 'wrong', 
+          isRunning: false 
+        };
+      }
+
+      // Score calculation (quality over quantity)
+      const streakMultiplier = Math.min(1 + prev.streak * 0.1, 3.0);
+      const difficultyBonus = prev.difficulty * 5;
+      const basePoints = isCorrect ? (10 + speedBonus * 20 + difficultyBonus) : -25;
+      const points = Math.floor(basePoints * (isCorrect ? streakMultiplier : 1));
       
-      // Adaptive speed logic
+      // Adaptive difficulty and speed
       let newSpeed = prev.speedMultiplier;
       if (isCorrect) {
-        newSpeed = Math.min(2.5, prev.speedMultiplier + 0.05);
+        newSpeed = Math.min(3.0, prev.speedMultiplier + 0.04);
       } else {
-        newSpeed = Math.max(0.5, prev.speedMultiplier * 0.9);
+        newSpeed = Math.max(0.8, prev.speedMultiplier * 0.85);
       }
       
-      // Difficulty based on speed
-      const newDifficulty = newSpeed < 1.2 ? 1 : newSpeed < 1.6 ? 2 : 3;
+      const newDifficulty = Math.floor(newSpeed * 1.5);
+
+      // Game rotation: switch game every 5 correct answers
+      const shouldSwitchGame = isCorrect && (prev.correct + 1) % 5 === 0;
+      const nextGame = shouldSwitchGame ? pickNextGame(prev.currentGame) : prev.currentGame;
 
       return {
         ...prev,
@@ -193,9 +211,10 @@ export const useGameEngine = () => {
         speedMultiplier: newSpeed,
         lastResult: isCorrect ? 'correct' : 'wrong',
         difficulty: newDifficulty,
+        currentGame: nextGame
       };
     });
-  }, []);
+  }, [pickNextGame]);
 
   const stopGame = useCallback(() => {
     if (timerRef.current) clearInterval(timerRef.current);
