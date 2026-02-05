@@ -346,17 +346,18 @@ export const MixedGameScreen = ({
           />
         );
       }
-      case 'chimpMemory':
+      case 'chimpMemory': {
+        const calculatedTier = streak < 6 ? 1 : streak < 13 ? 2 : streak < 21 ? 3 : streak < 31 ? 4 : 5;
         return (
           <ChimpMemory
+            tier={calculatedTier}
+            streak={streak}
             onAnswer={handleAnswer}
             playSound={playSound}
             triggerHaptic={triggerHaptic}
-            onScreenShake={handleScreenShake}
-            streak={streak}
-            mode={mode}
           />
         );
+      }
       default:
         return null;
     }

@@ -118,12 +118,11 @@ export const GameScreen = ({
       case 'chimpMemory':
         return (
           <ChimpMemory
+            tier={currentTier}
+            streak={gameState.streak}
             onAnswer={onAnswer}
             playSound={playSound}
             triggerHaptic={triggerHaptic}
-            onScreenShake={handleScreenShake}
-            streak={gameState.streak}
-            mode={gameState.mode}
           />
         );
       default:
