@@ -65,32 +65,9 @@ export const Dashboard = ({
             }}
           />
           
-          {/* Neural Brain Visual */}
-          <div className="relative z-10 mb-4">
-            <NeuralBrain size={180} brainCharge={readiness} />
-          </div>
-
-          {/* Readiness Score */}
-          <div className="text-center z-10">
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
-              className="flex items-baseline justify-center gap-1"
-            >
-              <span className="text-6xl font-extralight tracking-tight text-foreground">
-                {readiness}
-              </span>
-              <span className="text-2xl font-extralight text-foreground/50">%</span>
-            </motion.div>
-            <motion.p
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.4 }}
-              className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground mt-1"
-            >
-              Readiness
-            </motion.p>
+          {/* Neural Brain Visual - Centered */}
+          <div className="relative z-10">
+            <NeuralBrain size={200} brainCharge={readiness} />
           </div>
         </motion.div>
 
