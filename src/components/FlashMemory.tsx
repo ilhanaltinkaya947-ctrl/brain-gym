@@ -13,6 +13,7 @@ interface Cell {
   number: number | null;
   revealed: boolean;
   tapped: boolean;
+  originalIndex?: number; // Track original position for rotation
 }
 
 const GRID_SIZE = 9; // 3x3
@@ -28,6 +29,9 @@ const getShowTimeForLevel = (level: number): number => {
   return 600;
 };
 
+// Check if rotation should be applied (level 4+)
+const shouldRotate = (level: number): boolean => level >= 4;
+
 // Fisher-Yates shuffle
 const shuffleArray = <T,>(array: T[]): T[] => {
   const result = [...array];
@@ -38,14 +42,36 @@ const shuffleArray = <T,>(array: T[]): T[] => {
   return result;
 };
 
+// Rotate a 3x3 grid 90 degrees clockwise
+// Original:     Rotated:
+// 0 1 2         6 3 0
+// 3 4 5    ->   7 4 1
+// 6 7 8         8 5 2
+const rotateGrid90 = (cells: Cell[]): Cell[] => {
+  const rotationMap = [6, 3, 0, 7, 4, 1, 8, 5, 2];
+  const rotated = new Array(9).fill(null);
+  
+  cells.forEach((cell, oldIndex) => {
+    const newIndex = rotationMap.indexOf(oldIndex);
+    rotated[newIndex] = {
+      ...cell,
+      index: newIndex,
+      originalIndex: cell.originalIndex ?? oldIndex,
+    };
+  });
+  
+  return rotated;
+};
+
 export const FlashMemory = ({ onGameOver, playSound, triggerHaptic }: FlashMemoryProps) => {
   const [level, setLevel] = useState(1);
   const [score, setScore] = useState(0);
   const [cells, setCells] = useState<Cell[]>([]);
-  const [phase, setPhase] = useState<'showing' | 'hiding' | 'playing'>('showing');
+  const [phase, setPhase] = useState<'showing' | 'hiding' | 'rotating' | 'playing'>('showing');
   const [nextExpected, setNextExpected] = useState(1);
   const [isShaking, setIsShaking] = useState(false);
   const [showLevelUp, setShowLevelUp] = useState(false);
+  const [gridRotation, setGridRotation] = useState(0);
 
   const initializeRound = useCallback((currentLevel: number) => {
     const numbers = getNumbersForLevel(currentLevel);
@@ -56,6 +82,7 @@ export const FlashMemory = ({ onGameOver, playSound, triggerHaptic }: FlashMemor
       number: null,
       revealed: false,
       tapped: false,
+      originalIndex: index,
     }));
 
     // Place numbers in random positions
@@ -66,19 +93,32 @@ export const FlashMemory = ({ onGameOver, playSound, triggerHaptic }: FlashMemor
         number: num,
         revealed: true,
         tapped: false,
+        originalIndex: pos,
       };
     });
 
     setCells(newCells);
     setPhase('showing');
     setNextExpected(1);
+    setGridRotation(0);
 
     // Show numbers for calculated time, then hide
     const showTime = getShowTimeForLevel(currentLevel);
     setTimeout(() => {
       setPhase('hiding');
       setCells(prev => prev.map(cell => ({ ...cell, revealed: false })));
-      setTimeout(() => setPhase('playing'), 200);
+      
+      // Apply rotation for level 4+
+      if (shouldRotate(currentLevel)) {
+        setTimeout(() => {
+          setPhase('rotating');
+          setGridRotation(90);
+          setCells(prev => rotateGrid90(prev));
+          setTimeout(() => setPhase('playing'), 400);
+        }, 200);
+      } else {
+        setTimeout(() => setPhase('playing'), 200);
+      }
     }, showTime);
   }, []);
 
@@ -177,6 +217,11 @@ export const FlashMemory = ({ onGameOver, playSound, triggerHaptic }: FlashMemor
           className="text-sm uppercase tracking-widest text-muted-foreground mb-2"
         >
           Level {level}
+          {shouldRotate(level) && (
+            <span className="ml-2 px-2 py-0.5 rounded-full bg-neon-magenta/20 text-neon-magenta text-[10px] font-bold">
+              ROTATION
+            </span>
+          )}
         </motion.div>
         <motion.div 
           key={score}
@@ -198,6 +243,16 @@ export const FlashMemory = ({ onGameOver, playSound, triggerHaptic }: FlashMemor
             className="text-lg text-secondary mb-6 uppercase tracking-widest text-center text-glow-magenta font-bold"
           >
             Memorize!
+          </motion.p>
+        )}
+        {phase === 'rotating' && (
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="text-lg text-neon-magenta mb-6 uppercase tracking-widest text-center font-bold"
+          >
+            ↻ Grid Rotating...
           </motion.p>
         )}
         {phase === 'playing' && (
@@ -228,8 +283,17 @@ export const FlashMemory = ({ onGameOver, playSound, triggerHaptic }: FlashMemor
         )}
       </AnimatePresence>
 
-      {/* 3x3 Grid - Energy Cell Style */}
-      <div className="grid grid-cols-3 gap-3 w-full max-w-xs aspect-square">
+      {/* 3x3 Grid - Energy Cell Style with Rotation */}
+      <motion.div 
+        className="grid grid-cols-3 gap-3 w-full max-w-xs aspect-square"
+        animate={{ 
+          rotate: gridRotation,
+        }}
+        transition={{ 
+          duration: 0.4, 
+          ease: 'easeInOut',
+        }}
+      >
         {cells.map((cell) => {
           const isActive = cell.revealed || cell.tapped;
           const isTapped = cell.tapped;
@@ -241,6 +305,8 @@ export const FlashMemory = ({ onGameOver, playSound, triggerHaptic }: FlashMemor
               animate={{ 
                 opacity: 1, 
                 scale: 1,
+                // Counter-rotate the cells so numbers stay upright
+                rotate: -gridRotation,
               }}
               whileHover={phase === 'playing' && !cell.tapped ? { scale: 1.05, borderColor: 'hsl(var(--neon-cyan))' } : {}}
               whileTap={phase === 'playing' && !cell.tapped ? { scale: 0.95 } : {}}
@@ -286,7 +352,7 @@ export const FlashMemory = ({ onGameOver, playSound, triggerHaptic }: FlashMemor
             </motion.button>
           );
         })}
-      </div>
+      </motion.div>
 
       {/* Hint */}
       <motion.p
@@ -296,6 +362,7 @@ export const FlashMemory = ({ onGameOver, playSound, triggerHaptic }: FlashMemor
         className="mt-8 text-sm text-muted-foreground text-center"
       >
         {getNumbersForLevel(level).length} numbers • {getShowTimeForLevel(level)}ms
+        {shouldRotate(level) && ' • 90° rotation'}
       </motion.p>
     </motion.div>
   );

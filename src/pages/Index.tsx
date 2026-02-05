@@ -123,6 +123,7 @@ const Index = () => {
   const [lastSessionDuration, setLastSessionDuration] = useState(0);
   const [gameStartTime, setGameStartTime] = useState<number>(0);
   const [lastPreviousBest, setLastPreviousBest] = useState(0);
+  const [selectedStartTier, setSelectedStartTier] = useState(1);
 
   // Derived state: brain charge based on today's play
   const brainCharge = useMemo(() => {
@@ -166,7 +167,7 @@ const Index = () => {
     setModeSelectionOpen(true);
   };
 
-  const handleSelectMode = (mode: 'classic' | 'endless') => {
+  const handleSelectMode = (mode: 'classic' | 'endless', startTier: number = 1) => {
     playSound('start');
     triggerHaptic('medium');
     setModeSelectionOpen(false);
@@ -179,6 +180,9 @@ const Index = () => {
     
     // Store previous best for comparison
     setLastPreviousBest(mode === 'classic' ? userStats.classicHighScore : userStats.endlessBestStreak);
+    
+    // Store starting tier for game initialization
+    setSelectedStartTier(startTier);
     
     setCurrentScreen('game');
   };
@@ -318,19 +322,20 @@ const Index = () => {
             transition={{ duration: 0.3 }}
             className="h-screen"
           >
-            <MixedGameScreen
-              mode={gameConfig.mode}
-              enabledGames={gameConfig.enabledGames.filter(g => MIXABLE_GAMES.includes(g)) as MiniGameType[]}
-              generateMathQuestion={generateMathQuestion}
-              generateColorQuestion={generateColorQuestion}
-              onGameEnd={handleGameEnd}
-              onQuit={handleQuit}
-              playSound={playSound}
-              triggerHaptic={triggerHaptic}
-              setStreak={setStreak}
-              bestScore={userStats.classicHighScore}
-              bestStreak={userStats.endlessBestStreak}
-            />
+             <MixedGameScreen
+               mode={gameConfig.mode}
+               enabledGames={gameConfig.enabledGames.filter(g => MIXABLE_GAMES.includes(g)) as MiniGameType[]}
+               generateMathQuestion={generateMathQuestion}
+               generateColorQuestion={generateColorQuestion}
+               onGameEnd={handleGameEnd}
+               onQuit={handleQuit}
+               playSound={playSound}
+               triggerHaptic={triggerHaptic}
+               setStreak={setStreak}
+               bestScore={userStats.classicHighScore}
+               bestStreak={userStats.endlessBestStreak}
+               startTier={selectedStartTier}
+             />
           </motion.div>
         )}
 
