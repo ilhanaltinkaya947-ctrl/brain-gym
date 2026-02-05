@@ -37,8 +37,31 @@
     
     /* Neon/Bio Accents */
     --neon-cyan: 180 100% 50%;
+    --neon-cyan-glow: 180 100% 60%;
     --neon-magenta: 300 100% 50%;
+    --neon-magenta-glow: 300 100% 60%;
     --neon-gold: 45 100% 50%;
+    --neon-gold-glow: 45 100% 60%;
+    
+    /* Bio Palette */
+    --bio-teal: 173 80% 40%;
+    --bio-blue: 210 100% 50%;
+    --bio-purple: 280 100% 50%;
+    --bio-pink: 330 100% 50%;
+    --bio-orange: 25 90% 55%;
+    --bio-gold: 45 100% 50%;
+    
+    /* Semantic */
+    --warning: 38 92% 50%;
+    --success: 142 76% 36%;
+    --cosmic-purple: 280 100% 50%;
+    
+    /* Game Colors */
+    --game-math: 210 100% 50%;
+    --game-color: 280 100% 50%;
+    --game-memory: 173 80% 40%;
+    --game-direction: 25 90% 55%;
+    --game-pattern: 45 100% 50%;
   }
  
   /* GLOBAL MOBILE RESETS */
