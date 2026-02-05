@@ -13,7 +13,8 @@ export type MiniGameType =
   | 'spatialStack'
   | 'wordConnect'
   | 'suitDeception'
-  | 'chimpMemory';
+  | 'chimpMemory'
+  | 'cubeCount';
 
 export interface GameConfig {
   mode: GameMode;
@@ -118,11 +119,19 @@ export const GAME_THEMES: Record<MiniGameType, GameTheme> = {
     accentColor: 'hsl(300, 60%, 50%)',
     bgGradient: 'linear-gradient(135deg, hsl(280, 70%, 55% / 0.15), transparent)',
   },
+  cubeCount: {
+    name: 'cubeCount',
+    label: 'Cube Count',
+    icon: '🧊',
+    primaryColor: 'hsl(200, 70%, 50%)',
+    accentColor: 'hsl(220, 80%, 55%)',
+    bgGradient: 'linear-gradient(135deg, hsl(200, 70%, 50% / 0.15), transparent)',
+  },
 };
 
 export const DEFAULT_CONFIG: GameConfig = {
   mode: 'endless',
-  enabledGames: ['speedMath', 'paradoxFlow', 'suitDeception', 'chimpMemory'],
+  enabledGames: ['speedMath', 'paradoxFlow', 'suitDeception', 'chimpMemory', 'cubeCount'],
 };
 
 // Mixable games - focused on high cognitive load
@@ -132,5 +141,5 @@ export const MIXABLE_GAMES: MiniGameType[] = [
   'paradoxFlow', 
   'suitDeception',
   'chimpMemory',
-  'wordConnect',
+  'cubeCount',
 ];
