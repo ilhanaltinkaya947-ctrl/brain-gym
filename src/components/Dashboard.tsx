@@ -30,10 +30,7 @@ interface DashboardProps {
         animate={{ opacity: 1, y: 0 }}
          className="w-full z-10"
       >
-         <div className="flex justify-between items-center mb-8">
-           <h1 className="text-xl font-light tracking-tight text-foreground/50">
-             Dashboard
-           </h1>
+         <div className="flex justify-end items-center mb-4">
            <motion.button
              whileHover={{ scale: 1.1, rotate: 15 }}
              whileTap={{ scale: 0.9 }}
