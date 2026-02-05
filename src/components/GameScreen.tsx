@@ -38,6 +38,7 @@ export const GameScreen = ({
 }: GameScreenProps) => {
   const [isScreenShaking, setIsScreenShaking] = useState(false);
   const [showComboText, setShowComboText] = useState(false);
+  const [showRedFlash, setShowRedFlash] = useState(false);
 
   // --- 1. ADAPTIVE HEATMAP LOGIC ---
   const getHeatColor = (speed: number) => {
@@ -53,10 +54,12 @@ export const GameScreen = ({
   useEffect(() => {
     if (gameState.lastResult === 'wrong') {
       setIsScreenShaking(true);
+      setShowRedFlash(true);
       triggerHaptic('heavy');
       setTimeout(() => setIsScreenShaking(false), 300);
+      setTimeout(() => setShowRedFlash(false), 400);
     }
-  }, [gameState.lastResult, triggerHaptic]);
+  }, [gameState.lastResult, gameState.wrong, triggerHaptic]);
 
   useEffect(() => {
     if (gameState.streak > 0 && gameState.streak % 10 === 0) {
@@ -135,6 +138,19 @@ export const GameScreen = ({
       }}
       transition={{ background: { duration: 2.0, ease: 'easeInOut' } }}
     >
+      {/* RED FLASH OVERLAY for wrong answers */}
+      <AnimatePresence>
+        {showRedFlash && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 0.4 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.1 }}
+            className="absolute inset-0 bg-destructive pointer-events-none z-50"
+          />
+        )}
+      </AnimatePresence>
+
       {/* Overdrive noise overlay */}
       {isOverdrive && (
         <div className="absolute inset-0 opacity-10 pointer-events-none mix-blend-overlay bg-[url('https://grainy-gradients.vercel.app/noise.svg')]" />
@@ -158,7 +174,7 @@ export const GameScreen = ({
             </span>
           </div>
           <span
-            className={`font-mono text-3xl font-light tracking-tighter ${
+            className={`font-mono text-3xl font-light tracking-tighter tabular-nums ${
               isOverdrive ? 'text-primary drop-shadow-[0_0_10px_hsl(var(--primary)/0.6)]' : ''
             }`}
           >
@@ -170,7 +186,7 @@ export const GameScreen = ({
             <Trophy className="w-3 h-3" />
             <span className="text-[10px] uppercase tracking-[0.2em] font-medium">Score</span>
           </div>
-          <span className="font-mono text-2xl font-bold tracking-tight">{gameState.score}</span>
+          <span className="font-mono text-2xl font-bold tracking-tight tabular-nums">{gameState.score}</span>
         </div>
       </div>
 
@@ -183,7 +199,7 @@ export const GameScreen = ({
             exit={{ opacity: 0, scale: 1.5, filter: 'blur(10px)' }}
             className="absolute top-[20%] left-0 right-0 text-center z-50 pointer-events-none"
           >
-            <span className="text-5xl font-black italic text-transparent bg-clip-text bg-gradient-to-b from-foreground to-primary drop-shadow-[0_0_25px_hsl(var(--primary)/0.6)]">
+            <span className="text-5xl font-black italic text-transparent bg-clip-text bg-gradient-to-b from-foreground to-primary drop-shadow-[0_0_25px_hsl(var(--primary)/0.6)] tabular-nums">
               {gameState.streak}x
             </span>
           </motion.div>

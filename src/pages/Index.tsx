@@ -315,14 +315,17 @@ const Index = () => {
             transition={{ duration: 0.3 }}
           >
             <ResultScreen
-              score={gameConfig.mode === 'classic' ? lastScore : lastStreak}
+              score={lastScore}
               correct={lastCorrect}
               wrong={lastWrong}
+              streak={lastStreak}
               onPlayAgain={handlePlayAgain}
               onGoHome={handleGoHome}
               isNewHighScore={isNewHighScore}
               xpGained={lastXPGained}
               totalXP={userStats.totalXP}
+              mode={wasEndlessMode ? 'endless' : 'classic'}
+              sessionDuration={wasEndlessMode ? Math.floor(lastCorrect * 2) : 120}
             />
           </motion.div>
         )}

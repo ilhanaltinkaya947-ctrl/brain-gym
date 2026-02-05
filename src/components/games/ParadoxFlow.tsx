@@ -22,18 +22,24 @@ interface Question {
 const DIRECTIONS: Direction[] = ['UP', 'DOWN', 'LEFT', 'RIGHT'];
 
 const ARROW_ICONS: Record<Direction, React.ReactNode> = {
-  UP: <ArrowUp className="w-28 h-28" strokeWidth={2.5} />,
-  DOWN: <ArrowDown className="w-28 h-28" strokeWidth={2.5} />,
-  LEFT: <ArrowLeft className="w-28 h-28" strokeWidth={2.5} />,
-  RIGHT: <ArrowRight className="w-28 h-28" strokeWidth={2.5} />,
+  UP: <ArrowUp className="w-24 h-24" strokeWidth={2} />,
+  DOWN: <ArrowDown className="w-24 h-24" strokeWidth={2} />,
+  LEFT: <ArrowLeft className="w-24 h-24" strokeWidth={2} />,
+  RIGHT: <ArrowRight className="w-24 h-24" strokeWidth={2} />,
+};
+
+// Exit animation destinations
+const EXIT_TRANSFORMS: Record<Direction, { x: number; y: number; rotate: number }> = {
+  UP: { x: 0, y: -400, rotate: -15 },
+  DOWN: { x: 0, y: 400, rotate: 15 },
+  LEFT: { x: -400, y: 0, rotate: -25 },
+  RIGHT: { x: 400, y: 0, rotate: 25 },
 };
 
 const generateQuestion = (followChance: number): Question => {
   const arrowDirection = DIRECTIONS[Math.floor(Math.random() * DIRECTIONS.length)];
   const instruction: 'FOLLOW' | 'AVOID' = Math.random() < followChance ? 'FOLLOW' : 'AVOID';
   
-  // FOLLOW: only the arrow direction is valid
-  // AVOID: any direction EXCEPT the arrow direction is valid
   const validDirections = instruction === 'FOLLOW' 
     ? [arrowDirection]
     : DIRECTIONS.filter(d => d !== arrowDirection);
@@ -54,6 +60,7 @@ export const ParadoxFlow = ({
 }: ParadoxFlowProps) => {
   const [question, setQuestion] = useState<Question>(() => generateQuestion(followChance));
   const [questionKey, setQuestionKey] = useState(0);
+  const [exitDirection, setExitDirection] = useState<Direction | null>(null);
   const [lastFeedback, setLastFeedback] = useState<'correct' | 'wrong' | null>(null);
   
   const questionStartTime = useRef(Date.now());
@@ -61,7 +68,14 @@ export const ParadoxFlow = ({
 
   const x = useMotionValue(0);
   const y = useMotionValue(0);
-  const rotateZ = useTransform(x, [-200, 200], [-15, 15]);
+  const rotateZ = useTransform(x, [-200, 200], [-20, 20]);
+  const scale = useTransform(
+    [x, y],
+    ([latestX, latestY]: number[]) => {
+      const distance = Math.sqrt(latestX ** 2 + latestY ** 2);
+      return Math.min(1 + distance * 0.001, 1.1);
+    }
+  );
 
   const handleSwipe = useCallback((swipeDirection: Direction) => {
     if (isProcessing.current) return;
@@ -71,58 +85,70 @@ export const ParadoxFlow = ({
     const speedBonus = Math.max(0, Math.floor((2500 - responseTime) / 100));
     const isCorrect = question.validDirections.includes(swipeDirection);
 
+    // Set exit direction for fly-off animation
+    setExitDirection(swipeDirection);
+    setLastFeedback(isCorrect ? 'correct' : 'wrong');
+
     if (isCorrect) {
       playSound('correct');
       triggerHaptic('medium');
-      setLastFeedback('correct');
       
       confetti({
-        particleCount: 25,
-        spread: 50,
+        particleCount: 30,
+        spread: 60,
         origin: { x: 0.5, y: 0.5 },
         colors: question.instruction === 'FOLLOW' 
-          ? ['#00FF00', '#32CD32', '#7CFC00']
-          : ['#FF6A00', '#FFA500', '#FFD700'],
-        scalar: 0.7,
+          ? ['#00FF88', '#00D4FF', '#7CFC00']
+          : ['#FF6A00', '#FFD60A', '#FF3366'],
+        scalar: 0.8,
       });
     } else {
       playSound('wrong');
       triggerHaptic('heavy');
       onScreenShake();
-      setLastFeedback('wrong');
     }
 
     onAnswer(isCorrect, speedBonus);
 
+    // Wait for exit animation, then reset
     setTimeout(() => {
+      setExitDirection(null);
       setQuestion(generateQuestion(followChance));
       setQuestionKey(k => k + 1);
       questionStartTime.current = Date.now();
       setLastFeedback(null);
       isProcessing.current = false;
-    }, 150);
-  }, [question.validDirections, question.instruction, followChance, onAnswer, playSound, triggerHaptic, onScreenShake]);
+      x.set(0);
+      y.set(0);
+    }, 200);
+  }, [question.validDirections, question.instruction, followChance, onAnswer, playSound, triggerHaptic, onScreenShake, x, y]);
 
   const handleDragEnd = useCallback((_: any, info: PanInfo) => {
-    const threshold = 50;
+    const threshold = 60;
+    const velocityThreshold = 300;
     const { offset, velocity } = info;
     
     let direction: Direction | null = null;
     
-    if (Math.abs(offset.x) > Math.abs(offset.y)) {
-      if (offset.x > threshold || velocity.x > 200) direction = 'RIGHT';
-      else if (offset.x < -threshold || velocity.x < -200) direction = 'LEFT';
+    // Determine swipe direction based on offset and velocity
+    const absX = Math.abs(offset.x);
+    const absY = Math.abs(offset.y);
+    
+    if (absX > absY) {
+      if (offset.x > threshold || velocity.x > velocityThreshold) direction = 'RIGHT';
+      else if (offset.x < -threshold || velocity.x < -velocityThreshold) direction = 'LEFT';
     } else {
-      if (offset.y > threshold || velocity.y > 200) direction = 'DOWN';
-      else if (offset.y < -threshold || velocity.y < -200) direction = 'UP';
+      if (offset.y > threshold || velocity.y > velocityThreshold) direction = 'DOWN';
+      else if (offset.y < -threshold || velocity.y < -velocityThreshold) direction = 'UP';
     }
     
     if (direction) {
       handleSwipe(direction);
+    } else {
+      // Snap back if not enough movement
+      x.set(0);
+      y.set(0);
     }
-    
-    x.set(0);
-    y.set(0);
   }, [handleSwipe, x, y]);
 
   // Keyboard controls
@@ -149,75 +175,92 @@ export const ParadoxFlow = ({
   }, [handleSwipe]);
 
   const isFollow = question.instruction === 'FOLLOW';
-  const instructionColor = isFollow ? 'hsl(140, 70%, 50%)' : 'hsl(0, 70%, 55%)';
-  const arrowColor = isFollow ? 'hsl(140, 70%, 50%)' : 'hsl(25, 90%, 55%)';
+  const instructionColor = isFollow ? 'hsl(var(--success))' : 'hsl(var(--destructive))';
+  const cardGradient = isFollow 
+    ? 'linear-gradient(135deg, hsl(var(--success) / 0.15), hsl(var(--success) / 0.05))'
+    : 'linear-gradient(135deg, hsl(var(--primary) / 0.15), hsl(var(--primary) / 0.05))';
+
+  const exitTransform = exitDirection ? EXIT_TRANSFORMS[exitDirection] : null;
 
   return (
-    <div className="h-full flex flex-col items-center justify-center px-6 py-8">
+    <div className="h-full w-full flex flex-col items-center justify-center px-4 py-6">
       {/* Instruction Banner */}
       <motion.div
         key={`instruction-${questionKey}`}
-        initial={{ opacity: 0, y: -20, scale: 0.9 }}
+        initial={{ opacity: 0, y: -15, scale: 0.95 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
-        className="text-center mb-6"
+        className="text-center mb-4"
       >
         <motion.div
           animate={{ 
-            scale: [1, 1.05, 1],
+            scale: [1, 1.03, 1],
             textShadow: [
-              `0 0 20px ${instructionColor}`,
-              `0 0 40px ${instructionColor}`,
-              `0 0 20px ${instructionColor}`,
+              `0 0 15px ${instructionColor}`,
+              `0 0 30px ${instructionColor}`,
+              `0 0 15px ${instructionColor}`,
             ],
           }}
-          transition={{ duration: 0.5, repeat: Infinity }}
-          className="text-4xl font-black uppercase tracking-widest"
+          transition={{ duration: 0.6, repeat: Infinity }}
+          className="text-3xl font-black uppercase tracking-[0.2em]"
           style={{ color: instructionColor }}
         >
           {question.instruction}
         </motion.div>
-        <div className="text-xs text-muted-foreground mt-2 uppercase tracking-wider">
+        <div className="text-[10px] text-muted-foreground mt-1.5 uppercase tracking-wider">
           {isFollow ? 'Swipe the arrow direction' : 'Swipe any other direction'}
         </div>
       </motion.div>
 
-      {/* Arrow Card */}
-      <div className="relative w-56 h-56 mb-8">
+      {/* Swipeable Card Container */}
+      <div className="relative w-48 h-48 mb-4">
         <AnimatePresence mode="popLayout">
           <motion.div
             key={questionKey}
             drag
             dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
-            dragElastic={0.9}
+            dragElastic={0.8}
             onDragEnd={handleDragEnd}
             style={{ 
               x, 
               y, 
               rotateZ,
-              background: `linear-gradient(135deg, ${arrowColor}15, ${arrowColor}05)`,
-              borderColor: `${arrowColor}60`,
+              scale,
+              background: cardGradient,
             }}
-            initial={{ opacity: 0, scale: 0.5, rotate: -10 }}
+            initial={{ opacity: 0, scale: 0.6, rotate: -5 }}
             animate={{ 
-              opacity: 1, 
-              scale: 1,
-              rotate: 0,
+              opacity: exitDirection ? 0 : 1, 
+              scale: exitDirection ? 0.8 : 1,
+              rotate: exitDirection ? exitTransform?.rotate || 0 : 0,
+              x: exitDirection ? exitTransform?.x || 0 : 0,
+              y: exitDirection ? exitTransform?.y || 0 : 0,
               boxShadow: lastFeedback === 'correct' 
-                ? `0 0 60px ${isFollow ? 'hsl(140, 70%, 50%)' : 'hsl(25, 90%, 55%)'}`
+                ? `0 0 50px ${isFollow ? 'hsl(var(--success))' : 'hsl(var(--primary))'}`
                 : lastFeedback === 'wrong'
-                ? '0 0 60px hsl(0, 70%, 50%)'
-                : `0 0 30px ${arrowColor}40`,
+                ? '0 0 50px hsl(var(--destructive))'
+                : '0 0 20px hsl(var(--border) / 0.3)',
             }}
-            exit={{ opacity: 0, scale: 0.5, y: 100 }}
-            transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-            className="absolute inset-0 cursor-grab active:cursor-grabbing rounded-3xl border-2 flex items-center justify-center"
+            exit={{ 
+              opacity: 0, 
+              scale: 0.5,
+              x: exitTransform?.x || 0,
+              y: exitTransform?.y || 0,
+              rotate: exitTransform?.rotate || 0,
+            }}
+            transition={{ 
+              type: 'spring', 
+              stiffness: 400, 
+              damping: 30,
+              opacity: { duration: 0.15 }
+            }}
+            className="absolute inset-0 cursor-grab active:cursor-grabbing rounded-3xl border border-border/50 backdrop-blur-xl flex items-center justify-center select-none"
           >
             <motion.div
               animate={{ 
-                scale: [1, 1.08, 1],
+                scale: [1, 1.06, 1],
               }}
-              transition={{ duration: 0.8, repeat: Infinity }}
-              style={{ color: arrowColor }}
+              transition={{ duration: 0.7, repeat: Infinity }}
+              style={{ color: isFollow ? 'hsl(var(--success))' : 'hsl(var(--primary))' }}
             >
               {ARROW_ICONS[question.arrowDirection]}
             </motion.div>
@@ -225,44 +268,14 @@ export const ParadoxFlow = ({
         </AnimatePresence>
       </div>
 
-      {/* Direction Hints */}
-      <div className="grid grid-cols-3 gap-2 w-48">
-        <div />
-        <div 
-          className="w-12 h-12 rounded-lg border border-border/30 flex items-center justify-center transition-opacity"
-          style={{ opacity: question.validDirections.includes('UP') ? 1 : 0.2 }}
-        >
-          <ArrowUp className="w-6 h-6 text-muted-foreground" />
-        </div>
-        <div />
-        <div 
-          className="w-12 h-12 rounded-lg border border-border/30 flex items-center justify-center transition-opacity"
-          style={{ opacity: question.validDirections.includes('LEFT') ? 1 : 0.2 }}
-        >
-          <ArrowLeft className="w-6 h-6 text-muted-foreground" />
-        </div>
-        <div 
-          className="w-12 h-12 rounded-lg border border-border/30 flex items-center justify-center transition-opacity"
-          style={{ opacity: question.validDirections.includes('DOWN') ? 1 : 0.2 }}
-        >
-          <ArrowDown className="w-6 h-6 text-muted-foreground" />
-        </div>
-        <div 
-          className="w-12 h-12 rounded-lg border border-border/30 flex items-center justify-center transition-opacity"
-          style={{ opacity: question.validDirections.includes('RIGHT') ? 1 : 0.2 }}
-        >
-          <ArrowRight className="w-6 h-6 text-muted-foreground" />
-        </div>
-      </div>
-
       {/* Hint */}
       <motion.p
         initial={{ opacity: 0 }}
-        animate={{ opacity: 0.5 }}
-        transition={{ delay: 0.5 }}
-        className="mt-6 text-xs text-muted-foreground text-center uppercase tracking-wider"
+        animate={{ opacity: 0.4 }}
+        transition={{ delay: 0.3 }}
+        className="text-[9px] text-muted-foreground text-center uppercase tracking-[0.2em]"
       >
-        Swipe or use Arrow Keys
+        Swipe or Arrow Keys
       </motion.p>
     </div>
   );
