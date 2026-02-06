@@ -8,10 +8,11 @@ interface CubeCountProps {
   triggerHaptic: (type: 'light' | 'medium' | 'heavy') => void;
 }
 
-// ROBUST 3D CUBE COMPONENT
+// VISUAL COMPONENT: BLUE 3D CUBE
 const SingleCube = ({ x, y, z }: { x: number; y: number; z: number }) => {
-  const SIZE = 40;
+  const SIZE = 44;
   const HALF = SIZE / 2;
+  
   const translate = `translate3d(${x * SIZE}px, ${y * SIZE}px, ${z * SIZE}px)`;
   
   return (
@@ -25,21 +26,21 @@ const SingleCube = ({ x, y, z }: { x: number; y: number; z: number }) => {
         zIndex: (x * 100) + (y * 100) + (z * 100) 
       }}
     >
-      {/* TOP FACE (Bright White) */}
+      {/* TOP FACE (Brightest / Light Source) */}
       <div 
-        className="absolute inset-0 bg-white border-2 border-slate-300" 
+        className="absolute inset-0 bg-[#22d3ee] border border-white/30" 
         style={{ transform: `translateZ(${HALF}px)` }} 
       />
       
-      {/* RIGHT FACE (Dark Shadow) */}
+      {/* RIGHT FACE (Darkest / Shadow) */}
       <div 
-        className="absolute inset-0 bg-slate-500 border-2 border-slate-600" 
+        className="absolute inset-0 bg-[#0369a1] border border-white/30" 
         style={{ transform: `rotateY(90deg) translateZ(${HALF}px)` }} 
       />
 
-      {/* FRONT FACE (Medium Shadow) */}
+      {/* FRONT FACE (Medium / Base Color) */}
       <div 
-        className="absolute inset-0 bg-slate-300 border-2 border-slate-400" 
+        className="absolute inset-0 bg-[#0ea5e9] border border-white/30" 
         style={{ transform: `rotateX(-90deg) translateZ(${HALF}px)` }} 
       />
     </div>
@@ -84,34 +85,30 @@ export const CubeCount = ({ tier, onAnswer, playSound, triggerHaptic }: CubeCoun
 
   const handleGuess = (val: number) => {
     if (val === totalBlocks) {
-      playSound('correct'); 
-      triggerHaptic('light'); 
-      onAnswer(true, 1, tier);
+      playSound('correct'); triggerHaptic('light'); onAnswer(true, 1, tier);
     } else {
-      playSound('wrong'); 
-      triggerHaptic('heavy'); 
-      onAnswer(false, 0, tier);
+      playSound('wrong'); triggerHaptic('heavy'); onAnswer(false, 0, tier);
     }
   };
 
   return (
-    <div className="flex flex-col items-center justify-center h-full w-full overflow-hidden bg-black/20">
+    <div className="flex flex-col items-center justify-center h-full w-full overflow-hidden bg-gradient-to-b from-black/20 to-black/60">
       
-      {/* 3D SCENE CONTAINER */}
-      <div className="relative w-64 h-64 flex items-center justify-center mb-8" style={{ perspective: '1000px' }}>
+      {/* 3D SCENE WRAPPER */}
+      <div className="relative w-64 h-64 flex items-center justify-center mb-10" style={{ perspective: '1200px' }}>
         <div 
           className="relative w-full h-full"
           style={{ 
             transformStyle: 'preserve-3d', 
-            transform: 'rotateX(60deg) rotateZ(45deg) scale(0.8)',
+            transform: 'rotateX(60deg) rotateZ(45deg) scale(0.85)',
             marginLeft: '-15%', 
             marginTop: '-15%'
           }}
         >
           <motion.div 
-            initial={{ opacity: 0, scale: 0.5 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ type: 'spring', bounce: 0.3 }}
+            initial={{ opacity: 0, scale: 0.5, z: -100 }}
+            animate={{ opacity: 1, scale: 1, z: 0 }}
+            transition={{ type: 'spring', stiffness: 100, damping: 20 }}
           >
             {cubes.map((c, i) => (
               <SingleCube key={i} x={c.x} y={c.y} z={c.z} />
@@ -120,13 +117,13 @@ export const CubeCount = ({ tier, onAnswer, playSound, triggerHaptic }: CubeCoun
         </div>
       </div>
 
-      {/* Answer Buttons */}
+      {/* ANSWER BUTTONS */}
       <div className="grid grid-cols-4 gap-3 w-full max-w-md z-10 px-4">
         {options.map(opt => (
           <button
             key={opt}
             onClick={() => handleGuess(opt)}
-            className="h-16 bg-card/80 border border-white/10 backdrop-blur rounded-2xl text-2xl font-black shadow-lg hover:bg-primary hover:text-primary-foreground active:scale-95 transition-all"
+            className="h-16 bg-card/80 border border-white/10 backdrop-blur rounded-2xl text-2xl font-black shadow-lg hover:bg-cyan-500 hover:text-white hover:border-cyan-400 active:scale-95 transition-all"
           >
             {opt}
           </button>
