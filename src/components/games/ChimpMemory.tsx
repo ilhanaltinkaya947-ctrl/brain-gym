@@ -16,6 +16,7 @@ export const ChimpMemory = memo(({ tier, onAnswer, playSound, triggerHaptic }: C
   const [cells, setCells] = useState<Cell[]>([]);
   const [phase, setPhase] = useState<'showing' | 'hiding' | 'playing'>('showing');
   const [nextExpected, setNextExpected] = useState(1);
+  const [lastTapTime, setLastTapTime] = useState(0);
 
   // Difficulty Config - Minimum 2s display for harder tiers, scaled by count
   const getDifficultyConfig = (t: number) => {
@@ -70,6 +71,12 @@ export const ChimpMemory = memo(({ tier, onAnswer, playSound, triggerHaptic }: C
 
   const handleCellTap = (index: number) => {
     if (phase !== 'playing') return;
+    
+    // Debounce rapid taps (150ms minimum between taps)
+    const now = Date.now();
+    if (now - lastTapTime < 150) return;
+    setLastTapTime(now);
+    
     const cell = cells[index];
     if (cell.tapped) return;
 
@@ -95,20 +102,21 @@ export const ChimpMemory = memo(({ tier, onAnswer, playSound, triggerHaptic }: C
   };
 
   return (
-    <div className="flex flex-col items-center justify-center w-full h-full px-4">
+    <div className="flex flex-col items-center justify-center w-full h-full px-6">
       <motion.div 
-        className="grid grid-cols-5 gap-1.5 w-full max-w-[300px] aspect-square"
+        className="grid grid-cols-5 gap-2 w-full max-w-[280px] aspect-square"
         initial={false}
       >
         {cells.map((cell) => (
           <button
             key={cell.index}
             onClick={() => handleCellTap(cell.index)}
-            className={`relative rounded-lg flex items-center justify-center text-xl font-bold aspect-square transition-colors
+            className={`relative rounded-lg flex items-center justify-center text-lg font-bold aspect-square transition-colors touch-manipulation
               ${cell.revealed && cell.number ? 'bg-primary text-primary-foreground' : 'bg-muted/30 active:bg-muted/50'}
               ${cell.isError ? 'bg-destructive animate-shake' : ''}
-              ${cell.tapped ? 'opacity-40' : 'opacity-100'}
+              ${cell.tapped ? 'opacity-40 pointer-events-none' : 'opacity-100'}
             `}
+            disabled={cell.tapped || phase !== 'playing'}
           >
             {(cell.revealed || cell.tapped) && cell.number}
           </button>
