@@ -43,8 +43,35 @@ const COLORS = [
   { name: 'YELLOW', hsl: 'hsl(45, 90%, 55%)' },
 ];
 
-// Perfect squares for tier 3
+// Perfect squares for tier 3+
 const PERFECT_SQUARES = [4, 9, 16, 25, 36, 49, 64, 81, 100, 121, 144, 169, 196, 225];
+
+// Perfect cubes for tier 4
+const PERFECT_CUBES = [
+  { base: 2, result: 8 },
+  { base: 3, result: 27 },
+  { base: 4, result: 64 },
+  { base: 5, result: 125 },
+];
+
+// Logarithms for tier 5 (base 10)
+const LOG_VALUES = [
+  { value: 10, result: 1 },
+  { value: 100, result: 2 },
+  { value: 1000, result: 3 },
+  { value: 10000, result: 4 },
+];
+
+// Factorials for tier 5
+const FACTORIALS = [
+  { n: 3, result: 6 },
+  { n: 4, result: 24 },
+  { n: 5, result: 120 },
+  { n: 6, result: 720 },
+];
+
+// Percentage values for tier 4
+const PERCENTAGES = [10, 20, 25, 50, 75];
 
 // Fisher-Yates shuffle - ensures true randomization
 const shuffleArray = <T,>(array: T[]): T[] => {
@@ -54,6 +81,15 @@ const shuffleArray = <T,>(array: T[]): T[] => {
     [result[i], result[j]] = [result[j], result[i]];
   }
   return result;
+};
+
+// Helper: Convert number to superscript for display
+const superscript = (n: number): string => {
+  const superscripts: Record<string, string> = {
+    '0': '⁰', '1': '¹', '2': '²', '3': '³', '4': '⁴',
+    '5': '⁵', '6': '⁶', '7': '⁷', '8': '⁸', '9': '⁹',
+  };
+  return String(n).split('').map(d => superscripts[d] || d).join('');
 };
 
 // Calculate difficulty tier based on streak and mode (5-tier system)
@@ -172,61 +208,120 @@ export const useGameEngine = (initialMode: 'classic' | 'endless' = 'classic') =>
         question = `${a} - ${b}`;
       }
     } else if (tier === 4) {
-      // TIER 4 "Elite": Simple algebra & squares up to 20
+      // TIER 4 "Elite": Percentages, cubes, harder algebra, larger squares
       const questionType = Math.random();
-      if (questionType < 0.4) {
-        // Simple algebra: ax + b = c, find x
-        const x = Math.floor(Math.random() * 10) + 2;
-        const a = Math.floor(Math.random() * 5) + 2;
-        const b = Math.floor(Math.random() * 20) + 5;
+      if (questionType < 0.25) {
+        // Percentages: x% of y
+        const percent = PERCENTAGES[Math.floor(Math.random() * PERCENTAGES.length)];
+        const base = Math.floor(Math.random() * 8 + 2) * 20; // 40, 60, 80, ..., 180
+        answer = (percent / 100) * base;
+        question = `${percent}% of ${base}`;
+      } else if (questionType < 0.45) {
+        // Cubes of small numbers
+        const cube = PERFECT_CUBES[Math.floor(Math.random() * PERFECT_CUBES.length)];
+        answer = cube.result;
+        question = `${cube.base}³`;
+      } else if (questionType < 0.65) {
+        // Harder algebra: ax + b = c (larger numbers)
+        const x = Math.floor(Math.random() * 12) + 3;
+        const a = Math.floor(Math.random() * 6) + 2;
+        const b = Math.floor(Math.random() * 25) + 5;
         const c = a * x + b;
         answer = x;
         question = `${a}x + ${b} = ${c}`;
-      } else if (questionType < 0.7) {
-        // Squares of numbers (2-20)
-        const base = Math.floor(Math.random() * 18) + 2;
+      } else if (questionType < 0.85) {
+        // Larger squares (11-18)
+        const base = Math.floor(Math.random() * 8) + 11;
         answer = base * base;
         question = `${base}²`;
       } else {
         // Large multiplication
-        const a = Math.floor(Math.random() * 20) + 10;
-        const b = Math.floor(Math.random() * 12) + 2;
+        const a = Math.floor(Math.random() * 15) + 12;
+        const b = Math.floor(Math.random() * 10) + 3;
         answer = a * b;
         question = `${a} × ${b}`;
       }
     } else {
-      // TIER 5 "God Mode": Square roots & multi-step operations
+      // TIER 5 "God Mode": Logarithms, factorials, modular arithmetic, power combos
       const questionType = Math.random();
-      if (questionType < 0.35) {
+      if (questionType < 0.2) {
         // Square root of perfect squares
         const square = PERFECT_SQUARES[Math.floor(Math.random() * PERFECT_SQUARES.length)];
         answer = Math.sqrt(square);
         question = `√${square}`;
+      } else if (questionType < 0.4) {
+        // Simple logarithms (base 10)
+        const log = LOG_VALUES[Math.floor(Math.random() * LOG_VALUES.length)];
+        answer = log.result;
+        question = `log₁₀(${log.value})`;
+      } else if (questionType < 0.55) {
+        // Factorials
+        const fact = FACTORIALS[Math.floor(Math.random() * FACTORIALS.length)];
+        answer = fact.result;
+        question = `${fact.n}!`;
       } else if (questionType < 0.7) {
-        // Multi-step: (a × b) + c
-        const a = Math.floor(Math.random() * 12) + 2;
-        const b = Math.floor(Math.random() * 10) + 2;
-        const c = Math.floor(Math.random() * 30) + 10;
-        answer = (a * b) + c;
-        question = `(${a} × ${b}) + ${c}`;
+        // Modular arithmetic
+        const divisors = [3, 5, 7];
+        const divisor = divisors[Math.floor(Math.random() * divisors.length)];
+        const num = Math.floor(Math.random() * 30) + 10;
+        answer = num % divisor;
+        question = `${num} mod ${divisor}`;
+      } else if (questionType < 0.85) {
+        // Power combinations: 2^a + 2^b
+        const powers = [
+          { exp1: 3, exp2: 2, result: 12 },  // 8 + 4
+          { exp1: 4, exp2: 3, result: 24 },  // 16 + 8
+          { exp1: 4, exp2: 2, result: 20 },  // 16 + 4
+          { exp1: 5, exp2: 3, result: 40 },  // 32 + 8
+          { exp1: 5, exp2: 4, result: 48 },  // 32 + 16
+        ];
+        const combo = powers[Math.floor(Math.random() * powers.length)];
+        answer = combo.result;
+        question = `2${superscript(combo.exp1)} + 2${superscript(combo.exp2)}`;
       } else {
-        // Complex algebra: (a × x) - b = c
-        const x = Math.floor(Math.random() * 12) + 3;
-        const a = Math.floor(Math.random() * 6) + 2;
-        const b = Math.floor(Math.random() * 30) + 5;
-        const c = (a * x) - b;
-        answer = x;
-        question = `(${a} × x) - ${b} = ${c}`;
+        // Multi-step: (a × b) - c or negative operations
+        const useNegative = Math.random() < 0.5;
+        if (useNegative) {
+          const a = Math.floor(Math.random() * 8) + 2;
+          const b = Math.floor(Math.random() * 6) + 2;
+          answer = -a * b;
+          question = `(-${a}) × ${b}`;
+        } else {
+          const a = Math.floor(Math.random() * 10) + 3;
+          const b = Math.floor(Math.random() * 8) + 3;
+          const c = Math.floor(Math.random() * 20) + 5;
+          answer = (a * b) - c;
+          question = `(${a} × ${b}) - ${c}`;
+        }
       }
     }
 
-    // Generate wrong options based on tier
+    // Generate wrong options based on tier and question type
     const options = new Set<number>([answer]);
-    const variance = tier <= 2 ? 10 : tier === 3 ? 15 : tier === 4 ? 20 : 25;
+    
+    // Special variance handling for different question types
+    let variance: number;
+    let minValue = 1; // Default minimum for wrong answers
+    
+    if (question.includes('mod')) {
+      // Modular: answers are 0 to divisor-1
+      variance = 3;
+      minValue = 0;
+    } else if (question.includes('!')) {
+      // Factorials: large variance for big numbers
+      variance = answer < 100 ? 15 : 100;
+    } else if (question.includes('log')) {
+      // Logarithms: small variance (1-4 range)
+      variance = 2;
+    } else {
+      // Standard variance by tier
+      variance = tier <= 2 ? 10 : tier === 3 ? 15 : tier === 4 ? 25 : 30;
+    }
+    
     while (options.size < 4) {
       const offset = Math.floor(Math.random() * variance * 2) - variance;
       const wrongAnswer = answer + offset;
-      if (wrongAnswer !== answer && wrongAnswer > 0) {
+      if (wrongAnswer !== answer && wrongAnswer >= minValue) {
         options.add(wrongAnswer);
       }
     }
