@@ -503,174 +503,70 @@ export const MixedGameScreen = ({
         )}
       </AnimatePresence>
 
-      {/* Header Stats */}
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="px-6 pt-6 pb-4 relative z-10"
-      >
-        {/* Best Score/Streak - Top Right */}
-        <div className="absolute top-6 right-14 flex items-center gap-1 text-muted-foreground">
-          <Trophy className="w-4 h-4 text-neon-gold" />
-          <span className="font-mono text-sm font-bold">
-            BEST: {mode === 'classic' ? bestScore : bestStreak}
-          </span>
-        </div>
+      {/* Endless Mode Indicator - Subtle Red Line at Top */}
+      {mode === 'endless' && (
+        <motion.div 
+          className="absolute top-0 left-0 right-0 h-1 bg-destructive z-50"
+          animate={{ opacity: [0.4, 1, 0.4] }}
+          transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+        />
+      )}
 
-        {/* Quit button */}
-        <button 
-          onClick={onQuit}
-          className="absolute top-6 left-6 p-2 rounded-full bg-muted/30 backdrop-blur-sm text-muted-foreground hover:text-foreground transition-colors border border-border/30"
-        >
-          <X className="w-5 h-5" />
-        </button>
-
-        {/* Game type indicator */}
-        <div className="text-center mb-4 mt-8">
-          <motion.span
-            key={currentGame}
-            initial={{ opacity: 0, y: -10, scale: 0.9 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            className="inline-block px-5 py-1.5 rounded-full text-xs font-black uppercase tracking-widest border"
-            style={{
-              background: `linear-gradient(90deg, ${currentTheme.primaryColor}33, ${currentTheme.primaryColor}11)`,
-              borderColor: `${currentTheme.primaryColor}80`,
-              color: currentTheme.primaryColor,
-            }}
+      {/* CLEAN MINIMALIST HUD */}
+      <div className="px-6 pt-6 pb-4 relative z-10">
+        {/* Top Row: Close | Score | Best */}
+        <div className="flex items-start justify-between">
+          {/* Left: Close Button */}
+          <button 
+            onClick={onQuit}
+            className="p-2 -ml-2 opacity-40 hover:opacity-100 transition-opacity rounded-full"
           >
-            {currentTheme.icon} {currentTheme.label}
-          </motion.span>
-        </div>
+            <X className="w-6 h-6" />
+          </button>
 
-        {/* Mode + Phase indicator */}
-        <div className="flex justify-center gap-4 mb-3">
-          {mode === 'endless' ? (
-            <div className="flex items-center gap-2 text-destructive text-xs uppercase tracking-wider">
-              <Skull className="w-4 h-4" />
-              <span className="font-bold">Sudden Death</span>
-            </div>
-          ) : (
-            <div className="flex items-center gap-2 text-muted-foreground text-xs uppercase tracking-wider">
-              <Clock className="w-4 h-4" />
-              <span className="font-bold">Classic Mode</span>
-            </div>
-          )}
-          
-          {/* Adaptive Phase Badge */}
-          <div 
-            className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs uppercase tracking-wider font-bold border"
-            style={{
-              color: getPhaseColor(adaptiveState.phase),
-              borderColor: `${getPhaseColor(adaptiveState.phase)}50`,
-              background: `${getPhaseColor(adaptiveState.phase)}15`,
-            }}
-          >
-            <Flame className="w-3 h-3" />
-            {adaptiveState.phase}
-            <span className="font-mono">×{adaptiveState.gameSpeed.toFixed(1)}</span>
-          </div>
-
-          {/* God Tier Badge */}
-          {isGodTier && (
-            <motion.div
-              initial={{ scale: 0.8, opacity: 0 }}
+          {/* Center: Hero Score + Timer + Streak */}
+          <div className="flex flex-col items-center">
+            {/* Main Score */}
+            <motion.span
+              key={scoreKey}
+              initial={{ scale: 1.2, opacity: 0.5 }}
               animate={{ scale: 1, opacity: 1 }}
-              className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs uppercase tracking-wider font-black border"
-              style={{
-                color: 'hsl(var(--destructive))',
-                borderColor: 'hsl(var(--destructive) / 0.5)',
-                background: 'linear-gradient(135deg, hsl(var(--destructive) / 0.2), hsl(var(--destructive) / 0.05))',
-              }}
+              className="font-mono text-6xl font-bold tracking-tight"
             >
-              <motion.span
-                animate={{ scale: [1, 1.2, 1] }}
-                transition={{ duration: 0.8, repeat: Infinity }}
-              >
-                👑
-              </motion.span>
-              GOD TIER
-            </motion.div>
-          )}
-        </div>
-
-        {/* Progress bar */}
-        <div className="w-full h-1.5 bg-muted/30 rounded-full overflow-hidden mb-4 border border-border/30">
-          <motion.div
-            className="h-full rounded-full"
-            style={{
-              background: `linear-gradient(90deg, ${currentTheme.primaryColor}, ${currentTheme.accentColor})`,
-              boxShadow: `0 0 10px ${currentTheme.primaryColor}80`,
-            }}
-            animate={{ width: `${gameProgress}%` }}
-          />
-        </div>
-
-        {/* Stats row */}
-        <div className="flex items-center justify-between">
-          {mode === 'classic' ? (
-            <div className="flex items-center gap-2">
-              <Clock className="w-4 h-4 text-muted-foreground" />
-              <span className="font-mono text-lg font-bold">{formatTime(timeLeft)}</span>
-            </div>
-          ) : (
-            <div className="flex items-center gap-2">
-              <InfinityIcon className="w-4 h-4 text-secondary" />
-              <span className="font-mono text-lg font-bold text-secondary">∞</span>
-            </div>
-          )}
-
-          {/* Live Score with Pop Animation */}
-          <motion.div
-            key={scoreKey}
-            initial={{ scale: 1.4 }}
-            animate={{ scale: 1 }}
-            transition={{ type: "spring", stiffness: 500, damping: 15 }}
-            className="flex items-center gap-2"
-          >
-            <Zap className="w-4 h-4 text-primary" />
-            <span className="font-mono text-lg font-black text-glow-cyan">
               {mode === 'classic' ? score : streak}
-            </span>
-          </motion.div>
+            </motion.span>
+            
+            {/* Timer for Classic Mode */}
+            {mode === 'classic' && (
+              <span className="font-mono text-sm text-muted-foreground mt-1">
+                {formatTime(timeLeft)}
+              </span>
+            )}
+            
+            {/* Streak Fire */}
+            {streak > 0 && (
+              <motion.div 
+                className={`flex items-center gap-1 mt-1 ${
+                  adaptiveState.gameSpeed >= 1.5 ? 'text-orange-400' : 'text-muted-foreground'
+                }`}
+                animate={adaptiveState.gameSpeed >= 1.5 ? { scale: [1, 1.1, 1] } : {}}
+                transition={{ duration: 0.5, repeat: Infinity }}
+              >
+                <Flame className={`w-4 h-4 ${adaptiveState.gameSpeed >= 1.5 ? 'fill-orange-400' : ''}`} />
+                <span className="text-sm font-bold">{streak}</span>
+              </motion.div>
+            )}
+          </div>
 
-          <div className="flex items-center gap-2">
-            <Target className="w-4 h-4 text-secondary" />
-            <span className="font-mono text-lg">
-              <span className="text-success">{correct}</span>
-              <span className="text-muted-foreground">/</span>
-              <span className="text-destructive">{wrong}</span>
+          {/* Right: Best Score */}
+          <div className="flex items-center gap-1 text-muted-foreground opacity-60">
+            <span className="text-sm">🏆</span>
+            <span className="font-mono text-sm font-medium">
+              {mode === 'classic' ? bestScore : bestStreak}
             </span>
           </div>
         </div>
-
-        {/* Streak indicator */}
-        {streak >= 3 && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="text-center mt-3"
-          >
-            <motion.span 
-              animate={isComboMode ? { 
-                boxShadow: ['0 0 15px hsl(var(--neon-gold) / 0.5)', '0 0 30px hsl(var(--neon-gold) / 0.8)', '0 0 15px hsl(var(--neon-gold) / 0.5)']
-              } : {}}
-              transition={{ duration: 0.5, repeat: Infinity }}
-              className={`inline-block px-4 py-1.5 rounded-full text-sm font-black ${
-                isComboMode 
-                  ? 'border-glow-gold text-neon-gold' 
-                  : 'bg-primary/20 text-primary border border-primary/30'
-              }`}
-              style={{
-                background: isComboMode 
-                  ? 'linear-gradient(135deg, hsl(var(--neon-gold) / 0.3), hsl(var(--neon-gold) / 0.1))'
-                  : undefined,
-              }}
-            >
-              🔥 {streak} streak! ({Math.min(1 + streak * 0.1, 2).toFixed(1)}x)
-            </motion.span>
-          </motion.div>
-        )}
-      </motion.div>
+      </div>
 
       {/* Game Area */}
       <div className="flex-1 relative z-10">
