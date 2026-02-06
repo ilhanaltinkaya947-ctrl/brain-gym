@@ -3,71 +3,67 @@ import { motion } from 'framer-motion';
 
 interface ChimpMemoryProps {
   tier: number;
-  streak: number;
   onAnswer: (correct: boolean, speedBonus: number, tier: number) => void;
   playSound: (type: 'correct' | 'wrong' | 'tick') => void;
   triggerHaptic: (type: 'light' | 'medium' | 'heavy') => void;
 }
 
-interface Cell { 
-  index: number; 
-  number: number | null; 
-  revealed: boolean; 
-  tapped: boolean; 
-  isError?: boolean; 
-}
+interface Cell { index: number; number: number | null; revealed: boolean; tapped: boolean; isError?: boolean; }
 
-const GRID_SIZE = 25;
+const GRID_SIZE = 25; // 5x5 grid
 
-export const ChimpMemory = ({ tier, streak, onAnswer, playSound, triggerHaptic }: ChimpMemoryProps) => {
+export const ChimpMemory = ({ tier, onAnswer, playSound, triggerHaptic }: ChimpMemoryProps) => {
   const [cells, setCells] = useState<Cell[]>([]);
   const [phase, setPhase] = useState<'showing' | 'hiding' | 'playing'>('showing');
   const [nextExpected, setNextExpected] = useState(1);
-  const [gridRotation, setGridRotation] = useState(0);
 
+  // Difficulty Config (No Rotation, pure Memory & Speed)
   const getDifficultyConfig = (t: number) => {
     switch (t) {
-      case 1: return { count: 3, showTime: 1200, rotate: 0 };
-      case 2: return { count: 4, showTime: 1000, rotate: 0 };
-      case 3: return { count: 5, showTime: 900, rotate: 90 };
-      case 4: return { count: 6, showTime: 800, rotate: 180 };
-      case 5: return { count: 7, showTime: 600, rotate: 270 };
-      default: return { count: 3, showTime: 1000, rotate: 0 };
+      case 1: return { count: 4, showTime: 1200 }; // Easy start
+      case 2: return { count: 5, showTime: 1000 };
+      case 3: return { count: 6, showTime: 900 };
+      case 4: return { count: 7, showTime: 800 };
+      case 5: return { count: 8, showTime: 700 }; // God Mode (Human limit)
+      default: return { count: 4, showTime: 1000 };
     }
   };
 
   const initializeRound = useCallback(() => {
     const config = getDifficultyConfig(tier);
-    const newCells: Cell[] = Array.from({ length: GRID_SIZE }, (_, index) => ({ 
-      index, 
-      number: null, 
-      revealed: false, 
-      tapped: false 
+    
+    // Create empty grid
+    const newCells: Cell[] = Array.from({ length: GRID_SIZE }, (_, index) => ({
+      index,
+      number: null,
+      revealed: false,
+      tapped: false,
     }));
-    
-    const indices = Array.from({ length: GRID_SIZE }, (_, i) => i).sort(() => Math.random() - 0.5);
-    for (let i = 0; i < config.count; i++) {
-      newCells[indices[i]] = { ...newCells[indices[i]], number: i + 1, revealed: true };
+
+    // Randomize positions (Fisher-Yates shuffle)
+    const availableIndices = Array.from({ length: GRID_SIZE }, (_, i) => i);
+    for (let i = availableIndices.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [availableIndices[i], availableIndices[j]] = [availableIndices[j], availableIndices[i]];
     }
-    
+
+    // Place numbers
+    for (let i = 0; i < config.count; i++) {
+      const pos = availableIndices[i];
+      newCells[pos] = { ...newCells[pos], number: i + 1, revealed: true };
+    }
+
     setCells(newCells);
     setPhase('showing');
     setNextExpected(1);
-    setGridRotation(0);
-    
+
+    // Timer to hide numbers
     setTimeout(() => {
       setPhase('hiding');
-      setCells(prev => prev.map(c => ({ ...c, revealed: false })));
-      if (config.rotate > 0) {
-        setTimeout(() => { 
-          setGridRotation(config.rotate); 
-          setPhase('playing'); 
-        }, 200);
-      } else {
-        setPhase('playing');
-      }
+      setCells(prev => prev.map(cell => ({ ...cell, revealed: false })));
+      setTimeout(() => setPhase('playing'), 200);
     }, config.showTime);
-  }, [tier, streak]);
+  }, [tier]);
 
   useEffect(() => { initializeRound(); }, [initializeRound]);
 
@@ -75,21 +71,22 @@ export const ChimpMemory = ({ tier, streak, onAnswer, playSound, triggerHaptic }
     if (phase !== 'playing') return;
     const cell = cells[index];
     if (cell.tapped) return;
-    
+
+    // 1. Mistake
     if (cell.number === null || cell.number !== nextExpected) {
-      playSound('wrong'); 
-      triggerHaptic('heavy');
+      playSound('wrong'); triggerHaptic('heavy');
       setCells(prev => prev.map(c => c.index === index ? { ...c, isError: true, revealed: true } : c));
       setTimeout(() => onAnswer(false, 0, tier), 500);
       return;
     }
-    
-    playSound('correct'); 
-    triggerHaptic('light');
+
+    // 2. Correct
+    playSound('correct'); triggerHaptic('light');
     const updatedCells = cells.map(c => c.index === index ? { ...c, tapped: true, revealed: true } : c);
     setCells(updatedCells);
-    
-    if (nextExpected === getDifficultyConfig(tier).count) {
+
+    const config = getDifficultyConfig(tier);
+    if (nextExpected === config.count) {
       setTimeout(() => onAnswer(true, 1.0, tier), 300);
     } else {
       setNextExpected(prev => prev + 1);
@@ -98,28 +95,24 @@ export const ChimpMemory = ({ tier, streak, onAnswer, playSound, triggerHaptic }
 
   return (
     <div className="flex flex-col items-center justify-center w-full h-full">
-      <motion.div 
-        className="grid grid-cols-5 gap-2 w-full max-w-[320px] aspect-square" 
-        animate={{ rotate: gridRotation }}
-        transition={{ duration: 0.4, ease: 'easeInOut' }}
-      >
+      <motion.div className="grid grid-cols-5 gap-2 w-full max-w-[320px] aspect-square">
         {cells.map((cell) => (
           <motion.button
             key={cell.index}
             whileTap={{ scale: 0.9 }}
             onClick={() => handleCellTap(cell.index)}
-            style={{ rotate: -gridRotation }}
-            className={`rounded-xl flex items-center justify-center text-2xl font-bold transition-all aspect-square 
-              ${cell.revealed && cell.number ? 'bg-primary text-primary-foreground' : 'bg-white/5'} 
-              ${cell.tapped ? 'bg-primary/60' : ''}
-              ${cell.isError ? 'bg-destructive animate-shake' : ''}`}
+            className={`relative rounded-xl flex items-center justify-center text-2xl font-bold transition-all duration-200 aspect-square
+              ${cell.revealed && cell.number ? 'bg-primary text-primary-foreground shadow-[0_0_15px_rgba(var(--primary),0.5)]' : 'bg-white/5 hover:bg-white/10'}
+              ${cell.isError ? 'bg-destructive animate-shake' : ''}
+              ${cell.tapped ? 'opacity-50' : 'opacity-100'}
+            `}
           >
             {(cell.revealed || cell.tapped) && cell.number}
           </motion.button>
         ))}
       </motion.div>
-      <div className="mt-6 text-xs text-muted-foreground font-mono tracking-widest uppercase">
-        {phase === 'showing' ? 'Memorize' : 'Find the sequence'}
+      <div className="mt-6 text-xs text-muted-foreground font-mono tracking-widest uppercase opacity-60">
+        {phase === 'showing' ? 'Memorize' : 'Tap in order'}
       </div>
     </div>
   );

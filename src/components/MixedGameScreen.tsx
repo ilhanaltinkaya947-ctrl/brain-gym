@@ -355,7 +355,6 @@ export const MixedGameScreen = ({
         return (
           <ChimpMemory
             tier={calculatedTier}
-            streak={streak}
             onAnswer={handleAnswer}
             playSound={playSound}
             triggerHaptic={triggerHaptic}
