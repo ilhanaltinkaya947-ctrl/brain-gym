@@ -72,58 +72,55 @@ export const Dashboard = ({
         </motion.div>
 
       {/* Metric Cards - 3 Block Layout */}
-      <div className="grid grid-cols-3 gap-3">
-        {/* Max Streak Card (Endless Style - Warm) */}
+      <div className="grid grid-cols-3 gap-2">
+        {/* Streak Card */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="glass-panel rounded-2xl p-4 flex flex-col items-center justify-center relative overflow-hidden"
+          className="glass-panel rounded-2xl p-3 flex flex-col items-center justify-center relative overflow-hidden"
         >
-          {/* Warm glow background */}
           <div className="absolute inset-0 bg-gradient-to-br from-bio-orange/10 to-transparent pointer-events-none" />
-          <Flame className="w-5 h-5 text-bio-orange mb-2" />
-          <span className="text-2xl font-extralight text-foreground tabular-nums">
+          <Flame className="w-4 h-4 text-bio-orange mb-1.5" />
+          <span className="text-xl font-extralight text-foreground tabular-nums">
             {endlessBestStreak}
           </span>
-          <span className="text-[8px] uppercase tracking-[0.15em] text-muted-foreground mt-1">
-            Max Streak
+          <span className="text-[9px] uppercase tracking-wider text-muted-foreground mt-1 whitespace-nowrap">
+            Streak
           </span>
         </motion.div>
 
-        {/* XP Card (Currency Style - Gold) */}
+        {/* XP Card */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.25 }}
-          className="glass-panel rounded-2xl p-4 flex flex-col items-center justify-center relative overflow-hidden"
+          className="glass-panel rounded-2xl p-3 flex flex-col items-center justify-center relative overflow-hidden"
         >
-          {/* Gold glow background */}
           <div className="absolute inset-0 bg-gradient-to-br from-neon-gold/10 to-transparent pointer-events-none" />
-          <Star className="w-5 h-5 text-neon-gold fill-neon-gold/50 mb-2" />
-          <span className="text-2xl font-extralight text-foreground tabular-nums">
+          <Star className="w-4 h-4 text-neon-gold fill-neon-gold/50 mb-1.5" />
+          <span className="text-xl font-extralight text-foreground tabular-nums">
             {formatNumber(totalXP)}
           </span>
-          <span className="text-[8px] uppercase tracking-[0.15em] text-muted-foreground mt-1">
+          <span className="text-[9px] uppercase tracking-wider text-muted-foreground mt-1 whitespace-nowrap">
             Total XP
           </span>
         </motion.div>
 
-        {/* Personal Best Card (Classic Style - Cool/Teal) */}
+        {/* Best Score Card */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
-          className="glass-panel rounded-2xl p-4 flex flex-col items-center justify-center relative overflow-hidden"
+          className="glass-panel rounded-2xl p-3 flex flex-col items-center justify-center relative overflow-hidden"
         >
-          {/* Cool glow background */}
           <div className="absolute inset-0 bg-gradient-to-br from-bio-teal/10 to-transparent pointer-events-none" />
-          <Trophy className="w-5 h-5 text-bio-teal mb-2" />
-          <span className="text-2xl font-extralight text-foreground tabular-nums">
+          <Trophy className="w-4 h-4 text-bio-teal mb-1.5" />
+          <span className="text-xl font-extralight text-foreground tabular-nums">
             {formatNumber(classicHighScore)}
           </span>
-          <span className="text-[8px] uppercase tracking-[0.15em] text-muted-foreground mt-1">
-            Personal Best
+          <span className="text-[9px] uppercase tracking-wider text-muted-foreground mt-1 whitespace-nowrap">
+            Best
           </span>
         </motion.div>
       </div>
