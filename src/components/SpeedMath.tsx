@@ -109,10 +109,10 @@ export const SpeedMath = memo(({
       ref={containerRef}
       animate={isShaking ? { x: [-8, 8, -8, 8, 0] } : {}}
       transition={{ duration: 0.4 }}
-      className="flex flex-col items-center justify-between py-6 px-4 min-h-[70vh]"
+      className="flex flex-col items-center gap-6 py-4 px-4 w-full"
     >
       {/* Timer bar */}
-      <div className="w-full max-w-xs h-1.5 bg-muted/30 rounded-full overflow-hidden border border-border/50">
+      <div className="w-full max-w-sm h-1.5 bg-muted/30 rounded-full overflow-hidden border border-border/50">
         <motion.div
           className="h-full rounded-full"
           style={{
@@ -136,33 +136,33 @@ export const SpeedMath = memo(({
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: -20, scale: 0.9 }}
           transition={{ duration: 0.2 }}
-          className="text-center flex-1 flex flex-col items-center justify-center"
+          className="text-center py-8"
         >
           <p className="text-xs text-muted-foreground mb-3 uppercase tracking-widest">Solve</p>
-          <h2 className="text-6xl font-black font-mono text-glow-cyan leading-tight">
+          <h2 className="text-5xl sm:text-6xl font-black font-mono text-glow-cyan leading-tight">
             {question.question}
           </h2>
         </motion.div>
       </AnimatePresence>
 
-      {/* Answer Grid - Energy Cell Buttons */}
-      <div className="grid grid-cols-2 gap-3 w-full max-w-xs">
-        {question.options.map((option, index) => (
+      {/* Answer Grid - Compact 2x2 */}
+      <div className="grid grid-cols-2 gap-2.5 w-full max-w-sm">
+        {question.options.slice(0, 4).map((option, index) => (
           <motion.button
-            key={`${question.question}-${option}`}
+            key={`${question.question}-${option}-${index}`}
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ 
               opacity: 1, 
-              scale: pressedButton === option ? 1.15 : 1,
+              scale: pressedButton === option ? 1.1 : 1,
             }}
             transition={{ 
-              delay: index * 0.05,
+              delay: index * 0.04,
               scale: { type: "spring", stiffness: 500, damping: 15 }
             }}
-            whileHover={{ scale: 1.05, borderColor: 'hsl(var(--neon-cyan))' }}
-            whileTap={{ scale: 1.15 }}
+            whileHover={{ scale: 1.03, borderColor: 'hsl(var(--neon-cyan))' }}
+            whileTap={{ scale: 1.1 }}
             onClick={(e) => handleAnswer(option, e)}
-            className={`btn-energy-cell py-5 px-4 rounded-2xl text-3xl font-black font-mono transition-all duration-150 ${
+            className={`btn-energy-cell py-4 px-3 rounded-xl text-2xl sm:text-3xl font-black font-mono transition-all duration-150 ${
               correctButton === option ? 'correct' : ''
             }`}
             style={{
