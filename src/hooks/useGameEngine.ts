@@ -115,8 +115,10 @@ export const useGameEngine = (initialMode: 'classic' | 'endless' = 'classic') =>
     return available[Math.floor(Math.random() * available.length)];
   }, []);
 
-  const generateMathQuestion = useCallback((): MathQuestion => {
-    const tier = getDifficultyTier(gameState.streak, gameState.mode);
+  const generateMathQuestion = useCallback((overrideStreak?: number, overrideMode?: 'classic' | 'endless'): MathQuestion => {
+    const effectiveStreak = overrideStreak !== undefined ? overrideStreak : gameState.streak;
+    const effectiveMode = overrideMode !== undefined ? overrideMode : gameState.mode;
+    const tier = getDifficultyTier(effectiveStreak, effectiveMode);
     let question: string;
     let answer: number;
 

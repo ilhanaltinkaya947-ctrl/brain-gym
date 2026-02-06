@@ -20,7 +20,7 @@ import { useAdaptiveEngine, AdaptivePhase } from '@/hooks/useAdaptiveEngine';
 interface MixedGameScreenProps {
   mode: GameMode;
   enabledGames: MiniGameType[];
-  generateMathQuestion: () => MathQuestion;
+  generateMathQuestion: (streak?: number, mode?: GameMode) => MathQuestion;
   generateColorQuestion: () => ColorQuestion;
   onGameEnd: (score: number, streak: number, correct: number, wrong: number, peakSpeed?: number, duration?: number) => void;
   onQuit: () => void;
@@ -256,7 +256,7 @@ export const MixedGameScreen = ({
       case 'speedMath':
         return (
           <SpeedMath
-            generateQuestion={generateMathQuestion}
+            generateQuestion={() => generateMathQuestion(streak, mode)}
             onAnswer={handleAnswer}
             playSound={playSound}
             triggerHaptic={triggerHaptic}
