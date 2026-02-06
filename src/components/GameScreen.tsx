@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Activity, Trophy, Zap } from 'lucide-react';
-import { GameState, getDifficultyTier, getDifficultyLabel } from '../hooks/useGameEngine';
+import { X, Flame } from 'lucide-react';
+import { GameState } from '../hooks/useGameEngine';
 
-// GAME IMPORTS (Correct paths)
+// GAME IMPORTS
 import { SpeedMath } from './SpeedMath';
 import { ParadoxFlow } from './games/ParadoxFlow';
 import { SuitDeception } from './games/SuitDeception';
@@ -20,21 +20,11 @@ const GAMES_MAP: Record<string, React.ComponentType<any>> = {
 };
 
 export const GameScreen = ({ gameState, generateMathQuestion, onAnswer, onQuit, playSound, triggerHaptic, setStreak, bestScore, onScreenShake }: any) => {
-  const currentTier = getDifficultyTier(gameState.streak, gameState.mode);
-  const difficultyLabel = getDifficultyLabel(currentTier);
   const [isScreenShaking, setIsScreenShaking] = useState(false);
-  const [showComboText, setShowComboText] = useState(false);
   const [showRedFlash, setShowRedFlash] = useState(false);
   
-  // Heatmap logic
-  const getHeatColor = (speed: number) => {
-    if (speed < 1.2) return 'linear-gradient(to bottom, hsl(var(--background)), hsl(0, 0%, 0%))';
-    if (speed < 1.6) return 'linear-gradient(to bottom, hsl(270, 50%, 25%), hsl(0, 0%, 0%))';
-    return 'linear-gradient(to bottom, hsl(0, 60%, 25%), hsl(0, 0%, 0%))';
-  };
-
-  const currentHeat = getHeatColor(gameState.speedMultiplier || 1.0);
-  const isOverdrive = (gameState.speedMultiplier || 1.0) >= 1.6;
+  const isEndless = gameState.mode === 'endless';
+  const isHighMultiplier = (gameState.speedMultiplier || 1.0) >= 1.5;
 
   // Effects
   useEffect(() => {
@@ -49,9 +39,7 @@ export const GameScreen = ({ gameState, generateMathQuestion, onAnswer, onQuit, 
 
   useEffect(() => {
     if (gameState.streak > 0 && gameState.streak % 10 === 0) {
-      setShowComboText(true); 
       playSound('heatup');
-      setTimeout(() => setShowComboText(false), 2000);
     }
   }, [gameState.streak, playSound]);
 
@@ -66,6 +54,7 @@ export const GameScreen = ({ gameState, generateMathQuestion, onAnswer, onQuit, 
   // --- RENDER LOGIC ---
   const renderCurrentGame = () => {
     const ActiveGame = GAMES_MAP[gameState.currentGame];
+    const currentTier = Math.min(5, Math.max(1, Math.floor(gameState.streak / 5) + 1));
     const commonProps = {
       onAnswer, 
       playSound, 
@@ -74,7 +63,7 @@ export const GameScreen = ({ gameState, generateMathQuestion, onAnswer, onQuit, 
       onScreenShake: handleScreenShake, 
       tier: currentTier, 
       mode: gameState.mode,
-      generateQuestion: generateMathQuestion // Special for SpeedMath
+      generateQuestion: generateMathQuestion
     };
 
     if (!ActiveGame) {
@@ -91,11 +80,11 @@ export const GameScreen = ({ gameState, generateMathQuestion, onAnswer, onQuit, 
 
   return (
     <motion.div 
-      className="min-h-screen flex flex-col relative overflow-hidden text-foreground"
+      className="min-h-screen flex flex-col relative overflow-hidden text-foreground bg-background"
       initial={{ opacity: 0 }} 
-      animate={{ opacity: 1, background: currentHeat, x: isScreenShaking ? [-5, 5, -5, 5, 0] : 0 }}
-      transition={{ background: { duration: 2.0 } }}
+      animate={{ opacity: 1, x: isScreenShaking ? [-5, 5, -5, 5, 0] : 0 }}
     >
+      {/* Red Flash on Wrong Answer */}
       <AnimatePresence>
         {showRedFlash && (
           <motion.div 
@@ -107,30 +96,53 @@ export const GameScreen = ({ gameState, generateMathQuestion, onAnswer, onQuit, 
         )}
       </AnimatePresence>
       
-      {isOverdrive && (
-        <div className="absolute inset-0 opacity-10 pointer-events-none mix-blend-overlay bg-[url('https://grainy-gradients.vercel.app/noise.svg')]" />
+      {/* Endless Mode Indicator - Subtle Red Line */}
+      {isEndless && (
+        <motion.div 
+          className="absolute top-0 left-0 right-0 h-1 bg-destructive"
+          animate={{ opacity: [0.4, 1, 0.4] }}
+          transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+        />
       )}
       
-      {/* HEADER HUD */}
+      {/* CLEAN HUD HEADER */}
       <div className="safe-top px-6 pt-6 pb-2 flex justify-between items-start z-20">
-        <div className="flex flex-col items-start">
-          <button onClick={onQuit} className="p-2 -ml-2 opacity-50 hover:opacity-100 rounded-full">
-            <X className="w-6 h-6" />
-          </button>
-          <div className="mt-2 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-muted/30 text-muted-foreground">
-            <Zap className="w-3 h-3" /> 
-            <span className="text-[10px] font-bold uppercase">{difficultyLabel}</span>
-          </div>
+        {/* Left: Close Button */}
+        <button 
+          onClick={onQuit} 
+          className="p-2 -ml-2 opacity-40 hover:opacity-100 transition-opacity rounded-full"
+        >
+          <X className="w-6 h-6" />
+        </button>
+        
+        {/* Center: Hero Score + Streak */}
+        <div className="flex flex-col items-center">
+          <motion.span 
+            key={gameState.score}
+            initial={{ scale: 1.2, opacity: 0.5 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="font-mono text-6xl font-bold tracking-tight"
+          >
+            {gameState.score}
+          </motion.span>
+          
+          {/* Streak Fire */}
+          {gameState.streak > 0 && (
+            <motion.div 
+              className={`flex items-center gap-1 mt-1 ${isHighMultiplier ? 'text-orange-400' : 'text-muted-foreground'}`}
+              animate={isHighMultiplier ? { scale: [1, 1.1, 1] } : {}}
+              transition={{ duration: 0.5, repeat: Infinity }}
+            >
+              <Flame className={`w-4 h-4 ${isHighMultiplier ? 'fill-orange-400' : ''}`} />
+              <span className="text-sm font-bold">{gameState.streak}</span>
+            </motion.div>
+          )}
         </div>
-        <div className="flex flex-col items-center mt-2">
-          <Activity className={`w-3 h-3 ${isOverdrive ? 'text-primary animate-pulse' : 'text-muted-foreground'}`} />
-          <span className={`font-mono text-3xl font-light tracking-tighter ${isOverdrive ? 'text-primary' : ''}`}>
-            x{(gameState.speedMultiplier || 1.0).toFixed(1)}
-          </span>
-        </div>
-        <div className="flex flex-col items-end mt-2">
-          <Trophy className="w-3 h-3 opacity-60" /> 
-          <span className="font-mono text-2xl font-bold">{gameState.score}</span>
+        
+        {/* Right: Best Score */}
+        <div className="flex items-center gap-1 text-muted-foreground opacity-60">
+          <span className="text-sm">🏆</span>
+          <span className="font-mono text-sm font-medium">{bestScore || 0}</span>
         </div>
       </div>
 
@@ -142,13 +154,6 @@ export const GameScreen = ({ gameState, generateMathQuestion, onAnswer, onQuit, 
         >
           {renderCurrentGame()}
         </motion.div>
-      </div>
-
-      {/* FOOTER */}
-      <div className="safe-bottom absolute bottom-8 left-0 right-0 text-center opacity-30 pointer-events-none">
-        <div className="text-[10px] font-mono uppercase tracking-[0.3em]">
-          Protocol: <span className="font-bold">{gameState.currentGame}</span>
-        </div>
       </div>
     </motion.div>
   );
