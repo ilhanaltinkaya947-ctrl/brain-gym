@@ -586,8 +586,8 @@ export const MixedGameScreen = ({
         />
       )}
 
-      {/* CLEAN MINIMALIST HUD */}
-      <div className="px-4 pt-4 pb-3 relative z-10">
+      {/* CLEAN MINIMALIST HUD - Safe area for Dynamic Island */}
+      <div className="px-4 pt-12 pb-4 relative z-10">
         {/* Floating XP Animation */}
         <AnimatePresence>
           {floatingXP && (
@@ -595,155 +595,176 @@ export const MixedGameScreen = ({
               amount={floatingXP.amount} 
               tier={currentTier}
               x={0}
-              y={60}
+              y={80}
             />
           )}
         </AnimatePresence>
         
-        {/* Top Row: Close + Tier | Score | Best */}
-        <div className="flex items-start justify-between">
-          {/* Left: Close Button + Tier Badge */}
-          <div className="flex items-center gap-2">
-            <button 
-              onClick={onQuit}
-              className="p-2 -ml-2 opacity-40 hover:opacity-100 transition-opacity rounded-full"
-            >
-              <X className="w-6 h-6" />
-            </button>
-            
-            {/* Tier Indicator Badge */}
-            <motion.div
-              key={currentTier}
-              initial={{ scale: 0.8, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ${
-                currentTier === 5 
-                  ? 'bg-red-500/20 border-red-500/50 text-red-400' 
-                  : currentTier === 4 
-                  ? 'bg-orange-500/20 border-orange-500/50 text-orange-400'
-                  : currentTier === 3 
-                  ? 'bg-purple-500/20 border-purple-500/50 text-purple-400'
-                  : currentTier === 2 
-                  ? 'bg-blue-500/20 border-blue-500/50 text-blue-400'
-                  : 'bg-teal-500/20 border-teal-500/50 text-teal-400'
-              }`}
-            >
-              {currentTier === 5 ? '👑 GOD' : `LVL ${currentTier}`}
-            </motion.div>
-            
-            {/* Wrong Streak Counter (Classic Mode Only) */}
-            {mode === 'classic' && wrongStreak > 0 && (
-              <motion.div
-                initial={{ scale: 0, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-destructive/20 border border-destructive/50"
-              >
-                <span className="text-[10px] font-bold text-destructive">
-                  ⚠️ {wrongStreak}/3
-                </span>
-              </motion.div>
-            )}
-          </div>
-
-          {/* Center: Hero Score + Timer */}
-          <div className="flex flex-col items-center">
-            {/* Main Score/Streak */}
-            <motion.span
-              key={scoreKey}
-              initial={{ scale: 1.2, opacity: 0.5 }}
-              animate={{ scale: 1, opacity: 1 }}
-              className="font-mono text-6xl font-bold tracking-tight tabular-nums"
-            >
-              {mode === 'classic' ? score : streak}
-            </motion.span>
-            
-            {/* Timer for Classic Mode */}
-            {mode === 'classic' && (
-              <span className="font-mono text-sm text-muted-foreground/70 mt-1 tabular-nums">
-                {formatTime(timeLeft)}
-              </span>
-            )}
-            
-            {/* XP Counter for Endless Mode */}
-            {mode === 'endless' && (
-              <motion.div 
-                className="flex items-center gap-1.5 mt-2"
-                animate={streak >= 20 ? { scale: [1, 1.05, 1] } : {}}
-                transition={{ duration: 0.5, repeat: Infinity }}
-              >
-                <Zap className={`w-4 h-4 ${streak >= 20 ? 'text-neon-gold' : 'text-muted-foreground/60'}`} />
-                <span className={`text-sm font-semibold tabular-nums ${streak >= 20 ? 'text-neon-gold' : 'text-muted-foreground/60'}`}>
-                  {sessionXP} XP
-                </span>
-                {streak >= 20 && (
-                  <span className="text-[10px] font-bold text-neon-gold ml-1 px-1.5 py-0.5 rounded bg-neon-gold/20">
-                    2X
-                  </span>
-                )}
-              </motion.div>
-            )}
-          </div>
-
-          {/* Right: Streak Fire (both modes) + Best */}
-          <div className="flex flex-col items-end gap-2">
-            {/* Animated Streak Fire */}
-            {streak > 0 && (
-              <motion.div 
-                className="flex items-center gap-1.5"
-                initial={{ scale: 0.8, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-              >
-                <motion.div
-                  className="relative"
-                  animate={{
-                    scale: [1, 1.15, 1],
-                    y: [0, -2, 0],
-                  }}
-                  transition={{ duration: 0.8, repeat: Infinity, ease: 'easeInOut' }}
-                >
-                  {/* Glow */}
-                  <motion.div
-                    className="absolute inset-0 blur-md rounded-full"
-                    animate={{ opacity: [0.4, 0.8, 0.4] }}
-                    transition={{ duration: 1, repeat: Infinity }}
-                    style={{
-                      background: `radial-gradient(circle, hsl(25, 100%, 50%, 0.6) 0%, transparent 70%)`,
-                    }}
-                  />
-                  <Flame 
-                    className="w-5 h-5 text-orange-500 relative z-10" 
-                    style={{ fill: 'hsl(25, 100%, 50%)' }}
-                  />
-                </motion.div>
-                <motion.span 
-                  className="text-lg font-bold text-orange-500 tabular-nums"
-                  animate={{ scale: [1, 1.05, 1] }}
-                  transition={{ duration: 1.5, repeat: Infinity }}
-                >
-                  {streak}
-                </motion.span>
-              </motion.div>
-            )}
-            
-            {/* Best Score/Streak */}
-            <div className="flex items-center gap-1 text-muted-foreground/50">
-              <Trophy className="w-3.5 h-3.5" />
-              <span className="font-mono text-xs font-medium tabular-nums">
-                {mode === 'classic' ? bestScore : bestStreak}
-              </span>
-            </div>
-            
-            {/* Session XP for Classic Mode */}
-            {mode === 'classic' && (
-              <div className="flex items-center gap-1 text-muted-foreground/50">
-                <Zap className="w-3 h-3" />
-                <span className="font-mono text-xs font-medium tabular-nums">
-                  {sessionXP}
-                </span>
-              </div>
-            )}
-          </div>
+        {/* Top Row: Close Button (left) | Level Badge (right) */}
+        <div className="flex items-center justify-between mb-4">
+          {/* Left: Close Button Only */}
+          <button 
+            onClick={onQuit}
+            className="p-2 -ml-2 opacity-40 hover:opacity-100 transition-opacity rounded-full"
+          >
+            <X className="w-6 h-6" />
+          </button>
+          
+          {/* Right: Tier Indicator Badge */}
+          <motion.div
+            key={currentTier}
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className={`px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider border ${
+              currentTier === 5 
+                ? 'bg-red-500/20 border-red-500/50 text-red-400' 
+                : currentTier === 4 
+                ? 'bg-orange-500/20 border-orange-500/50 text-orange-400'
+                : currentTier === 3 
+                ? 'bg-purple-500/20 border-purple-500/50 text-purple-400'
+                : currentTier === 2 
+                ? 'bg-blue-500/20 border-blue-500/50 text-blue-400'
+                : 'bg-teal-500/20 border-teal-500/50 text-teal-400'
+            }`}
+          >
+            {currentTier === 5 ? '👑 GOD' : `LVL ${currentTier}`}
+          </motion.div>
         </div>
+
+        {/* Hero Metric Section - Centered */}
+        <div className="flex flex-col items-center mb-4">
+          {/* Main Score (Classic) or Streak Count (Endless) */}
+          <motion.span
+            key={scoreKey}
+            initial={{ scale: 1.2, opacity: 0.5 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="font-mono text-7xl font-bold tracking-tight tabular-nums"
+          >
+            {mode === 'classic' ? score.toLocaleString() : streak}
+          </motion.span>
+          
+          {/* Timer for Classic Mode */}
+          {mode === 'classic' && (
+            <span className="font-mono text-lg text-muted-foreground/70 mt-1 tabular-nums">
+              {formatTime(timeLeft)}
+            </span>
+          )}
+          
+          {/* "STREAK" label for Endless */}
+          {mode === 'endless' && (
+            <span className="text-xs uppercase tracking-widest text-orange-500/70 mt-1">
+              Streak
+            </span>
+          )}
+        </div>
+
+        {/* Secondary Metrics Row */}
+        <div className="flex items-center justify-center gap-6">
+          {/* Best Score/Streak */}
+          <div className="flex items-center gap-1.5 text-muted-foreground/50">
+            <Trophy className="w-4 h-4" />
+            <span className="font-mono text-sm font-medium tabular-nums">
+              {mode === 'classic' ? bestScore.toLocaleString() : bestStreak}
+            </span>
+          </div>
+          
+          {/* Animated Streak Fire */}
+          <motion.div 
+            className="flex items-center gap-2"
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: streak > 0 ? 1 : 0.4 }}
+          >
+            <motion.div
+              className="relative"
+              animate={streak > 0 ? {
+                scale: [1, 1.2, 1],
+                y: [0, -3, 0],
+              } : {}}
+              transition={{ duration: 0.6, repeat: Infinity, ease: 'easeInOut' }}
+            >
+              {/* Intense Glow for high streaks */}
+              {streak > 0 && (
+                <motion.div
+                  className="absolute inset-0 blur-lg rounded-full -m-2"
+                  animate={{ 
+                    opacity: [0.3, 0.7, 0.3],
+                    scale: [1, 1.4, 1],
+                  }}
+                  transition={{ duration: 0.8, repeat: Infinity }}
+                  style={{
+                    background: `radial-gradient(circle, hsl(${Math.max(0, 40 - streak * 2)}, 100%, 55%, 0.7) 0%, transparent 70%)`,
+                  }}
+                />
+              )}
+              <Flame 
+                className={`w-6 h-6 relative z-10 ${streak > 0 ? 'text-orange-500' : 'text-muted-foreground/30'}`}
+                style={{ fill: streak > 0 ? `hsl(${Math.max(0, 40 - streak * 2)}, 100%, 50%)` : 'transparent' }}
+              />
+              
+              {/* Spark particles for high streaks (10+) */}
+              {streak >= 10 && (
+                <>
+                  {[...Array(3)].map((_, i) => (
+                    <motion.div
+                      key={i}
+                      className="absolute w-1 h-1 rounded-full bg-yellow-400"
+                      style={{ left: '50%', top: '30%' }}
+                      animate={{
+                        x: [(i - 1) * 3, (i - 1) * 12],
+                        y: [0, -18 - i * 4],
+                        opacity: [1, 0],
+                        scale: [1, 0.3],
+                      }}
+                      transition={{
+                        duration: 0.6,
+                        repeat: Infinity,
+                        delay: i * 0.15,
+                        ease: 'easeOut',
+                      }}
+                    />
+                  ))}
+                </>
+              )}
+            </motion.div>
+            <motion.span 
+              className={`text-xl font-bold tabular-nums ${streak > 0 ? 'text-orange-500' : 'text-muted-foreground/40'}`}
+              animate={streak > 0 ? { scale: [1, 1.08, 1] } : {}}
+              transition={{ duration: 1.2, repeat: Infinity }}
+            >
+              {streak}
+            </motion.span>
+          </motion.div>
+          
+          {/* Session XP */}
+          <motion.div 
+            className="flex items-center gap-1.5"
+            animate={mode === 'endless' && streak >= 20 ? { scale: [1, 1.05, 1] } : {}}
+            transition={{ duration: 0.5, repeat: Infinity }}
+          >
+            <Zap className={`w-4 h-4 ${mode === 'endless' && streak >= 20 ? 'text-neon-gold' : 'text-muted-foreground/50'}`} />
+            <span className={`font-mono text-sm font-medium tabular-nums ${mode === 'endless' && streak >= 20 ? 'text-neon-gold' : 'text-muted-foreground/50'}`}>
+              {sessionXP}
+            </span>
+            {mode === 'endless' && streak >= 20 && (
+              <span className="text-[9px] font-bold text-neon-gold px-1 py-0.5 rounded bg-neon-gold/20">
+                2X
+              </span>
+            )}
+          </motion.div>
+        </div>
+        
+        {/* Wrong Streak Counter (Classic Mode Only) */}
+        {mode === 'classic' && wrongStreak > 0 && (
+          <motion.div
+            initial={{ scale: 0, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="flex items-center justify-center gap-1 mt-3 px-3 py-1 rounded-full bg-destructive/20 border border-destructive/50 mx-auto w-fit"
+          >
+            <span className="text-[11px] font-bold text-destructive">
+              ⚠️ {wrongStreak}/3 wrong
+            </span>
+          </motion.div>
+        )}
       </div>
 
       {/* Game Area - Vertically Centered */}
