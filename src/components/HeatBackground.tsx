@@ -4,6 +4,7 @@ import { AdaptivePhase } from '@/hooks/useAdaptiveEngine';
 interface HeatBackgroundProps {
   gameSpeed: number;
   phase: AdaptivePhase;
+  tier?: number;
 }
 
 interface Particle {
@@ -15,40 +16,60 @@ interface Particle {
   connections: number[];
 }
 
-// Color palettes for each phase
-const PHASE_COLORS = {
-  warmup: {
-    primary: { h: 175, s: 60, l: 50 }, // Teal
-    secondary: { h: 180, s: 70, l: 45 }, // Cyan
-    background: ['hsl(0, 0%, 0%)', 'hsl(180, 30%, 5%)', 'hsl(175, 20%, 3%)'],
+// Tier-based color palettes (difficulty progression)
+const TIER_COLORS = {
+  1: { // Basics - Calm Teal
+    primary: { h: 173, s: 80, l: 40 },
+    secondary: { h: 180, s: 70, l: 45 },
+    background: ['hsl(0, 0%, 0%)', 'hsl(173, 30%, 5%)', 'hsl(180, 20%, 3%)'],
   },
-  ramping: {
-    primary: { h: 280, s: 70, l: 55 }, // Purple
-    secondary: { h: 330, s: 70, l: 60 }, // Magenta
-    background: ['hsl(0, 0%, 0%)', 'hsl(280, 40%, 8%)', 'hsl(330, 30%, 5%)'],
+  2: { // Focus - Electric Blue
+    primary: { h: 210, s: 100, l: 55 },
+    secondary: { h: 220, s: 80, l: 60 },
+    background: ['hsl(0, 0%, 0%)', 'hsl(210, 40%, 6%)', 'hsl(220, 30%, 4%)'],
   },
-  overdrive: {
-    primary: { h: 25, s: 90, l: 55 }, // Orange
-    secondary: { h: 45, s: 90, l: 55 }, // Gold
-    background: ['hsl(0, 0%, 0%)', 'hsl(25, 60%, 8%)', 'hsl(45, 40%, 5%)'],
+  3: { // Flow - Cosmic Purple
+    primary: { h: 280, s: 90, l: 55 },
+    secondary: { h: 300, s: 80, l: 60 },
+    background: ['hsl(0, 0%, 0%)', 'hsl(280, 50%, 7%)', 'hsl(300, 35%, 4%)'],
+  },
+  4: { // Elite - Blazing Orange
+    primary: { h: 25, s: 95, l: 55 },
+    secondary: { h: 35, s: 90, l: 55 },
+    background: ['hsl(0, 0%, 0%)', 'hsl(25, 60%, 8%)', 'hsl(35, 45%, 5%)'],
+  },
+  5: { // God Mode - Crimson Fire
+    primary: { h: 0, s: 85, l: 55 },
+    secondary: { h: 350, s: 90, l: 50 },
+    background: ['hsl(0, 0%, 0%)', 'hsl(0, 70%, 8%)', 'hsl(350, 50%, 5%)'],
   },
 };
 
-export const HeatBackground = ({ gameSpeed, phase }: HeatBackgroundProps) => {
+// Phase modifiers (overlay effects on top of tier colors)
+const PHASE_INTENSITY = {
+  warmup: 0.6,
+  ramping: 0.8,
+  overdrive: 1.0,
+};
+
+export const HeatBackground = ({ gameSpeed, phase, tier = 1 }: HeatBackgroundProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const particlesRef = useRef<Particle[]>([]);
   const animationRef = useRef<number>();
   const phaseRef = useRef<AdaptivePhase>(phase);
   const speedRef = useRef<number>(gameSpeed);
+  const tierRef = useRef<number>(tier);
 
   // Update refs for animation loop
   useEffect(() => {
     phaseRef.current = phase;
     speedRef.current = gameSpeed;
-  }, [phase, gameSpeed]);
+    tierRef.current = tier;
+  }, [phase, gameSpeed, tier]);
 
-  // Current colors based on phase with smooth interpolation
-  const colors = useMemo(() => PHASE_COLORS[phase], [phase]);
+  // Current colors based on tier
+  const colors = useMemo(() => TIER_COLORS[tier as keyof typeof TIER_COLORS] || TIER_COLORS[1], [tier]);
+  const intensity = PHASE_INTENSITY[phase];
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -64,45 +85,45 @@ export const HeatBackground = ({ gameSpeed, phase }: HeatBackgroundProps) => {
     resize();
     window.addEventListener('resize', resize);
 
-    // Initialize particles
-    const particleCount = 40;
-    if (particlesRef.current.length === 0) {
-      particlesRef.current = Array.from({ length: particleCount }, () => ({
-        x: Math.random() * canvas.width,
-        y: Math.random() * canvas.height,
-        vx: (Math.random() - 0.5) * 0.5,
-        vy: (Math.random() - 0.5) * 0.5,
-        radius: Math.random() * 2 + 1,
-        connections: [],
-      }));
-    }
+    // Initialize particles - more particles for higher tiers
+    const particleCount = 35 + (tier * 5);
+    particlesRef.current = Array.from({ length: particleCount }, () => ({
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height,
+      vx: (Math.random() - 0.5) * 0.5,
+      vy: (Math.random() - 0.5) * 0.5,
+      radius: Math.random() * 2 + 1,
+      connections: [],
+    }));
 
     const animate = () => {
-      const currentPhase = phaseRef.current;
+      const currentTier = tierRef.current;
       const currentSpeed = speedRef.current;
-      const phaseColors = PHASE_COLORS[currentPhase];
+      const currentPhase = phaseRef.current;
+      const tierColors = TIER_COLORS[currentTier as keyof typeof TIER_COLORS] || TIER_COLORS[1];
+      const phaseIntensity = PHASE_INTENSITY[currentPhase];
       
       // Clear with gradient background
       const gradient = ctx.createRadialGradient(
         canvas.width / 2, canvas.height / 2, 0,
         canvas.width / 2, canvas.height / 2, canvas.width * 0.7
       );
-      gradient.addColorStop(0, phaseColors.background[1]);
-      gradient.addColorStop(0.5, phaseColors.background[2]);
-      gradient.addColorStop(1, phaseColors.background[0]);
+      gradient.addColorStop(0, tierColors.background[1]);
+      gradient.addColorStop(0.5, tierColors.background[2]);
+      gradient.addColorStop(1, tierColors.background[0]);
       
       ctx.fillStyle = gradient;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
       const particles = particlesRef.current;
-      const connectionDistance = 150;
+      const connectionDistance = 120 + (currentTier * 10);
       
       // Speed multiplier affects particle movement
-      const speedMultiplier = 0.5 + currentSpeed * 0.5;
+      const speedMultiplier = 0.4 + currentSpeed * 0.6 * phaseIntensity;
 
       // Update and draw particles
       particles.forEach((p, i) => {
-        // Move particles faster based on game speed
+        // Move particles faster based on game speed and tier
         p.x += p.vx * speedMultiplier;
         p.y += p.vy * speedMultiplier;
 
@@ -119,8 +140,8 @@ export const HeatBackground = ({ gameSpeed, phase }: HeatBackgroundProps) => {
           const dist = Math.sqrt(dx * dx + dy * dy);
 
           if (dist < connectionDistance) {
-            const alpha = (1 - dist / connectionDistance) * 0.3;
-            const { h, s, l } = phaseColors.primary;
+            const alpha = (1 - dist / connectionDistance) * 0.35 * phaseIntensity;
+            const { h, s, l } = tierColors.primary;
             ctx.strokeStyle = `hsla(${h}, ${s}%, ${l}%, ${alpha})`;
             ctx.lineWidth = 1;
             ctx.beginPath();
@@ -130,23 +151,24 @@ export const HeatBackground = ({ gameSpeed, phase }: HeatBackgroundProps) => {
           }
         });
 
-        // Draw particle with glow based on phase
-        const { h, s, l } = phaseColors.secondary;
-        const glowIntensity = currentPhase === 'overdrive' ? 20 : currentPhase === 'ramping' ? 12 : 8;
+        // Draw particle with glow based on tier and phase
+        const { h, s, l } = tierColors.secondary;
+        const glowIntensity = (8 + currentTier * 4) * phaseIntensity;
         
         ctx.beginPath();
-        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
-        ctx.fillStyle = `hsla(${h}, ${s}%, ${l}%, 0.8)`;
+        ctx.arc(p.x, p.y, p.radius * (1 + currentTier * 0.1), 0, Math.PI * 2);
+        ctx.fillStyle = `hsla(${h}, ${s}%, ${l}%, ${0.7 + phaseIntensity * 0.2})`;
         ctx.shadowColor = `hsl(${h}, ${s}%, ${l + 10}%)`;
         ctx.shadowBlur = glowIntensity * currentSpeed;
         ctx.fill();
         ctx.shadowBlur = 0;
       });
 
-      // Pulse effect in overdrive
-      if (currentPhase === 'overdrive') {
-        const pulseAlpha = 0.03 + Math.sin(Date.now() / 500) * 0.02;
-        const { h, s, l } = phaseColors.primary;
+      // Pulse effect for high tiers (4+) or overdrive
+      if (currentTier >= 4 || currentPhase === 'overdrive') {
+        const pulseSpeed = currentTier >= 5 ? 300 : 500;
+        const pulseAlpha = 0.02 + Math.sin(Date.now() / pulseSpeed) * 0.03;
+        const { h, s, l } = tierColors.primary;
         ctx.fillStyle = `hsla(${h}, ${s}%, ${l}%, ${pulseAlpha})`;
         ctx.fillRect(0, 0, canvas.width, canvas.height);
       }
@@ -162,12 +184,12 @@ export const HeatBackground = ({ gameSpeed, phase }: HeatBackgroundProps) => {
         cancelAnimationFrame(animationRef.current);
       }
     };
-  }, []);
+  }, [tier]);
 
-  // Background gradient overlay for smooth phase transitions
+  // Background gradient overlay for smooth transitions
   const overlayStyle = useMemo(() => ({
     background: `radial-gradient(ellipse at center, ${colors.background[1]} 0%, ${colors.background[0]} 100%)`,
-    transition: 'background 0.5s ease-in-out',
+    transition: 'background 0.8s ease-in-out',
   }), [colors]);
 
   return (

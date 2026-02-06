@@ -13,8 +13,9 @@ import { WordConnect } from './games/WordConnect';
 import { SuitDeception } from './games/SuitDeception';
 import { ChimpMemory } from './games/ChimpMemory';
 import { HeatBackground } from './HeatBackground';
+import { FloatingXP } from './XPGainAnimation';
 import { MiniGameType, GAME_THEMES, GameMode, MIXABLE_GAMES } from '@/types/game';
-import { MathQuestion, ColorQuestion } from '@/hooks/useGameEngine';
+import { MathQuestion, ColorQuestion, getDifficultyTier, getTierName } from '@/hooks/useGameEngine';
 import { useAdaptiveEngine, AdaptivePhase } from '@/hooks/useAdaptiveEngine';
 
 interface MixedGameScreenProps {
@@ -68,9 +69,15 @@ export const MixedGameScreen = ({
   const [scoreKey, setScoreKey] = useState(0);
   const [showComboText, setShowComboText] = useState(false);
   const [hasTriggeredNewRecord, setHasTriggeredNewRecord] = useState(false);
+  const [floatingXP, setFloatingXP] = useState<{ amount: number; key: number } | null>(null);
+  
+  // Calculate current tier based on streak, respecting minimum starting tier
+  const calculatedTier = getDifficultyTier(streak, mode);
+  const currentTier = Math.max(startTier, calculatedTier);
+  const tierName = getTierName(currentTier);
   
   // Is God Tier active (tier 4+)
-  const isGodTier = startTier >= 4;
+  const isGodTier = startTier >= 4 || currentTier >= 4;
   
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const heartbeatRef = useRef<NodeJS.Timeout | null>(null);
@@ -219,9 +226,14 @@ export const MixedGameScreen = ({
     if (isCorrect) {
       const streakMultiplier = Math.min(1 + streak * 0.1, 2);
       const speedMultiplier = adaptiveState.gameSpeed;
-      const tierMultiplier = tier === 1 ? 1 : tier === 2 ? 1.5 : tier === 3 ? 2.5 : 3;
+      const tierMultiplier = tier === 1 ? 1 : tier === 2 ? 1.5 : tier === 3 ? 2.5 : tier === 4 ? 3 : 5;
       const basePoints = 10 + speedBonus;
       const points = Math.floor(basePoints * streakMultiplier * speedMultiplier * tierMultiplier);
+      
+      // Show floating XP animation
+      const xpGain = Math.floor(10 * tierMultiplier);
+      setFloatingXP({ amount: xpGain, key: Date.now() });
+      setTimeout(() => setFloatingXP(null), 1000);
       
       setScore(prev => prev + points);
       setStreakState(prev => prev + 1);
@@ -380,8 +392,8 @@ export const MixedGameScreen = ({
       animate={isScreenShaking ? { x: [-3, 3, -3, 3, 0], y: [-2, 2, -2, 2, 0] } : {}}
       transition={{ duration: 0.2 }}
     >
-      {/* Heat Background - responds to game speed */}
-      <HeatBackground gameSpeed={adaptiveState.gameSpeed} phase={adaptiveState.phase} />
+      {/* Heat Background - responds to game speed and tier */}
+      <HeatBackground gameSpeed={adaptiveState.gameSpeed} phase={adaptiveState.phase} tier={currentTier} />
 
       {/* Dynamic Theme Background */}
       <motion.div
@@ -502,15 +514,49 @@ export const MixedGameScreen = ({
 
       {/* CLEAN MINIMALIST HUD */}
       <div className="px-4 pt-4 pb-3 relative z-10">
-        {/* Top Row: Close | Score | Best */}
+        {/* Floating XP Animation */}
+        <AnimatePresence>
+          {floatingXP && (
+            <FloatingXP 
+              amount={floatingXP.amount} 
+              tier={currentTier}
+              x={0}
+              y={60}
+            />
+          )}
+        </AnimatePresence>
+        
+        {/* Top Row: Close + Tier | Score | Best */}
         <div className="flex items-start justify-between">
-          {/* Left: Close Button */}
-          <button 
-            onClick={onQuit}
-            className="p-2 -ml-2 opacity-40 hover:opacity-100 transition-opacity rounded-full"
-          >
-            <X className="w-6 h-6" />
-          </button>
+          {/* Left: Close Button + Tier Badge */}
+          <div className="flex items-center gap-2">
+            <button 
+              onClick={onQuit}
+              className="p-2 -ml-2 opacity-40 hover:opacity-100 transition-opacity rounded-full"
+            >
+              <X className="w-6 h-6" />
+            </button>
+            
+            {/* Tier Indicator Badge */}
+            <motion.div
+              key={currentTier}
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ${
+                currentTier === 5 
+                  ? 'bg-red-500/20 border-red-500/50 text-red-400' 
+                  : currentTier === 4 
+                  ? 'bg-orange-500/20 border-orange-500/50 text-orange-400'
+                  : currentTier === 3 
+                  ? 'bg-purple-500/20 border-purple-500/50 text-purple-400'
+                  : currentTier === 2 
+                  ? 'bg-blue-500/20 border-blue-500/50 text-blue-400'
+                  : 'bg-teal-500/20 border-teal-500/50 text-teal-400'
+              }`}
+            >
+              {currentTier === 5 ? '👑 GOD' : `LVL ${currentTier}`}
+            </motion.div>
+          </div>
 
           {/* Center: Hero Score + Timer + Streak */}
           <div className="flex flex-col items-center">
