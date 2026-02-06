@@ -67,7 +67,7 @@ export const Dashboard = ({
           
           {/* Neural Brain Visual - Centered */}
           <div className="relative z-10">
-            <NeuralBrain size={200} brainCharge={readiness} />
+            <NeuralBrain size={240} brainCharge={readiness} />
           </div>
         </motion.div>
 
