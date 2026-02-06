@@ -235,8 +235,9 @@ export const MixedGameScreen = ({
       const basePoints = 10 + speedBonus;
       const points = Math.floor(basePoints * streakMultiplier * speedMultiplier * tierMultiplier);
       
-      // Calculate XP gain for this answer
-      const xpGain = Math.floor(10 * tierMultiplier);
+      // Calculate XP gain - 2x multiplier in Endless mode after streak > 20
+      const endlessBonus = mode === 'endless' && streak >= 20 ? 2 : 1;
+      const xpGain = Math.floor(10 * tierMultiplier * endlessBonus);
       
       // Show floating XP animation
       setFloatingXP({ amount: xpGain, key: Date.now() });
@@ -268,9 +269,13 @@ export const MixedGameScreen = ({
       if (newWrongStreak >= 3) {
         setSessionXP(0); // Reset session XP, not score
         setWrongStreak(0); // Reset wrong streak counter
-        // Show visual feedback
+        // Show visual feedback + screen shake
         setShowXPReset(true);
-        setTimeout(() => setShowXPReset(false), 1500);
+        setIsScreenShaking(true);
+        setTimeout(() => {
+          setShowXPReset(false);
+          setIsScreenShaking(false);
+        }, 1500);
       }
       
       setScore(prev => Math.max(0, prev - 50));
@@ -625,6 +630,19 @@ export const MixedGameScreen = ({
             >
               {currentTier === 5 ? '👑 GOD' : `LVL ${currentTier}`}
             </motion.div>
+            
+            {/* Wrong Streak Counter (Classic Mode Only) */}
+            {mode === 'classic' && wrongStreak > 0 && (
+              <motion.div
+                initial={{ scale: 0, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-destructive/20 border border-destructive/50"
+              >
+                <span className="text-[10px] font-bold text-destructive">
+                  ⚠️ {wrongStreak}/3
+                </span>
+              </motion.div>
+            )}
           </div>
 
           {/* Center: Hero Score + Timer + Streak */}
@@ -646,8 +664,27 @@ export const MixedGameScreen = ({
               </span>
             )}
             
+            {/* XP Counter for Endless Mode */}
+            {mode === 'endless' && (
+              <motion.div 
+                className="flex items-center gap-1 mt-1"
+                animate={streak >= 20 ? { scale: [1, 1.05, 1] } : {}}
+                transition={{ duration: 0.5, repeat: Infinity }}
+              >
+                <Zap className={`w-4 h-4 ${streak >= 20 ? 'text-neon-gold' : 'text-muted-foreground'}`} />
+                <span className={`text-sm font-bold tabular-nums ${streak >= 20 ? 'text-neon-gold' : 'text-muted-foreground'}`}>
+                  {sessionXP} XP
+                </span>
+                {streak >= 20 && (
+                  <span className="text-[10px] font-bold text-neon-gold ml-1 px-1.5 py-0.5 rounded bg-neon-gold/20">
+                    2X
+                  </span>
+                )}
+              </motion.div>
+            )}
+            
             {/* Streak Fire */}
-            {streak > 0 && (
+            {streak > 0 && mode === 'classic' && (
               <motion.div 
                 className={`flex items-center gap-1 mt-1 ${
                   adaptiveState.gameSpeed >= 1.5 ? 'text-orange-400' : 'text-muted-foreground'
@@ -661,12 +698,23 @@ export const MixedGameScreen = ({
             )}
           </div>
 
-          {/* Right: Best Score */}
-          <div className="flex items-center gap-1 text-muted-foreground opacity-60">
-            <span className="text-sm">🏆</span>
-            <span className="font-mono text-sm font-medium">
-              {mode === 'classic' ? bestScore : bestStreak}
-            </span>
+          {/* Right: Best Score + XP (Classic) */}
+          <div className="flex flex-col items-end gap-1">
+            <div className="flex items-center gap-1 text-muted-foreground opacity-60">
+              <span className="text-sm">🏆</span>
+              <span className="font-mono text-sm font-medium">
+                {mode === 'classic' ? bestScore : bestStreak}
+              </span>
+            </div>
+            {/* Session XP for Classic Mode */}
+            {mode === 'classic' && (
+              <div className="flex items-center gap-1 text-muted-foreground opacity-60">
+                <Zap className="w-3 h-3" />
+                <span className="font-mono text-xs font-medium tabular-nums">
+                  {sessionXP}
+                </span>
+              </div>
+            )}
           </div>
         </div>
       </div>
