@@ -556,8 +556,8 @@ export const MixedGameScreen = ({
         </div>
       </div>
 
-      {/* Game Area */}
-      <div className="flex-1 relative z-10">
+      {/* Game Area - Vertically Centered */}
+      <div className="flex-1 flex items-center justify-center relative z-10 px-4 pb-safe">
         <AnimatePresence mode="wait">
           <motion.div
             key={`${currentGame}-${adaptiveState.questionsAnswered}`}
@@ -565,7 +565,7 @@ export const MixedGameScreen = ({
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -50 }}
             transition={{ duration: 0.15 }}
-            className="h-full"
+            className="w-full max-w-md"
           >
             {renderCurrentGame()}
           </motion.div>
