@@ -1,4 +1,5 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, memo } from 'react';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface Node {
   x: number;
@@ -7,7 +8,31 @@ interface Node {
   vy: number;
 }
 
-export const NeuralBackground = () => {
+// Static CSS-only background for mobile - no JS animation
+const MobileBackground = memo(() => (
+  <div 
+    className="fixed inset-0 pointer-events-none"
+    style={{ 
+      zIndex: -1,
+      background: 'linear-gradient(180deg, hsl(270, 30%, 8%) 0%, hsl(260, 35%, 6%) 50%, hsl(250, 40%, 4%) 100%)',
+    }}
+  >
+    {/* Static decorative dots - CSS only */}
+    <div className="absolute inset-0 opacity-20">
+      <div className="absolute w-1 h-1 bg-neon-cyan/50 rounded-full" style={{ top: '15%', left: '20%' }} />
+      <div className="absolute w-1 h-1 bg-neon-cyan/40 rounded-full" style={{ top: '25%', left: '70%' }} />
+      <div className="absolute w-1 h-1 bg-neon-cyan/30 rounded-full" style={{ top: '45%', left: '15%' }} />
+      <div className="absolute w-1 h-1 bg-neon-cyan/50 rounded-full" style={{ top: '60%', left: '80%' }} />
+      <div className="absolute w-1 h-1 bg-neon-cyan/40 rounded-full" style={{ top: '75%', left: '35%' }} />
+      <div className="absolute w-1 h-1 bg-neon-cyan/30 rounded-full" style={{ top: '85%', left: '60%' }} />
+    </div>
+  </div>
+));
+
+MobileBackground.displayName = 'MobileBackground';
+
+// Desktop canvas animation - reduced nodes for better performance
+const DesktopBackground = memo(() => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const nodesRef = useRef<Node[]>([]);
   const animationRef = useRef<number>();
@@ -27,55 +52,62 @@ export const NeuralBackground = () => {
     resize();
     window.addEventListener('resize', resize);
 
-    // Initialize nodes
-    const nodeCount = 40;
+    // Reduced node count from 40 to 20 for better performance
+    const nodeCount = 20;
     nodesRef.current = Array.from({ length: nodeCount }, () => ({
       x: Math.random() * canvas.width,
       y: Math.random() * canvas.height,
-      vx: (Math.random() - 0.5) * 0.3,
-      vy: (Math.random() - 0.5) * 0.3,
+      vx: (Math.random() - 0.5) * 0.2,
+      vy: (Math.random() - 0.5) * 0.2,
     }));
+
+    // Cache gradient for reuse
+    let cachedGradient: CanvasGradient | null = null;
+    let lastHeight = 0;
 
     const animate = () => {
       if (!ctx || !canvas) return;
 
-      // Clear with gradient background
-      const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
-      gradient.addColorStop(0, 'hsl(270, 30%, 8%)');
-      gradient.addColorStop(0.5, 'hsl(260, 35%, 6%)');
-      gradient.addColorStop(1, 'hsl(250, 40%, 4%)');
-      ctx.fillStyle = gradient;
+      // Reuse gradient if height hasn't changed
+      if (lastHeight !== canvas.height) {
+        cachedGradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+        cachedGradient.addColorStop(0, 'hsl(270, 30%, 8%)');
+        cachedGradient.addColorStop(0.5, 'hsl(260, 35%, 6%)');
+        cachedGradient.addColorStop(1, 'hsl(250, 40%, 4%)');
+        lastHeight = canvas.height;
+      }
+
+      ctx.fillStyle = cachedGradient!;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
       const nodes = nodesRef.current;
 
       // Update node positions
-      nodes.forEach(node => {
+      for (let i = 0; i < nodes.length; i++) {
+        const node = nodes[i];
         node.x += node.vx;
         node.y += node.vy;
 
-        // Bounce off edges
         if (node.x < 0 || node.x > canvas.width) node.vx *= -1;
         if (node.y < 0 || node.y > canvas.height) node.vy *= -1;
 
-        // Keep in bounds
         node.x = Math.max(0, Math.min(canvas.width, node.x));
         node.y = Math.max(0, Math.min(canvas.height, node.y));
-      });
+      }
 
-      // Draw connections
-      const maxDistance = 150;
-      ctx.strokeStyle = 'rgba(0, 212, 255, 0.08)';
+      // Draw connections - reduced maxDistance
+      const maxDistance = 120;
       ctx.lineWidth = 1;
 
       for (let i = 0; i < nodes.length; i++) {
         for (let j = i + 1; j < nodes.length; j++) {
           const dx = nodes[i].x - nodes[j].x;
           const dy = nodes[i].y - nodes[j].y;
-          const distance = Math.sqrt(dx * dx + dy * dy);
+          const distSq = dx * dx + dy * dy;
 
-          if (distance < maxDistance) {
-            const opacity = (1 - distance / maxDistance) * 0.15;
+          if (distSq < maxDistance * maxDistance) {
+            const distance = Math.sqrt(distSq);
+            const opacity = (1 - distance / maxDistance) * 0.12;
             ctx.strokeStyle = `rgba(0, 212, 255, ${opacity})`;
             ctx.beginPath();
             ctx.moveTo(nodes[i].x, nodes[i].y);
@@ -85,23 +117,13 @@ export const NeuralBackground = () => {
         }
       }
 
-      // Draw nodes
-      nodes.forEach(node => {
-        // Outer glow
-        const glowGradient = ctx.createRadialGradient(node.x, node.y, 0, node.x, node.y, 20);
-        glowGradient.addColorStop(0, 'rgba(0, 212, 255, 0.15)');
-        glowGradient.addColorStop(1, 'rgba(0, 212, 255, 0)');
-        ctx.fillStyle = glowGradient;
+      // Draw nodes - simplified without glow gradient
+      ctx.fillStyle = 'rgba(0, 212, 255, 0.5)';
+      for (let i = 0; i < nodes.length; i++) {
         ctx.beginPath();
-        ctx.arc(node.x, node.y, 20, 0, Math.PI * 2);
+        ctx.arc(nodes[i].x, nodes[i].y, 2, 0, Math.PI * 2);
         ctx.fill();
-
-        // Core
-        ctx.fillStyle = 'rgba(0, 212, 255, 0.6)';
-        ctx.beginPath();
-        ctx.arc(node.x, node.y, 2, 0, Math.PI * 2);
-        ctx.fill();
-      });
+      }
 
       animationRef.current = requestAnimationFrame(animate);
     };
@@ -123,5 +145,15 @@ export const NeuralBackground = () => {
       style={{ zIndex: -1 }}
     />
   );
-};
+});
 
+DesktopBackground.displayName = 'DesktopBackground';
+
+export const NeuralBackground = memo(() => {
+  const isMobile = useIsMobile();
+  
+  // Return static background on mobile, animated on desktop
+  return isMobile ? <MobileBackground /> : <DesktopBackground />;
+});
+
+NeuralBackground.displayName = 'NeuralBackground';
