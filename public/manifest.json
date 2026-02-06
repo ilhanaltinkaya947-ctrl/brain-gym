@@ -1,12 +1,13 @@
 {
-  "name": "NeuroFlow - Brain Training",
-  "short_name": "NeuroFlow",
+  "name": "AXON - Brain Training",
+  "short_name": "AXON",
   "description": "Daily brain training to boost your cognitive abilities",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#0a0d14",
-  "theme_color": "#0a0d14",
+  "background_color": "#000000",
+  "theme_color": "#000000",
   "orientation": "portrait",
+  "categories": ["games", "health", "education"],
   "icons": [
     {
       "src": "/icon-192.png",

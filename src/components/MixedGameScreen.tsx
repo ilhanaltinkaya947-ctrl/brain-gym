@@ -376,7 +376,7 @@ export const MixedGameScreen = ({
 
   return (
     <motion.div 
-      className="min-h-screen flex flex-col safe-top safe-bottom relative overflow-hidden"
+      className="min-h-screen-dynamic flex flex-col safe-all relative overflow-hidden"
       animate={isScreenShaking ? { x: [-3, 3, -3, 3, 0], y: [-2, 2, -2, 2, 0] } : {}}
       transition={{ duration: 0.2 }}
     >
@@ -501,7 +501,7 @@ export const MixedGameScreen = ({
       )}
 
       {/* CLEAN MINIMALIST HUD */}
-      <div className="px-6 pt-6 pb-4 relative z-10">
+      <div className="px-4 pt-4 pb-3 relative z-10">
         {/* Top Row: Close | Score | Best */}
         <div className="flex items-start justify-between">
           {/* Left: Close Button */}

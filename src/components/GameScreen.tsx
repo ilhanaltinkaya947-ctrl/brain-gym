@@ -78,7 +78,7 @@ export const GameScreen = ({ gameState, generateMathQuestion, onAnswer, onQuit, 
 
   return (
     <motion.div 
-      className="min-h-screen flex flex-col relative overflow-hidden text-foreground bg-background"
+      className="min-h-screen-dynamic flex flex-col relative overflow-hidden text-foreground bg-background safe-all"
       initial={{ opacity: 0 }} 
       animate={{ opacity: 1, x: isScreenShaking ? [-5, 5, -5, 5, 0] : 0 }}
     >
