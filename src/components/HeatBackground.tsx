@@ -1,5 +1,6 @@
-import { useEffect, useRef, useMemo } from 'react';
+import { useEffect, useRef, useMemo, memo } from 'react';
 import { AdaptivePhase } from '@/hooks/useAdaptiveEngine';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface HeatBackgroundProps {
   gameSpeed: number;
@@ -13,10 +14,9 @@ interface Particle {
   vx: number;
   vy: number;
   radius: number;
-  connections: number[];
 }
 
-// Tier-based color palettes (difficulty progression)
+// Tier-based color palettes
 const TIER_COLORS = {
   1: { // Basics - Calm Teal
     primary: { h: 173, s: 80, l: 40 },
@@ -45,14 +45,25 @@ const TIER_COLORS = {
   },
 };
 
-// Phase modifiers (overlay effects on top of tier colors)
-const PHASE_INTENSITY = {
-  warmup: 0.6,
-  ramping: 0.8,
-  overdrive: 1.0,
-};
+// Simple CSS-only background for mobile
+const MobileHeatBackground = memo(({ tier = 1 }: { tier: number }) => {
+  const colors = TIER_COLORS[tier as keyof typeof TIER_COLORS] || TIER_COLORS[1];
+  
+  return (
+    <div
+      className="fixed inset-0 pointer-events-none z-0"
+      style={{
+        background: `radial-gradient(ellipse at center, ${colors.background[1]} 0%, ${colors.background[2]} 50%, ${colors.background[0]} 100%)`,
+        transition: 'background 0.5s ease-out',
+      }}
+    />
+  );
+});
 
-export const HeatBackground = ({ gameSpeed, phase, tier = 1 }: HeatBackgroundProps) => {
+MobileHeatBackground.displayName = 'MobileHeatBackground';
+
+// Desktop animated background
+const DesktopHeatBackground = memo(({ gameSpeed, phase, tier = 1 }: HeatBackgroundProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const particlesRef = useRef<Particle[]>([]);
   const animationRef = useRef<number>();
@@ -60,16 +71,13 @@ export const HeatBackground = ({ gameSpeed, phase, tier = 1 }: HeatBackgroundPro
   const speedRef = useRef<number>(gameSpeed);
   const tierRef = useRef<number>(tier);
 
-  // Update refs for animation loop
   useEffect(() => {
     phaseRef.current = phase;
     speedRef.current = gameSpeed;
     tierRef.current = tier;
   }, [phase, gameSpeed, tier]);
 
-  // Current colors based on tier
   const colors = useMemo(() => TIER_COLORS[tier as keyof typeof TIER_COLORS] || TIER_COLORS[1], [tier]);
-  const intensity = PHASE_INTENSITY[phase];
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -85,62 +93,65 @@ export const HeatBackground = ({ gameSpeed, phase, tier = 1 }: HeatBackgroundPro
     resize();
     window.addEventListener('resize', resize);
 
-    // Initialize particles - more particles for higher tiers
-    const particleCount = 35 + (tier * 5);
+    // Reduced particle count for better performance
+    const particleCount = 20;
     particlesRef.current = Array.from({ length: particleCount }, () => ({
       x: Math.random() * canvas.width,
       y: Math.random() * canvas.height,
-      vx: (Math.random() - 0.5) * 0.5,
-      vy: (Math.random() - 0.5) * 0.5,
+      vx: (Math.random() - 0.5) * 0.4,
+      vy: (Math.random() - 0.5) * 0.4,
       radius: Math.random() * 2 + 1,
-      connections: [],
     }));
+
+    // Cache gradient
+    let cachedGradient: CanvasGradient | null = null;
+    let lastTier = 0;
 
     const animate = () => {
       const currentTier = tierRef.current;
       const currentSpeed = speedRef.current;
-      const currentPhase = phaseRef.current;
       const tierColors = TIER_COLORS[currentTier as keyof typeof TIER_COLORS] || TIER_COLORS[1];
-      const phaseIntensity = PHASE_INTENSITY[currentPhase];
       
-      // Clear with gradient background
-      const gradient = ctx.createRadialGradient(
-        canvas.width / 2, canvas.height / 2, 0,
-        canvas.width / 2, canvas.height / 2, canvas.width * 0.7
-      );
-      gradient.addColorStop(0, tierColors.background[1]);
-      gradient.addColorStop(0.5, tierColors.background[2]);
-      gradient.addColorStop(1, tierColors.background[0]);
+      // Rebuild gradient only if tier changed
+      if (lastTier !== currentTier || !cachedGradient) {
+        cachedGradient = ctx.createRadialGradient(
+          canvas.width / 2, canvas.height / 2, 0,
+          canvas.width / 2, canvas.height / 2, canvas.width * 0.7
+        );
+        cachedGradient.addColorStop(0, tierColors.background[1]);
+        cachedGradient.addColorStop(0.5, tierColors.background[2]);
+        cachedGradient.addColorStop(1, tierColors.background[0]);
+        lastTier = currentTier;
+      }
       
-      ctx.fillStyle = gradient;
+      ctx.fillStyle = cachedGradient;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
       const particles = particlesRef.current;
-      const connectionDistance = 120 + (currentTier * 10);
-      
-      // Speed multiplier affects particle movement
-      const speedMultiplier = 0.4 + currentSpeed * 0.6 * phaseIntensity;
+      const connectionDistance = 100;
+      const speedMultiplier = 0.3 + currentSpeed * 0.4;
 
       // Update and draw particles
-      particles.forEach((p, i) => {
-        // Move particles faster based on game speed and tier
+      for (let i = 0; i < particles.length; i++) {
+        const p = particles[i];
         p.x += p.vx * speedMultiplier;
         p.y += p.vy * speedMultiplier;
 
-        // Bounce off edges
         if (p.x < 0 || p.x > canvas.width) p.vx *= -1;
         if (p.y < 0 || p.y > canvas.height) p.vy *= -1;
         p.x = Math.max(0, Math.min(canvas.width, p.x));
         p.y = Math.max(0, Math.min(canvas.height, p.y));
 
-        // Draw connections
-        particles.slice(i + 1).forEach((other) => {
+        // Draw connections - simplified
+        for (let j = i + 1; j < particles.length; j++) {
+          const other = particles[j];
           const dx = other.x - p.x;
           const dy = other.y - p.y;
-          const dist = Math.sqrt(dx * dx + dy * dy);
+          const distSq = dx * dx + dy * dy;
 
-          if (dist < connectionDistance) {
-            const alpha = (1 - dist / connectionDistance) * 0.35 * phaseIntensity;
+          if (distSq < connectionDistance * connectionDistance) {
+            const dist = Math.sqrt(distSq);
+            const alpha = (1 - dist / connectionDistance) * 0.2;
             const { h, s, l } = tierColors.primary;
             ctx.strokeStyle = `hsla(${h}, ${s}%, ${l}%, ${alpha})`;
             ctx.lineWidth = 1;
@@ -149,28 +160,14 @@ export const HeatBackground = ({ gameSpeed, phase, tier = 1 }: HeatBackgroundPro
             ctx.lineTo(other.x, other.y);
             ctx.stroke();
           }
-        });
+        }
 
-        // Draw particle with glow based on tier and phase
+        // Draw particle - no shadow for performance
         const { h, s, l } = tierColors.secondary;
-        const glowIntensity = (8 + currentTier * 4) * phaseIntensity;
-        
         ctx.beginPath();
-        ctx.arc(p.x, p.y, p.radius * (1 + currentTier * 0.1), 0, Math.PI * 2);
-        ctx.fillStyle = `hsla(${h}, ${s}%, ${l}%, ${0.7 + phaseIntensity * 0.2})`;
-        ctx.shadowColor = `hsl(${h}, ${s}%, ${l + 10}%)`;
-        ctx.shadowBlur = glowIntensity * currentSpeed;
+        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+        ctx.fillStyle = `hsla(${h}, ${s}%, ${l}%, 0.7)`;
         ctx.fill();
-        ctx.shadowBlur = 0;
-      });
-
-      // Pulse effect for high tiers (4+) or overdrive
-      if (currentTier >= 4 || currentPhase === 'overdrive') {
-        const pulseSpeed = currentTier >= 5 ? 300 : 500;
-        const pulseAlpha = 0.02 + Math.sin(Date.now() / pulseSpeed) * 0.03;
-        const { h, s, l } = tierColors.primary;
-        ctx.fillStyle = `hsla(${h}, ${s}%, ${l}%, ${pulseAlpha})`;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
       }
 
       animationRef.current = requestAnimationFrame(animate);
@@ -186,7 +183,6 @@ export const HeatBackground = ({ gameSpeed, phase, tier = 1 }: HeatBackgroundPro
     };
   }, [tier]);
 
-  // Background gradient overlay for smooth transitions
   const overlayStyle = useMemo(() => ({
     background: `radial-gradient(ellipse at center, ${colors.background[1]} 0%, ${colors.background[0]} 100%)`,
     transition: 'background 0.8s ease-in-out',
@@ -194,14 +190,20 @@ export const HeatBackground = ({ gameSpeed, phase, tier = 1 }: HeatBackgroundPro
 
   return (
     <>
-      <canvas
-        ref={canvasRef}
-        className="fixed inset-0 pointer-events-none z-0"
-      />
-      <div
-        className="fixed inset-0 pointer-events-none z-0 opacity-30"
-        style={overlayStyle}
-      />
+      <canvas ref={canvasRef} className="fixed inset-0 pointer-events-none z-0" />
+      <div className="fixed inset-0 pointer-events-none z-0 opacity-30" style={overlayStyle} />
     </>
   );
-};
+});
+
+DesktopHeatBackground.displayName = 'DesktopHeatBackground';
+
+export const HeatBackground = memo(({ gameSpeed, phase, tier = 1 }: HeatBackgroundProps) => {
+  const isMobile = useIsMobile();
+  
+  return isMobile 
+    ? <MobileHeatBackground tier={tier} /> 
+    : <DesktopHeatBackground gameSpeed={gameSpeed} phase={phase} tier={tier} />;
+});
+
+HeatBackground.displayName = 'HeatBackground';
