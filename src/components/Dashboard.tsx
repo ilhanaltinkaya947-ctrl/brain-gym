@@ -1,7 +1,6 @@
 import { motion } from 'framer-motion';
 import { Zap, Settings, Star, Flame, Trophy } from 'lucide-react';
 import { NeuralBrain } from './NeuralBrain';
-import AnimatedHeroIcon from './AnimatedHeroIcon';
 
 interface DashboardProps {
   onStartGame: () => void;
@@ -66,10 +65,9 @@ export const Dashboard = ({
             }}
           />
           
-          {/* Dynamic Animated Hero Icon */}
-          <div className="relative z-10 flex flex-col items-center gap-4">
-            <AnimatedHeroIcon />
-            <NeuralBrain size={160} brainCharge={readiness} />
+          {/* Neural Brain Visual - Centered */}
+          <div className="relative z-10">
+            <NeuralBrain size={200} brainCharge={readiness} />
           </div>
         </motion.div>
 
