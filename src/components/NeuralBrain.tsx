@@ -1,5 +1,4 @@
 import { motion } from 'framer-motion';
-import { memo } from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
 
 interface NeuralBrainProps {
@@ -8,73 +7,73 @@ interface NeuralBrainProps {
 }
 
 // Simplified static brain for mobile - no animations
-const MobileBrain = memo(({ size = 200 }: { size: number }) => (
-  <div className="relative" style={{ width: size, height: size }}>
-    {/* Simple static glow */}
-    <div
-      className="absolute inset-0 rounded-full"
-      style={{
-        background: `radial-gradient(circle at 50% 50%, hsl(var(--neon-cyan) / 0.2) 0%, transparent 50%)`,
-      }}
-    />
-
-    <svg viewBox="0 0 100 100" className="absolute inset-0 w-full h-full">
-      {/* Simplified gradients - no filters for performance */}
-      <defs>
-        <radialGradient id="somaGradSimple" cx="35%" cy="35%">
-          <stop offset="0%" stopColor="hsl(var(--foreground))" />
-          <stop offset="50%" stopColor="hsl(var(--neon-cyan))" stopOpacity="0.6" />
-          <stop offset="100%" stopColor="hsl(var(--neon-cyan))" stopOpacity="0.2" />
-        </radialGradient>
-      </defs>
-
-      {/* Static dendrites */}
-      <g stroke="hsl(var(--foreground))" strokeLinecap="round" fill="none" opacity="0.5">
-        <path d="M45 42 Q38 32 30 22" strokeWidth="2" />
-        <path d="M30 22 Q26 17 22 13" strokeWidth="1.2" />
-        <path d="M50 40 L50 25" strokeWidth="2" />
-        <path d="M50 25 Q46 18 42 13" strokeWidth="1.2" />
-        <path d="M50 25 Q54 18 58 13" strokeWidth="1.2" />
-        <path d="M55 42 Q62 32 70 22" strokeWidth="2" />
-        <path d="M70 22 Q74 17 78 13" strokeWidth="1.2" />
-        <path d="M42 50 Q32 48 22 46" strokeWidth="1.6" />
-        <path d="M58 50 Q68 48 78 46" strokeWidth="1.6" />
-      </g>
-
-      {/* Static axon */}
-      <path
-        d="M50 58 Q50 66 48 72 Q46 78 44 82"
-        stroke="hsl(var(--foreground))"
-        strokeWidth="2.2"
-        strokeLinecap="round"
-        fill="none"
-        opacity="0.55"
+function MobileBrain({ size = 200 }: { size: number }) {
+  return (
+    <div className="relative" style={{ width: size, height: size }}>
+      {/* Simple static glow */}
+      <div
+        className="absolute inset-0 rounded-full"
+        style={{
+          background: `radial-gradient(circle at 50% 50%, hsl(var(--neon-cyan) / 0.2) 0%, transparent 50%)`,
+        }}
       />
-      
-      <g stroke="hsl(var(--foreground))" strokeLinecap="round" fill="none" opacity="0.4">
-        <path d="M44 82 Q40 85 36 87" strokeWidth="1.2" />
-        <path d="M44 82 Q44 86 43 89" strokeWidth="1.2" />
-        <path d="M44 82 Q48 85 52 87" strokeWidth="1.2" />
-      </g>
 
-      {/* Soma */}
-      <circle cx="50" cy="50" r="10" fill="url(#somaGradSimple)" />
-      <circle cx="47" cy="47" r="3.5" fill="hsl(var(--foreground))" fillOpacity="0.2" />
-      
-      {/* Terminal dots - static */}
-      <circle cx="22" cy="13" r="2" fill="hsl(var(--foreground))" opacity="0.5" />
-      <circle cx="78" cy="13" r="2" fill="hsl(var(--foreground))" opacity="0.5" />
-      <circle cx="36" cy="87" r="2" fill="hsl(var(--neon-cyan))" opacity="0.7" />
-      <circle cx="43" cy="89" r="2" fill="hsl(var(--neon-cyan))" opacity="0.7" />
-      <circle cx="52" cy="87" r="2" fill="hsl(var(--neon-cyan))" opacity="0.7" />
-    </svg>
-  </div>
-));
+      <svg viewBox="0 0 100 100" className="absolute inset-0 w-full h-full">
+        {/* Simplified gradients - no filters for performance */}
+        <defs>
+          <radialGradient id="somaGradSimple" cx="35%" cy="35%">
+            <stop offset="0%" stopColor="hsl(var(--foreground))" />
+            <stop offset="50%" stopColor="hsl(var(--neon-cyan))" stopOpacity="0.6" />
+            <stop offset="100%" stopColor="hsl(var(--neon-cyan))" stopOpacity="0.2" />
+          </radialGradient>
+        </defs>
 
-MobileBrain.displayName = 'MobileBrain';
+        {/* Static dendrites */}
+        <g stroke="hsl(var(--foreground))" strokeLinecap="round" fill="none" opacity="0.5">
+          <path d="M45 42 Q38 32 30 22" strokeWidth="2" />
+          <path d="M30 22 Q26 17 22 13" strokeWidth="1.2" />
+          <path d="M50 40 L50 25" strokeWidth="2" />
+          <path d="M50 25 Q46 18 42 13" strokeWidth="1.2" />
+          <path d="M50 25 Q54 18 58 13" strokeWidth="1.2" />
+          <path d="M55 42 Q62 32 70 22" strokeWidth="2" />
+          <path d="M70 22 Q74 17 78 13" strokeWidth="1.2" />
+          <path d="M42 50 Q32 48 22 46" strokeWidth="1.6" />
+          <path d="M58 50 Q68 48 78 46" strokeWidth="1.6" />
+        </g>
+
+        {/* Static axon */}
+        <path
+          d="M50 58 Q50 66 48 72 Q46 78 44 82"
+          stroke="hsl(var(--foreground))"
+          strokeWidth="2.2"
+          strokeLinecap="round"
+          fill="none"
+          opacity="0.55"
+        />
+        
+        <g stroke="hsl(var(--foreground))" strokeLinecap="round" fill="none" opacity="0.4">
+          <path d="M44 82 Q40 85 36 87" strokeWidth="1.2" />
+          <path d="M44 82 Q44 86 43 89" strokeWidth="1.2" />
+          <path d="M44 82 Q48 85 52 87" strokeWidth="1.2" />
+        </g>
+
+        {/* Soma */}
+        <circle cx="50" cy="50" r="10" fill="url(#somaGradSimple)" />
+        <circle cx="47" cy="47" r="3.5" fill="hsl(var(--foreground))" fillOpacity="0.2" />
+        
+        {/* Terminal dots - static */}
+        <circle cx="22" cy="13" r="2" fill="hsl(var(--foreground))" opacity="0.5" />
+        <circle cx="78" cy="13" r="2" fill="hsl(var(--foreground))" opacity="0.5" />
+        <circle cx="36" cy="87" r="2" fill="hsl(var(--neon-cyan))" opacity="0.7" />
+        <circle cx="43" cy="89" r="2" fill="hsl(var(--neon-cyan))" opacity="0.7" />
+        <circle cx="52" cy="87" r="2" fill="hsl(var(--neon-cyan))" opacity="0.7" />
+      </svg>
+    </div>
+  );
+}
 
 // Full animated brain for desktop
-const DesktopBrain = memo(({ size = 200, brainCharge = 0 }: NeuralBrainProps) => {
+function DesktopBrain({ size = 200, brainCharge = 0 }: NeuralBrainProps) {
   const glowIntensity = Math.max(0.5, brainCharge / 100);
 
   return (
@@ -239,16 +238,13 @@ const DesktopBrain = memo(({ size = 200, brainCharge = 0 }: NeuralBrainProps) =>
       </div>
     </div>
   );
-});
+}
 
-DesktopBrain.displayName = 'DesktopBrain';
-
-export const NeuralBrain = memo(({ size = 200, brainCharge = 0 }: NeuralBrainProps) => {
+export function NeuralBrain({ size = 200, brainCharge = 0 }: NeuralBrainProps) {
   const isMobile = useIsMobile();
   
-  return isMobile 
-    ? <MobileBrain size={size} /> 
-    : <DesktopBrain size={size} brainCharge={brainCharge} />;
-});
-
-NeuralBrain.displayName = 'NeuralBrain';
+  if (isMobile) {
+    return <MobileBrain size={size} />;
+  }
+  return <DesktopBrain size={size} brainCharge={brainCharge} />;
+}

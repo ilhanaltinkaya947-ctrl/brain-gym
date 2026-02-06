@@ -1,4 +1,4 @@
-import { useEffect, useRef, memo } from 'react';
+import { useEffect, useRef } from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
 
 interface Node {
@@ -9,30 +9,30 @@ interface Node {
 }
 
 // Static CSS-only background for mobile - no JS animation
-const MobileBackground = memo(() => (
-  <div 
-    className="fixed inset-0 pointer-events-none"
-    style={{ 
-      zIndex: -1,
-      background: 'linear-gradient(180deg, hsl(270, 30%, 8%) 0%, hsl(260, 35%, 6%) 50%, hsl(250, 40%, 4%) 100%)',
-    }}
-  >
-    {/* Static decorative dots - CSS only */}
-    <div className="absolute inset-0 opacity-20">
-      <div className="absolute w-1 h-1 bg-neon-cyan/50 rounded-full" style={{ top: '15%', left: '20%' }} />
-      <div className="absolute w-1 h-1 bg-neon-cyan/40 rounded-full" style={{ top: '25%', left: '70%' }} />
-      <div className="absolute w-1 h-1 bg-neon-cyan/30 rounded-full" style={{ top: '45%', left: '15%' }} />
-      <div className="absolute w-1 h-1 bg-neon-cyan/50 rounded-full" style={{ top: '60%', left: '80%' }} />
-      <div className="absolute w-1 h-1 bg-neon-cyan/40 rounded-full" style={{ top: '75%', left: '35%' }} />
-      <div className="absolute w-1 h-1 bg-neon-cyan/30 rounded-full" style={{ top: '85%', left: '60%' }} />
+function MobileBackground() {
+  return (
+    <div 
+      className="fixed inset-0 pointer-events-none"
+      style={{ 
+        zIndex: -1,
+        background: 'linear-gradient(180deg, hsl(270, 30%, 8%) 0%, hsl(260, 35%, 6%) 50%, hsl(250, 40%, 4%) 100%)',
+      }}
+    >
+      {/* Static decorative dots - CSS only */}
+      <div className="absolute inset-0 opacity-20">
+        <div className="absolute w-1 h-1 bg-neon-cyan/50 rounded-full" style={{ top: '15%', left: '20%' }} />
+        <div className="absolute w-1 h-1 bg-neon-cyan/40 rounded-full" style={{ top: '25%', left: '70%' }} />
+        <div className="absolute w-1 h-1 bg-neon-cyan/30 rounded-full" style={{ top: '45%', left: '15%' }} />
+        <div className="absolute w-1 h-1 bg-neon-cyan/50 rounded-full" style={{ top: '60%', left: '80%' }} />
+        <div className="absolute w-1 h-1 bg-neon-cyan/40 rounded-full" style={{ top: '75%', left: '35%' }} />
+        <div className="absolute w-1 h-1 bg-neon-cyan/30 rounded-full" style={{ top: '85%', left: '60%' }} />
+      </div>
     </div>
-  </div>
-));
-
-MobileBackground.displayName = 'MobileBackground';
+  );
+}
 
 // Desktop canvas animation - reduced nodes for better performance
-const DesktopBackground = memo(() => {
+function DesktopBackground() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const nodesRef = useRef<Node[]>([]);
   const animationRef = useRef<number>();
@@ -145,15 +145,14 @@ const DesktopBackground = memo(() => {
       style={{ zIndex: -1 }}
     />
   );
-});
+}
 
-DesktopBackground.displayName = 'DesktopBackground';
-
-export const NeuralBackground = memo(() => {
+export function NeuralBackground() {
   const isMobile = useIsMobile();
   
   // Return static background on mobile, animated on desktop
-  return isMobile ? <MobileBackground /> : <DesktopBackground />;
-});
-
-NeuralBackground.displayName = 'NeuralBackground';
+  if (isMobile) {
+    return <MobileBackground />;
+  }
+  return <DesktopBackground />;
+}
