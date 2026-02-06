@@ -17,15 +17,16 @@ export const ChimpMemory = memo(({ tier, onAnswer, playSound, triggerHaptic }: C
   const [phase, setPhase] = useState<'showing' | 'hiding' | 'playing'>('showing');
   const [nextExpected, setNextExpected] = useState(1);
 
-  // Difficulty Config (No Rotation, pure Memory & Speed)
+  // Difficulty Config - Minimum 2s display for harder tiers, scaled by count
   const getDifficultyConfig = (t: number) => {
+    // Base time increases with number count for fairness
     switch (t) {
-      case 1: return { count: 4, showTime: 1200 }; // Easy start
-      case 2: return { count: 5, showTime: 1000 };
-      case 3: return { count: 6, showTime: 900 };
-      case 4: return { count: 7, showTime: 800 };
-      case 5: return { count: 8, showTime: 700 }; // God Mode (Human limit)
-      default: return { count: 4, showTime: 1000 };
+      case 1: return { count: 4, showTime: 2500 }; // Easy - plenty of time
+      case 2: return { count: 5, showTime: 2500 }; // Still comfortable
+      case 3: return { count: 6, showTime: 2200 }; // Slightly faster
+      case 4: return { count: 7, showTime: 2000 }; // Minimum 2s
+      case 5: return { count: 8, showTime: 2000 }; // God Mode - 2s minimum
+      default: return { count: 4, showTime: 2500 };
     }
   };
 
@@ -94,26 +95,28 @@ export const ChimpMemory = memo(({ tier, onAnswer, playSound, triggerHaptic }: C
   };
 
   return (
-    <div className="flex flex-col items-center justify-center w-full h-full">
-      <motion.div className="grid grid-cols-5 gap-2 w-full max-w-[320px] aspect-square">
+    <div className="flex flex-col items-center justify-center w-full h-full px-4">
+      <motion.div 
+        className="grid grid-cols-5 gap-1.5 w-full max-w-[300px] aspect-square"
+        initial={false}
+      >
         {cells.map((cell) => (
-          <motion.button
+          <button
             key={cell.index}
-            whileTap={{ scale: 0.9 }}
             onClick={() => handleCellTap(cell.index)}
-            className={`relative rounded-xl flex items-center justify-center text-2xl font-bold transition-all duration-200 aspect-square
-              ${cell.revealed && cell.number ? 'bg-primary text-primary-foreground shadow-[0_0_15px_rgba(var(--primary),0.5)]' : 'bg-white/5 hover:bg-white/10'}
+            className={`relative rounded-lg flex items-center justify-center text-xl font-bold aspect-square transition-colors
+              ${cell.revealed && cell.number ? 'bg-primary text-primary-foreground' : 'bg-muted/30 active:bg-muted/50'}
               ${cell.isError ? 'bg-destructive animate-shake' : ''}
-              ${cell.tapped ? 'opacity-50' : 'opacity-100'}
+              ${cell.tapped ? 'opacity-40' : 'opacity-100'}
             `}
           >
             {(cell.revealed || cell.tapped) && cell.number}
-          </motion.button>
+          </button>
         ))}
       </motion.div>
-      <div className="mt-6 text-xs text-muted-foreground font-mono tracking-widest uppercase opacity-60">
+      <p className="mt-6 text-xs text-muted-foreground font-mono tracking-widest uppercase opacity-60">
         {phase === 'showing' ? 'Memorize' : 'Tap in order'}
-      </div>
+      </p>
     </div>
   );
 });

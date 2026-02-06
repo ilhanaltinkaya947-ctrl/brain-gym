@@ -31,12 +31,12 @@ export const Dashboard = ({
   const readiness = brainCharge > 0 ? brainCharge : 85;
 
   return (
-    <div className="min-h-screen-dynamic flex flex-col px-5 py-4 safe-all relative bg-background overflow-hidden">
+    <div className="min-h-screen-dynamic flex flex-col px-6 py-6 pt-10 safe-all relative bg-background overflow-hidden">
       {/* Minimal Header - Settings Only */}
       <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="flex justify-end mb-4 z-10"
+        className="flex justify-end mb-6 z-10"
       >
         <motion.button
           whileHover={{ scale: 1.1, rotate: 15 }}
@@ -49,7 +49,7 @@ export const Dashboard = ({
       </motion.div>
 
       {/* Bento Grid */}
-      <div className="flex-1 flex flex-col gap-4 z-10">
+      <div className="flex-1 flex flex-col gap-5 z-10">
         {/* Hero Card - Neural Core + Readiness */}
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
@@ -72,7 +72,7 @@ export const Dashboard = ({
         </motion.div>
 
       {/* Metric Cards - 3 Block Layout */}
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-3 gap-3">
         {/* Streak Card */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
