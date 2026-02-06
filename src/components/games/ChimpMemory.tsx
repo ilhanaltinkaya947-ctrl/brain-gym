@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, memo } from 'react';
 import { motion } from 'framer-motion';
 
 interface ChimpMemoryProps {
@@ -12,7 +12,7 @@ interface Cell { index: number; number: number | null; revealed: boolean; tapped
 
 const GRID_SIZE = 25; // 5x5 grid
 
-export const ChimpMemory = ({ tier, onAnswer, playSound, triggerHaptic }: ChimpMemoryProps) => {
+export const ChimpMemory = memo(({ tier, onAnswer, playSound, triggerHaptic }: ChimpMemoryProps) => {
   const [cells, setCells] = useState<Cell[]>([]);
   const [phase, setPhase] = useState<'showing' | 'hiding' | 'playing'>('showing');
   const [nextExpected, setNextExpected] = useState(1);
@@ -116,4 +116,4 @@ export const ChimpMemory = ({ tier, onAnswer, playSound, triggerHaptic }: ChimpM
       </div>
     </div>
   );
-};
+});

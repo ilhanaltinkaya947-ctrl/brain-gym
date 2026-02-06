@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, memo } from 'react';
 import { motion } from 'framer-motion';
 
 interface CubeCountProps {
@@ -47,7 +47,7 @@ const SingleCube = ({ x, y, z }: { x: number; y: number; z: number }) => {
   );
 };
 
-export const CubeCount = ({ tier, onAnswer, playSound, triggerHaptic }: CubeCountProps) => {
+export const CubeCount = memo(({ tier, onAnswer, playSound, triggerHaptic }: CubeCountProps) => {
   const [cubes, setCubes] = useState<{x: number, y: number, z: number}[]>([]);
   const [totalBlocks, setTotalBlocks] = useState(0);
   const [options, setOptions] = useState<number[]>([]);
@@ -135,4 +135,4 @@ export const CubeCount = ({ tier, onAnswer, playSound, triggerHaptic }: CubeCoun
       </p>
     </div>
   );
-};
+});

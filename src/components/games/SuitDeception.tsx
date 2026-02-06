@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Heart, Diamond, Club, Spade } from 'lucide-react';
 
@@ -17,7 +17,7 @@ const SUITS = [
   { id: 'spade', icon: Spade, color: 'black' },
 ];
 
-export const SuitDeception = ({ tier, streak, onAnswer, playSound, triggerHaptic }: SuitDeceptionProps) => {
+export const SuitDeception = memo(({ tier, streak, onAnswer, playSound, triggerHaptic }: SuitDeceptionProps) => {
   const [cards, setCards] = useState<any[]>([]);
   const [gridClass, setGridClass] = useState('grid-cols-3');
   const [startTime, setStartTime] = useState(Date.now());
@@ -115,4 +115,4 @@ export const SuitDeception = ({ tier, streak, onAnswer, playSound, triggerHaptic
       </div>
     </div>
   );
-};
+});
