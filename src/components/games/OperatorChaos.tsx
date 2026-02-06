@@ -3,12 +3,13 @@ import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
 
 interface OperatorChaosProps {
-  onAnswer: (correct: boolean, speedBonus: number) => void;
+  onAnswer: (correct: boolean, speedBonus: number, tier?: number) => void;
   playSound: (type: 'correct' | 'wrong' | 'tick') => void;
   triggerHaptic: (type: 'light' | 'medium' | 'heavy') => void;
   onScreenShake: () => void;
   operatorCount?: number;
   maxNumber?: number;
+  tier?: number;
 }
 
 type Operator = '+' | '-' | '×' | '÷';

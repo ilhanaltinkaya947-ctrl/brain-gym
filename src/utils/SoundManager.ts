@@ -102,7 +102,7 @@ class SoundManager {
     this.buffers.set(type, buffer);
   }
 
-  play(type: SoundType) {
+  play(type: SoundType, tier: number = 1) {
     if (this.isMuted) return;
 
     // Initialize on first play if not already done
@@ -123,6 +123,12 @@ class SoundManager {
         const gainNode = this.audioContext.createGain();
         
         source.buffer = this.buffers.get(type)!;
+        
+        // Tier-based pitch adjustment: higher tiers = higher pitch
+        // Tier 1: 1.0x, Tier 2: 1.1x, Tier 3: 1.2x, Tier 4: 1.35x, Tier 5: 1.5x
+        const pitchMultiplier = 1 + (tier - 1) * 0.125;
+        source.playbackRate.value = pitchMultiplier;
+        
         source.connect(gainNode);
         gainNode.connect(this.audioContext.destination);
         
@@ -134,14 +140,18 @@ class SoundManager {
     }
   }
 
-  // Play ascending note based on streak (C Major scale)
-  playStreakNote(streak: number) {
+  // Play ascending note based on streak (C Major scale) with tier-based pitch
+  playStreakNote(streak: number, tier: number = 1) {
     if (this.isMuted || !this.audioContext) return;
     
-    const scale = [261.63, 293.66, 329.63, 349.23, 392.00, 440.00, 493.88, 523.25]; // C4 to C5
+    // Base scale frequencies (C4 to C5)
+    const scale = [261.63, 293.66, 329.63, 349.23, 392.00, 440.00, 493.88, 523.25];
     const noteIndex = streak % scale.length;
     const octaveMultiplier = Math.floor(streak / scale.length) + 1;
-    const frequency = scale[noteIndex] * (octaveMultiplier > 2 ? 2 : octaveMultiplier);
+    
+    // Tier-based frequency boost: higher tiers = higher base pitch
+    const tierFrequencyBoost = 1 + (tier - 1) * 0.15; // Tier 1: 1x, Tier 5: 1.6x
+    const frequency = scale[noteIndex] * (octaveMultiplier > 2 ? 2 : octaveMultiplier) * tierFrequencyBoost;
 
     if (this.audioContext.state === 'suspended') {
       this.audioContext.resume();
@@ -150,17 +160,20 @@ class SoundManager {
     const osc = this.audioContext.createOscillator();
     const gain = this.audioContext.createGain();
     
-    osc.type = 'triangle';
-    osc.frequency.value = frequency;
+    // Higher tiers use different oscillator types for more intensity
+    osc.type = tier >= 4 ? 'square' : tier >= 2 ? 'sawtooth' : 'triangle';
+    osc.frequency.value = Math.min(frequency, 2000); // Cap at 2kHz
     
-    gain.gain.setValueAtTime(0.2, this.audioContext.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, this.audioContext.currentTime + 0.4);
+    // Volume scales slightly with tier
+    const volume = 0.15 + tier * 0.02;
+    gain.gain.setValueAtTime(volume, this.audioContext.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, this.audioContext.currentTime + 0.35);
     
     osc.connect(gain);
     gain.connect(this.audioContext.destination);
     
     osc.start();
-    osc.stop(this.audioContext.currentTime + 0.4);
+    osc.stop(this.audioContext.currentTime + 0.35);
   }
 
   toggleMute() {

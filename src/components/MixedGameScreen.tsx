@@ -25,7 +25,7 @@ interface MixedGameScreenProps {
   generateColorQuestion: () => ColorQuestion;
   onGameEnd: (score: number, streak: number, correct: number, wrong: number, peakSpeed?: number, duration?: number) => void;
   onQuit: () => void;
-  playSound: (type: 'correct' | 'wrong' | 'tick' | 'heartbeat') => void;
+  playSound: (type: 'correct' | 'wrong' | 'tick' | 'heartbeat', tier?: number) => void;
   triggerHaptic: (type: 'light' | 'medium' | 'heavy') => void;
   setStreak: (streak: number) => void;
   bestScore: number;
@@ -63,6 +63,7 @@ export const MixedGameScreen = ({
   });
   const [correct, setCorrect] = useState(0);
   const [wrong, setWrong] = useState(0);
+  const [wrongStreak, setWrongStreak] = useState(0); // Track consecutive wrong answers
   const [timeLeft, setTimeLeft] = useState(mode === 'classic' ? CLASSIC_DURATION : 0);
   const [isGameOver, setIsGameOver] = useState(false);
   const [isScreenShaking, setIsScreenShaking] = useState(false);
@@ -72,8 +73,10 @@ export const MixedGameScreen = ({
   const [floatingXP, setFloatingXP] = useState<{ amount: number; key: number } | null>(null);
   
   // Calculate current tier based on streak, respecting minimum starting tier
+  // Streak >= 5 gives a +1 tier boost for difficulty
   const calculatedTier = getDifficultyTier(streak, mode);
-  const currentTier = Math.max(startTier, calculatedTier);
+  const streakBoost = streak >= 5 ? 1 : 0; // Combo mode boosts difficulty
+  const currentTier = Math.min(5, Math.max(startTier, calculatedTier) + streakBoost);
   const tierName = getTierName(currentTier);
   
   // Is God Tier active (tier 4+)
@@ -238,6 +241,7 @@ export const MixedGameScreen = ({
       setScore(prev => prev + points);
       setStreakState(prev => prev + 1);
       setCorrect(prev => prev + 1);
+      setWrongStreak(0); // Reset wrong streak on correct answer
       
       // Switch to next random game
       setCurrentGame(selectNextGame());
@@ -249,7 +253,19 @@ export const MixedGameScreen = ({
         return;
       }
       
-      setScore(prev => Math.max(0, prev - 50));
+      // Track consecutive wrong answers
+      const newWrongStreak = wrongStreak + 1;
+      setWrongStreak(newWrongStreak);
+      
+      // 3+ wrong in a row in Classic mode = XP/Score reset!
+      if (newWrongStreak >= 3) {
+        setScore(0); // Full reset
+        setWrongStreak(0); // Reset wrong streak counter
+        // Visual feedback could be added here
+      } else {
+        setScore(prev => Math.max(0, prev - 50));
+      }
+      
       setStreakState(0);
       setWrong(prev => prev + 1);
       
@@ -259,10 +275,15 @@ export const MixedGameScreen = ({
     
     // Reset question start time for next question
     questionStartTimeRef.current = Date.now();
-  }, [streak, mode, selectNextGame, processAnswer, adaptiveState.gameSpeed]);
+  }, [streak, wrongStreak, mode, selectNextGame, processAnswer, adaptiveState.gameSpeed]);
 
   const renderCurrentGame = () => {
     const gameParams = getGameParams(currentGame);
+    
+    // Tier-aware playSound wrapper
+    const playSoundWithTier = (type: 'correct' | 'wrong' | 'tick' | 'heartbeat') => {
+      playSound(type, currentTier);
+    };
     
     switch (currentGame) {
       case 'speedMath':
@@ -270,10 +291,11 @@ export const MixedGameScreen = ({
           <SpeedMath
             generateQuestion={() => generateMathQuestion(streak, mode)}
             onAnswer={handleAnswer}
-            playSound={playSound}
+            playSound={playSoundWithTier}
             triggerHaptic={triggerHaptic}
             streak={streak}
             onScreenShake={handleScreenShake}
+            tier={currentTier}
           />
         );
       case 'colorMatch':
@@ -281,93 +303,98 @@ export const MixedGameScreen = ({
           <ColorMatch
             generateQuestion={generateColorQuestion}
             onAnswer={handleAnswer}
-            playSound={playSound}
+            playSound={playSoundWithTier}
             triggerHaptic={triggerHaptic}
             streak={streak}
             onScreenShake={handleScreenShake}
+            tier={currentTier}
           />
         );
       case 'paradoxFlow':
         return (
           <ParadoxFlow
             onAnswer={handleAnswer}
-            playSound={playSound}
+            playSound={playSoundWithTier}
             triggerHaptic={triggerHaptic}
             onScreenShake={handleScreenShake}
             followChance={gameParams.followChance}
             streak={streak}
             mode={mode}
+            tier={currentTier}
           />
         );
       case 'patternHunter':
         return (
           <PatternHunter
             onAnswer={handleAnswer}
-            playSound={playSound}
+            playSound={playSoundWithTier}
             triggerHaptic={triggerHaptic}
             onScreenShake={handleScreenShake}
+            tier={currentTier}
           />
         );
       case 'nBackGhost':
         return (
           <NBackGhost
             onAnswer={handleAnswer}
-            playSound={playSound}
+            playSound={playSoundWithTier}
             triggerHaptic={triggerHaptic}
             onScreenShake={handleScreenShake}
             nBack={gameParams.nBack}
             runeCount={gameParams.runeCount}
+            tier={currentTier}
           />
         );
       case 'operatorChaos':
         return (
           <OperatorChaos
             onAnswer={handleAnswer}
-            playSound={playSound}
+            playSound={playSoundWithTier}
             triggerHaptic={triggerHaptic}
             onScreenShake={handleScreenShake}
             operatorCount={gameParams.operatorCount}
             maxNumber={gameParams.maxNumber}
+            tier={currentTier}
           />
         );
       case 'spatialStack':
         return (
           <SpatialStack
             onAnswer={handleAnswer}
-            playSound={playSound}
+            playSound={playSoundWithTier}
             triggerHaptic={triggerHaptic}
             onScreenShake={handleScreenShake}
             cubeCount={gameParams.cubeCount}
+            tier={currentTier}
           />
         );
       case 'wordConnect':
         return (
           <WordConnect
             onAnswer={handleAnswer}
-            playSound={playSound}
+            playSound={playSoundWithTier}
             triggerHaptic={triggerHaptic}
             onScreenShake={handleScreenShake}
+            tier={currentTier}
           />
         );
       case 'suitDeception': {
-        const calculatedTier = streak < 6 ? 1 : streak < 13 ? 2 : streak < 21 ? 3 : streak < 31 ? 4 : 5;
         return (
           <SuitDeception
-            tier={calculatedTier}
+            tier={currentTier}
             streak={streak}
             onAnswer={handleAnswer}
-            playSound={playSound}
+            playSound={playSoundWithTier}
             triggerHaptic={triggerHaptic}
           />
         );
       }
       case 'chimpMemory': {
-        const calculatedTier = streak < 6 ? 1 : streak < 13 ? 2 : streak < 21 ? 3 : streak < 31 ? 4 : 5;
         return (
           <ChimpMemory
-            tier={calculatedTier}
+            tier={currentTier}
             onAnswer={handleAnswer}
-            playSound={playSound}
+            playSound={playSoundWithTier}
             triggerHaptic={triggerHaptic}
           />
         );

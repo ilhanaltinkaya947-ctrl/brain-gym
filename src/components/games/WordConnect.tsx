@@ -2,11 +2,12 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface WordConnectProps {
-  onAnswer: (isCorrect: boolean, bonus?: number) => void;
+  onAnswer: (isCorrect: boolean, bonus?: number, tier?: number) => void;
   playSound: (type: 'correct' | 'wrong' | 'tick') => void;
   triggerHaptic: (type: 'light' | 'medium' | 'heavy') => void;
   onScreenShake: () => void;
   difficulty?: number;
+  tier?: number;
 }
 
 // Word lists by difficulty

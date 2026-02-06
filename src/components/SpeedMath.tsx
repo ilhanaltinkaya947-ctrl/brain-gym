@@ -10,6 +10,7 @@ interface SpeedMathProps {
   triggerHaptic: (type: 'light' | 'medium' | 'heavy') => void;
   streak: number;
   onScreenShake: () => void;
+  tier?: number;
 }
 
 const QUESTION_TIME = 3000; // 3 seconds
@@ -20,7 +21,8 @@ export const SpeedMath = memo(({
   playSound, 
   triggerHaptic, 
   streak,
-  onScreenShake 
+  onScreenShake,
+  tier = 1
 }: SpeedMathProps) => {
   const [question, setQuestion] = useState<MathQuestion>(generateQuestion);
   const [timeLeft, setTimeLeft] = useState(QUESTION_TIME);
