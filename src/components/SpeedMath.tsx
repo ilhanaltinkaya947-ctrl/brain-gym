@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
 import { MathQuestion } from '../hooks/useGameEngine';
@@ -14,7 +14,7 @@ interface SpeedMathProps {
 
 const QUESTION_TIME = 3000; // 3 seconds
 
-export const SpeedMath = ({ 
+export const SpeedMath = memo(({ 
   generateQuestion, 
   onAnswer, 
   playSound, 
@@ -173,4 +173,4 @@ export const SpeedMath = ({
       </div>
     </motion.div>
   );
-};
+});

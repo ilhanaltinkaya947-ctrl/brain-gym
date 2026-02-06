@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useRef, useEffect, memo } from 'react';
 import { motion, AnimatePresence, useMotionValue, useTransform, PanInfo } from 'framer-motion';
 import confetti from 'canvas-confetti';
 import { ArrowUp, ArrowDown, ArrowLeft, ArrowRight } from 'lucide-react';
@@ -83,7 +83,7 @@ const generateQuestion = (followChance: number, streak: number, mode: 'classic' 
   };
 };
 
-export const ParadoxFlow = ({
+export const ParadoxFlow = memo(({
   onAnswer,
   playSound,
   triggerHaptic,
@@ -348,4 +348,4 @@ export const ParadoxFlow = ({
       </motion.p>
     </div>
   );
-};
+});
