@@ -8,36 +8,39 @@ interface CubeCountProps {
   triggerHaptic: (type: 'light' | 'medium' | 'heavy') => void;
 }
 
-// 3D CUBE COMPONENT
-// Renders Top, Right, and Front faces with different brightness to simulate lighting.
+// ROBUST 3D CUBE COMPONENT
 const SingleCube = ({ x, y, z }: { x: number; y: number; z: number }) => {
-  const translate = `translate3d(${x * 44}px, ${y * 44}px, ${z * 44}px)`;
+  const SIZE = 40;
+  const HALF = SIZE / 2;
+  const translate = `translate3d(${x * SIZE}px, ${y * SIZE}px, ${z * SIZE}px)`;
   
   return (
     <div 
-      className="absolute w-11 h-11 transition-all duration-300 ease-out"
+      className="absolute transition-all duration-300 ease-out"
       style={{ 
+        width: `${SIZE}px`,
+        height: `${SIZE}px`,
         transformStyle: 'preserve-3d', 
         transform: translate, 
-        zIndex: (x * 10) + (y * 10) + (z * 10) 
+        zIndex: (x * 100) + (y * 100) + (z * 100) 
       }}
     >
-      {/* TOP FACE (Brightest) */}
+      {/* TOP FACE (Bright White) */}
       <div 
-        className="absolute inset-0 bg-[#FFFFFF] border border-black/10" 
-        style={{ transform: 'translateZ(22px)' }} 
+        className="absolute inset-0 bg-white border-2 border-slate-300" 
+        style={{ transform: `translateZ(${HALF}px)` }} 
       />
       
-      {/* RIGHT FACE (Medium Dark) */}
+      {/* RIGHT FACE (Dark Shadow) */}
       <div 
-        className="absolute inset-0 bg-[#A0A0A0] border border-black/10" 
-        style={{ transform: 'rotateY(90deg) translateZ(22px)' }} 
+        className="absolute inset-0 bg-slate-500 border-2 border-slate-600" 
+        style={{ transform: `rotateY(90deg) translateZ(${HALF}px)` }} 
       />
 
-      {/* FRONT FACE (Darkest) */}
+      {/* FRONT FACE (Medium Shadow) */}
       <div 
-        className="absolute inset-0 bg-[#D4D4D4] border border-black/10" 
-        style={{ transform: 'rotateX(-90deg) translateZ(22px)' }} 
+        className="absolute inset-0 bg-slate-300 border-2 border-slate-400" 
+        style={{ transform: `rotateX(-90deg) translateZ(${HALF}px)` }} 
       />
     </div>
   );
@@ -49,22 +52,16 @@ export const CubeCount = ({ tier, onAnswer, playSound, triggerHaptic }: CubeCoun
   const [options, setOptions] = useState<number[]>([]);
 
   useEffect(() => {
-    // Logic: Tier 1-2 = 3x3 grid, Tier 3+ = 4x4 grid
     const gridSize = tier <= 2 ? 3 : 4; 
-    const maxHeight = tier <= 2 ? 3 : tier === 3 ? 4 : 5;
+    const maxHeight = tier <= 2 ? 3 : tier === 3 ? 4 : 5; 
     
     const newCubes: {x: number, y: number, z: number}[] = [];
     let count = 0;
 
-    // Generate stacks from back-to-front for better rendering
     for (let x = 0; x < gridSize; x++) {
       for (let y = 0; y < gridSize; y++) {
         let height = Math.floor(Math.random() * maxHeight);
-        
-        // Ensure at least one block exists at 0,0 if empty
         if (x === 0 && y === 0 && height === 0) height = 1;
-
-        // Create a cube for each unit of height
         for (let z = 0; z < height; z++) {
           newCubes.push({ x, y, z });
           count++;
@@ -75,7 +72,6 @@ export const CubeCount = ({ tier, onAnswer, playSound, triggerHaptic }: CubeCoun
     setCubes(newCubes);
     setTotalBlocks(count);
 
-    // Generate 4 answer options
     const opts = new Set([count]);
     while (opts.size < 4) {
       const variance = Math.max(2, Math.floor(count * 0.2));
@@ -83,7 +79,6 @@ export const CubeCount = ({ tier, onAnswer, playSound, triggerHaptic }: CubeCoun
       if (val > 0 && val !== count) opts.add(val);
     }
     while (opts.size < 4) opts.add(count + opts.size + 1);
-    
     setOptions(Array.from(opts).sort((a, b) => a - b));
   }, [tier]);
 
@@ -100,23 +95,23 @@ export const CubeCount = ({ tier, onAnswer, playSound, triggerHaptic }: CubeCoun
   };
 
   return (
-    <div className="flex flex-col items-center justify-center h-full w-full overflow-hidden">
+    <div className="flex flex-col items-center justify-center h-full w-full overflow-hidden bg-black/20">
       
-      {/* 3D Viewport */}
-      <div className="relative w-64 h-64 flex items-center justify-center mb-8">
+      {/* 3D SCENE CONTAINER */}
+      <div className="relative w-64 h-64 flex items-center justify-center mb-8" style={{ perspective: '1000px' }}>
         <div 
           className="relative w-full h-full"
           style={{ 
             transformStyle: 'preserve-3d', 
-            transform: 'rotateX(55deg) rotateZ(45deg) scale(0.8)',
-            marginLeft: '-10%', 
-            marginTop: '-10%'
+            transform: 'rotateX(60deg) rotateZ(45deg) scale(0.8)',
+            marginLeft: '-15%', 
+            marginTop: '-15%'
           }}
         >
           <motion.div 
             initial={{ opacity: 0, scale: 0.5 }}
             animate={{ opacity: 1, scale: 1 }}
-            transition={{ type: 'spring', duration: 0.6 }}
+            transition={{ type: 'spring', bounce: 0.3 }}
           >
             {cubes.map((c, i) => (
               <SingleCube key={i} x={c.x} y={c.y} z={c.z} />
