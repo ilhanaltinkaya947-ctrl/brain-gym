@@ -14,7 +14,7 @@ export const NeuralBrain = ({ size = 200, brainCharge = 0 }: NeuralBrainProps) =
       <motion.div
         className="absolute inset-0 rounded-full"
         style={{
-          background: `radial-gradient(circle at 50% 50%, hsl(var(--neon-cyan) / ${glowIntensity * 0.25}) 0%, transparent 55%)`,
+          background: `radial-gradient(circle at 50% 50%, hsl(var(--neon-cyan) / ${glowIntensity * 0.25}) 0%, transparent 50%)`,
         }}
         animate={{ opacity: [0.5, 0.8, 0.5] }}
         transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
@@ -34,7 +34,7 @@ export const NeuralBrain = ({ size = 200, brainCharge = 0 }: NeuralBrainProps) =
           </filter>
           
           <filter id="strongGlow" x="-100%" y="-100%" width="300%" height="300%">
-            <feGaussianBlur stdDeviation="3" result="blur" />
+            <feGaussianBlur stdDeviation="2.5" result="blur" />
             <feMerge>
               <feMergeNode in="blur" />
               <feMergeNode in="blur" />
@@ -49,128 +49,128 @@ export const NeuralBrain = ({ size = 200, brainCharge = 0 }: NeuralBrainProps) =
           </radialGradient>
         </defs>
 
-        {/* === DENDRITES === */}
+        {/* === DENDRITES (contained within bounds) === */}
         <g stroke="hsl(var(--foreground))" strokeLinecap="round" fill="none" filter="url(#softGlow)">
           
-          {/* Upper Left Main Branch + Sub-branches */}
+          {/* Upper Left Branch */}
           <motion.path 
-            d="M46 42 Q38 30 28 18" 
-            strokeWidth="2" opacity="0.6"
+            d="M45 42 Q38 32 30 22" 
+            strokeWidth="2" opacity="0.55"
             initial={{ pathLength: 0 }} animate={{ pathLength: 1 }}
             transition={{ duration: 1, ease: "easeOut" }}
           />
           <motion.path 
-            d="M35 28 Q28 24 20 22" 
+            d="M30 22 Q26 17 22 13" 
             strokeWidth="1.2" opacity="0.4"
             initial={{ pathLength: 0 }} animate={{ pathLength: 1 }}
-            transition={{ duration: 0.7, delay: 0.5, ease: "easeOut" }}
+            transition={{ duration: 0.6, delay: 0.5, ease: "easeOut" }}
           />
           <motion.path 
-            d="M28 18 Q22 12 15 8" 
+            d="M36 30 Q30 28 24 26" 
             strokeWidth="1" opacity="0.35"
             initial={{ pathLength: 0 }} animate={{ pathLength: 1 }}
-            transition={{ duration: 0.6, delay: 0.7, ease: "easeOut" }}
+            transition={{ duration: 0.5, delay: 0.6, ease: "easeOut" }}
           />
           
-          {/* Upper Center Branch + Sub-branches */}
+          {/* Upper Center Branch */}
           <motion.path 
-            d="M50 40 L50 22" 
-            strokeWidth="2" opacity="0.6"
+            d="M50 40 L50 25" 
+            strokeWidth="2" opacity="0.55"
             initial={{ pathLength: 0 }} animate={{ pathLength: 1 }}
             transition={{ duration: 0.9, delay: 0.1, ease: "easeOut" }}
           />
           <motion.path 
-            d="M50 22 Q45 14 40 8" 
+            d="M50 25 Q46 18 42 13" 
             strokeWidth="1.2" opacity="0.4"
             initial={{ pathLength: 0 }} animate={{ pathLength: 1 }}
-            transition={{ duration: 0.6, delay: 0.6, ease: "easeOut" }}
+            transition={{ duration: 0.5, delay: 0.55, ease: "easeOut" }}
           />
           <motion.path 
-            d="M50 22 Q55 14 60 8" 
+            d="M50 25 Q54 18 58 13" 
             strokeWidth="1.2" opacity="0.4"
             initial={{ pathLength: 0 }} animate={{ pathLength: 1 }}
-            transition={{ duration: 0.6, delay: 0.65, ease: "easeOut" }}
+            transition={{ duration: 0.5, delay: 0.6, ease: "easeOut" }}
           />
           
-          {/* Upper Right Main Branch + Sub-branches */}
+          {/* Upper Right Branch */}
           <motion.path 
-            d="M54 42 Q62 30 72 18" 
-            strokeWidth="2" opacity="0.6"
+            d="M55 42 Q62 32 70 22" 
+            strokeWidth="2" opacity="0.55"
             initial={{ pathLength: 0 }} animate={{ pathLength: 1 }}
-            transition={{ duration: 1, delay: 0.2, ease: "easeOut" }}
+            transition={{ duration: 1, delay: 0.15, ease: "easeOut" }}
           />
           <motion.path 
-            d="M65 28 Q72 24 80 22" 
+            d="M70 22 Q74 17 78 13" 
             strokeWidth="1.2" opacity="0.4"
             initial={{ pathLength: 0 }} animate={{ pathLength: 1 }}
-            transition={{ duration: 0.7, delay: 0.55, ease: "easeOut" }}
+            transition={{ duration: 0.6, delay: 0.55, ease: "easeOut" }}
           />
           <motion.path 
-            d="M72 18 Q78 12 85 8" 
+            d="M64 30 Q70 28 76 26" 
             strokeWidth="1" opacity="0.35"
             initial={{ pathLength: 0 }} animate={{ pathLength: 1 }}
-            transition={{ duration: 0.6, delay: 0.75, ease: "easeOut" }}
+            transition={{ duration: 0.5, delay: 0.65, ease: "easeOut" }}
           />
           
           {/* Left Side Branch */}
           <motion.path 
-            d="M42 50 Q30 48 18 44" 
-            strokeWidth="1.8" opacity="0.55"
+            d="M42 50 Q32 48 22 46" 
+            strokeWidth="1.6" opacity="0.5"
             initial={{ pathLength: 0 }} animate={{ pathLength: 1 }}
-            transition={{ duration: 0.8, delay: 0.3, ease: "easeOut" }}
+            transition={{ duration: 0.7, delay: 0.25, ease: "easeOut" }}
           />
           <motion.path 
-            d="M18 44 Q12 42 6 40" 
+            d="M22 46 Q17 45 12 44" 
             strokeWidth="1" opacity="0.35"
             initial={{ pathLength: 0 }} animate={{ pathLength: 1 }}
-            transition={{ duration: 0.5, delay: 0.8, ease: "easeOut" }}
+            transition={{ duration: 0.4, delay: 0.7, ease: "easeOut" }}
           />
           
           {/* Right Side Branch */}
           <motion.path 
-            d="M58 50 Q70 48 82 44" 
-            strokeWidth="1.8" opacity="0.55"
+            d="M58 50 Q68 48 78 46" 
+            strokeWidth="1.6" opacity="0.5"
             initial={{ pathLength: 0 }} animate={{ pathLength: 1 }}
-            transition={{ duration: 0.8, delay: 0.35, ease: "easeOut" }}
+            transition={{ duration: 0.7, delay: 0.3, ease: "easeOut" }}
           />
           <motion.path 
-            d="M82 44 Q88 42 94 40" 
+            d="M78 46 Q83 45 88 44" 
             strokeWidth="1" opacity="0.35"
             initial={{ pathLength: 0 }} animate={{ pathLength: 1 }}
-            transition={{ duration: 0.5, delay: 0.85, ease: "easeOut" }}
+            transition={{ duration: 0.4, delay: 0.75, ease: "easeOut" }}
           />
         </g>
 
         {/* === AXON === */}
         <motion.path
-          d="M50 58 C50 68 50 75 46 82 Q42 88 38 92"
+          d="M50 58 Q50 66 48 72 Q46 78 44 82"
           stroke="hsl(var(--foreground))"
-          strokeWidth="2.5"
+          strokeWidth="2.2"
           strokeLinecap="round"
           fill="none"
-          opacity="0.6"
+          opacity="0.55"
           filter="url(#softGlow)"
           initial={{ pathLength: 0 }}
           animate={{ pathLength: 1 }}
-          transition={{ duration: 1, delay: 0.4, ease: "easeOut" }}
+          transition={{ duration: 0.8, delay: 0.35, ease: "easeOut" }}
         />
         
         {/* Axon terminals */}
         <g stroke="hsl(var(--foreground))" strokeLinecap="round" fill="none" filter="url(#softGlow)">
           <motion.path 
-            d="M38 92 Q34 95 30 97" strokeWidth="1.2" opacity="0.45"
+            d="M44 82 Q40 85 36 87" strokeWidth="1.2" opacity="0.4"
             initial={{ pathLength: 0 }} animate={{ pathLength: 1 }}
-            transition={{ duration: 0.4, delay: 1.2, ease: "easeOut" }}
+            transition={{ duration: 0.4, delay: 0.9, ease: "easeOut" }}
           />
           <motion.path 
-            d="M38 92 Q38 96 37 99" strokeWidth="1.2" opacity="0.45"
+            d="M44 82 Q44 86 43 89" strokeWidth="1.2" opacity="0.4"
             initial={{ pathLength: 0 }} animate={{ pathLength: 1 }}
-            transition={{ duration: 0.4, delay: 1.25, ease: "easeOut" }}
+            transition={{ duration: 0.4, delay: 0.95, ease: "easeOut" }}
           />
           <motion.path 
-            d="M38 92 Q42 95 46 97" strokeWidth="1.2" opacity="0.45"
+            d="M44 82 Q48 85 52 87" strokeWidth="1.2" opacity="0.4"
             initial={{ pathLength: 0 }} animate={{ pathLength: 1 }}
-            transition={{ duration: 0.4, delay: 1.3, ease: "easeOut" }}
+            transition={{ duration: 0.4, delay: 1, ease: "easeOut" }}
           />
         </g>
 
@@ -178,114 +178,109 @@ export const NeuralBrain = ({ size = 200, brainCharge = 0 }: NeuralBrainProps) =
         <motion.circle
           cx="50"
           cy="50"
-          r="11"
+          r="10"
           fill="url(#somaGrad)"
           filter="url(#strongGlow)"
-          animate={{ scale: [1, 1.06, 1] }}
+          animate={{ scale: [1, 1.05, 1] }}
           style={{ transformOrigin: '50px 50px' }}
           transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
         />
         
-        {/* Soma inner highlight */}
-        <circle cx="47" cy="47" r="4" fill="hsl(var(--foreground))" fillOpacity="0.25" />
-        <circle cx="46" cy="46" r="1.5" fill="hsl(var(--foreground))" fillOpacity="0.4" />
+        {/* Soma inner details */}
+        <circle cx="47" cy="47" r="3.5" fill="hsl(var(--foreground))" fillOpacity="0.2" />
+        <circle cx="46" cy="46" r="1.5" fill="hsl(var(--foreground))" fillOpacity="0.35" />
 
         {/* === SIGNAL PULSES === */}
-        {/* Incoming signals on dendrites */}
         <motion.circle
-          r="2.5"
+          r="2"
           fill="hsl(var(--neon-cyan))"
           filter="url(#strongGlow)"
           animate={{ opacity: [0, 1, 1, 0], offsetDistance: ['100%', '0%'] }}
-          transition={{ duration: 1.5, repeat: Infinity, repeatDelay: 3, delay: 2, ease: 'easeIn' }}
-          style={{ offsetPath: "path('M28 18 Q38 30 46 42')" }}
+          transition={{ duration: 1.2, repeat: Infinity, repeatDelay: 3, delay: 2, ease: 'easeIn' }}
+          style={{ offsetPath: "path('M30 22 Q38 32 45 42')" }}
         />
         <motion.circle
-          r="2.5"
+          r="2"
           fill="hsl(var(--neon-cyan))"
           filter="url(#strongGlow)"
           animate={{ opacity: [0, 1, 1, 0], offsetDistance: ['100%', '0%'] }}
-          transition={{ duration: 1.5, repeat: Infinity, repeatDelay: 3, delay: 3.5, ease: 'easeIn' }}
-          style={{ offsetPath: "path('M72 18 Q62 30 54 42')" }}
+          transition={{ duration: 1.2, repeat: Infinity, repeatDelay: 3, delay: 3.2, ease: 'easeIn' }}
+          style={{ offsetPath: "path('M70 22 Q62 32 55 42')" }}
         />
         
-        {/* Outgoing signal on axon */}
+        {/* Axon signal */}
         <motion.circle
-          r="3"
+          r="2.5"
           fill="hsl(var(--neon-cyan))"
           filter="url(#strongGlow)"
           animate={{ opacity: [0, 1, 1, 0], offsetDistance: ['0%', '100%'] }}
-          transition={{ duration: 1.2, repeat: Infinity, repeatDelay: 2.5, delay: 2.8, ease: 'easeOut' }}
-          style={{ offsetPath: "path('M50 58 C50 68 50 75 46 82 Q42 88 38 92')" }}
+          transition={{ duration: 1, repeat: Infinity, repeatDelay: 2.5, delay: 2.5, ease: 'easeOut' }}
+          style={{ offsetPath: "path('M50 58 Q50 66 48 72 Q46 78 44 82')" }}
         />
         
-        {/* === SYNAPTIC TERMINALS (SVG circles for precise positioning) === */}
+        {/* === TERMINAL DOTS (aligned to path endpoints) === */}
         {/* Dendrite tips */}
-        <motion.circle cx="15" cy="8" r="2.5" fill="hsl(var(--foreground))" fillOpacity="0.7" filter="url(#softGlow)"
-          animate={{ opacity: [0.5, 0.9, 0.5], scale: [0.9, 1.1, 0.9] }} style={{ transformOrigin: '15px 8px' }}
-          transition={{ duration: 2, repeat: Infinity, delay: 0.9 }}
-        />
-        <motion.circle cx="20" cy="22" r="2" fill="hsl(var(--foreground))" fillOpacity="0.6" filter="url(#softGlow)"
-          animate={{ opacity: [0.4, 0.8, 0.4], scale: [0.9, 1.1, 0.9] }} style={{ transformOrigin: '20px 22px' }}
-          transition={{ duration: 2, repeat: Infinity, delay: 0.7 }}
-        />
-        <motion.circle cx="40" cy="8" r="2" fill="hsl(var(--foreground))" fillOpacity="0.6" filter="url(#softGlow)"
-          animate={{ opacity: [0.4, 0.8, 0.4], scale: [0.9, 1.1, 0.9] }} style={{ transformOrigin: '40px 8px' }}
+        <motion.circle cx="22" cy="13" r="2" fill="hsl(var(--foreground))" filter="url(#softGlow)"
+          animate={{ opacity: [0.4, 0.8, 0.4] }}
           transition={{ duration: 2, repeat: Infinity, delay: 0.8 }}
         />
-        <motion.circle cx="60" cy="8" r="2" fill="hsl(var(--foreground))" fillOpacity="0.6" filter="url(#softGlow)"
-          animate={{ opacity: [0.4, 0.8, 0.4], scale: [0.9, 1.1, 0.9] }} style={{ transformOrigin: '60px 8px' }}
+        <motion.circle cx="24" cy="26" r="1.5" fill="hsl(var(--foreground))" filter="url(#softGlow)"
+          animate={{ opacity: [0.35, 0.7, 0.35] }}
+          transition={{ duration: 2, repeat: Infinity, delay: 0.9 }}
+        />
+        <motion.circle cx="42" cy="13" r="1.8" fill="hsl(var(--foreground))" filter="url(#softGlow)"
+          animate={{ opacity: [0.35, 0.75, 0.35] }}
           transition={{ duration: 2, repeat: Infinity, delay: 0.85 }}
         />
-        <motion.circle cx="80" cy="22" r="2" fill="hsl(var(--foreground))" fillOpacity="0.6" filter="url(#softGlow)"
-          animate={{ opacity: [0.4, 0.8, 0.4], scale: [0.9, 1.1, 0.9] }} style={{ transformOrigin: '80px 22px' }}
-          transition={{ duration: 2, repeat: Infinity, delay: 0.75 }}
+        <motion.circle cx="58" cy="13" r="1.8" fill="hsl(var(--foreground))" filter="url(#softGlow)"
+          animate={{ opacity: [0.35, 0.75, 0.35] }}
+          transition={{ duration: 2, repeat: Infinity, delay: 0.9 }}
         />
-        <motion.circle cx="85" cy="8" r="2.5" fill="hsl(var(--foreground))" fillOpacity="0.7" filter="url(#softGlow)"
-          animate={{ opacity: [0.5, 0.9, 0.5], scale: [0.9, 1.1, 0.9] }} style={{ transformOrigin: '85px 8px' }}
+        <motion.circle cx="76" cy="26" r="1.5" fill="hsl(var(--foreground))" filter="url(#softGlow)"
+          animate={{ opacity: [0.35, 0.7, 0.35] }}
           transition={{ duration: 2, repeat: Infinity, delay: 0.95 }}
         />
-        <motion.circle cx="6" cy="40" r="2" fill="hsl(var(--foreground))" fillOpacity="0.6" filter="url(#softGlow)"
-          animate={{ opacity: [0.4, 0.8, 0.4], scale: [0.9, 1.1, 0.9] }} style={{ transformOrigin: '6px 40px' }}
+        <motion.circle cx="78" cy="13" r="2" fill="hsl(var(--foreground))" filter="url(#softGlow)"
+          animate={{ opacity: [0.4, 0.8, 0.4] }}
+          transition={{ duration: 2, repeat: Infinity, delay: 0.85 }}
+        />
+        <motion.circle cx="12" cy="44" r="1.8" fill="hsl(var(--foreground))" filter="url(#softGlow)"
+          animate={{ opacity: [0.35, 0.7, 0.35] }}
           transition={{ duration: 2, repeat: Infinity, delay: 1 }}
         />
-        <motion.circle cx="94" cy="40" r="2" fill="hsl(var(--foreground))" fillOpacity="0.6" filter="url(#softGlow)"
-          animate={{ opacity: [0.4, 0.8, 0.4], scale: [0.9, 1.1, 0.9] }} style={{ transformOrigin: '94px 40px' }}
+        <motion.circle cx="88" cy="44" r="1.8" fill="hsl(var(--foreground))" filter="url(#softGlow)"
+          animate={{ opacity: [0.35, 0.7, 0.35] }}
           transition={{ duration: 2, repeat: Infinity, delay: 1.05 }}
         />
         
-        {/* Axon terminal bulbs */}
-        <motion.circle cx="30" cy="97" r="2.5" fill="hsl(var(--neon-cyan))" fillOpacity="0.8" filter="url(#strongGlow)"
-          animate={{ opacity: [0.5, 1, 0.5], scale: [0.85, 1.15, 0.85] }} style={{ transformOrigin: '30px 97px' }}
+        {/* Axon terminal bulbs - cyan */}
+        <motion.circle cx="36" cy="87" r="2" fill="hsl(var(--neon-cyan))" filter="url(#strongGlow)"
+          animate={{ opacity: [0.5, 1, 0.5] }}
+          transition={{ duration: 1.8, repeat: Infinity, delay: 1.2 }}
+        />
+        <motion.circle cx="43" cy="89" r="2" fill="hsl(var(--neon-cyan))" filter="url(#strongGlow)"
+          animate={{ opacity: [0.5, 1, 0.5] }}
+          transition={{ duration: 1.8, repeat: Infinity, delay: 1.3 }}
+        />
+        <motion.circle cx="52" cy="87" r="2" fill="hsl(var(--neon-cyan))" filter="url(#strongGlow)"
+          animate={{ opacity: [0.5, 1, 0.5] }}
           transition={{ duration: 1.8, repeat: Infinity, delay: 1.4 }}
-        />
-        <motion.circle cx="37" cy="99" r="2.5" fill="hsl(var(--neon-cyan))" fillOpacity="0.8" filter="url(#strongGlow)"
-          animate={{ opacity: [0.5, 1, 0.5], scale: [0.85, 1.15, 0.85] }} style={{ transformOrigin: '37px 99px' }}
-          transition={{ duration: 1.8, repeat: Infinity, delay: 1.5 }}
-        />
-        <motion.circle cx="46" cy="97" r="2.5" fill="hsl(var(--neon-cyan))" fillOpacity="0.8" filter="url(#strongGlow)"
-          animate={{ opacity: [0.5, 1, 0.5], scale: [0.85, 1.15, 0.85] }} style={{ transformOrigin: '46px 97px' }}
-          transition={{ duration: 1.8, repeat: Infinity, delay: 1.6 }}
         />
       </svg>
 
-      {/* Central soma glow overlay */}
+      {/* Central soma glow */}
       <div className="absolute inset-0 flex items-center justify-center">
         <motion.div
           className="rounded-full"
           style={{
-            width: size * 0.12,
-            height: size * 0.12,
-            boxShadow: `
-              0 0 ${size * 0.06}px hsl(var(--neon-cyan) / 0.5),
-              0 0 ${size * 0.12}px hsl(var(--neon-cyan) / 0.3)
-            `,
+            width: size * 0.11,
+            height: size * 0.11,
           }}
           animate={{
             boxShadow: [
-              `0 0 ${size * 0.05}px hsl(var(--neon-cyan) / 0.4), 0 0 ${size * 0.1}px hsl(var(--neon-cyan) / 0.2)`,
-              `0 0 ${size * 0.08}px hsl(var(--neon-cyan) / 0.6), 0 0 ${size * 0.16}px hsl(var(--neon-cyan) / 0.35)`,
-              `0 0 ${size * 0.05}px hsl(var(--neon-cyan) / 0.4), 0 0 ${size * 0.1}px hsl(var(--neon-cyan) / 0.2)`,
+              `0 0 ${size * 0.04}px hsl(var(--neon-cyan) / 0.4), 0 0 ${size * 0.08}px hsl(var(--neon-cyan) / 0.2)`,
+              `0 0 ${size * 0.07}px hsl(var(--neon-cyan) / 0.6), 0 0 ${size * 0.14}px hsl(var(--neon-cyan) / 0.35)`,
+              `0 0 ${size * 0.04}px hsl(var(--neon-cyan) / 0.4), 0 0 ${size * 0.08}px hsl(var(--neon-cyan) / 0.2)`,
             ],
           }}
           transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
