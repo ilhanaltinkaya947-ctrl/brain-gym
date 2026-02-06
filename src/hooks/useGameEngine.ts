@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef } from 'react';
 
-export type GameType = 'speedMath' | 'paradoxFlow' | 'suitDeception' | 'chimpMemory' | 'cubeCount';
+export type GameType = 'speedMath' | 'paradoxFlow' | 'suitDeception' | 'chimpMemory';
 
 export interface GameState {
   score: number;
@@ -32,8 +32,8 @@ export interface ColorQuestion {
 }
 
 // Game rotation configuration - focused on high cognitive load
-// nBackGhost replaced with suitDeception, flashMemory replaced with chimpMemory
-const ENABLED_GAMES: GameType[] = ['speedMath', 'paradoxFlow', 'suitDeception', 'chimpMemory', 'cubeCount'];
+// 4 core games: Math, Stroop/Swipes, Cards, Memory
+const ENABLED_GAMES: GameType[] = ['speedMath', 'paradoxFlow', 'suitDeception', 'chimpMemory'];
 const TOTAL_GAME_TIME = 180; // 3 minutes for Classic mode
 
 const COLORS = [
