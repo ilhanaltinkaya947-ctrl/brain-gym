@@ -128,7 +128,7 @@ export const SpeedMath = memo(({
         />
       </div>
 
-      {/* Question - Centered */}
+      {/* Question - Centered with auto-scaling */}
       <AnimatePresence mode="wait">
         <motion.div
           key={question.question}
@@ -136,10 +136,22 @@ export const SpeedMath = memo(({
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: -20, scale: 0.9 }}
           transition={{ duration: 0.2 }}
-          className="text-center py-8"
+          className="text-center py-6 w-full max-w-sm px-2"
         >
           <p className="text-xs text-muted-foreground mb-3 uppercase tracking-widest">Solve</p>
-          <h2 className="text-5xl sm:text-6xl font-black font-mono text-glow-cyan leading-tight">
+          <h2 
+            className={`font-black font-mono text-glow-cyan leading-tight ${
+              question.question.length > 12 
+                ? 'text-3xl sm:text-4xl' 
+                : question.question.length > 8 
+                  ? 'text-4xl sm:text-5xl' 
+                  : 'text-5xl sm:text-6xl'
+            }`}
+            style={{
+              wordBreak: 'keep-all',
+              whiteSpace: question.question.length > 10 ? 'normal' : 'nowrap',
+            }}
+          >
             {question.question}
           </h2>
         </motion.div>

@@ -31,12 +31,19 @@ export const Dashboard = ({
   const readiness = brainCharge > 0 ? brainCharge : 85;
 
   return (
-    <div className="min-h-screen-dynamic flex flex-col px-6 py-6 pt-10 safe-all relative bg-background overflow-hidden">
+    <div className="min-h-screen-dynamic flex flex-col px-5 py-4 safe-all relative bg-background overflow-hidden"
+      style={{
+        paddingTop: 'max(env(safe-area-inset-top, 12px), 12px)',
+        paddingBottom: 'max(env(safe-area-inset-bottom, 16px), 16px)',
+        paddingLeft: 'max(env(safe-area-inset-left, 20px), 20px)',
+        paddingRight: 'max(env(safe-area-inset-right, 20px), 20px)',
+      }}
+    >
       {/* Minimal Header - Settings Only */}
       <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="flex justify-end mb-6 z-10"
+        className="flex justify-end mb-4 z-10 pt-2"
       >
         <motion.button
           whileHover={{ scale: 1.1, rotate: 15 }}
@@ -131,14 +138,14 @@ export const Dashboard = ({
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.4, type: 'spring', stiffness: 100 }}
-        className="pt-6 pb-2 z-10"
+        className="pt-4 pb-4 z-10"
       >
         <motion.button
           whileHover={{ scale: 1.02, y: -2 }}
           whileTap={{ scale: 0.98 }}
           transition={{ type: 'spring', stiffness: 400, damping: 15 }}
           onClick={onStartGame}
-          className="w-full py-5 rounded-2xl bg-foreground text-background text-lg font-semibold tracking-wide flex items-center justify-center gap-3 relative overflow-hidden group shadow-lg"
+          className="w-full py-4 rounded-2xl bg-foreground text-background text-lg font-semibold tracking-wide flex items-center justify-center gap-3 relative overflow-hidden group shadow-lg"
           style={{
             boxShadow: '0 10px 40px -10px hsl(var(--foreground) / 0.3)',
           }}
