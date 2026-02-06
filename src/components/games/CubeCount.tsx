@@ -8,8 +8,8 @@ interface CubeCountProps {
   triggerHaptic: (type: 'light' | 'medium' | 'heavy') => void;
 }
 
-// HIGH-CONTRAST 3D CUBE with shadows
-const SingleCube = ({ x, y, z }: { x: number; y: number; z: number }) => {
+// HIGH-CONTRAST 3D CUBE with shadows and staggered animation
+const SingleCube = ({ x, y, z, delay }: { x: number; y: number; z: number; delay: number }) => {
   const SIZE = 40;
   const HALF = SIZE / 2;
   
@@ -20,8 +20,17 @@ const SingleCube = ({ x, y, z }: { x: number; y: number; z: number }) => {
   const sortOrder = (x + y) * 10 + z * 100;
   
   return (
-    <div 
+    <motion.div 
       className="absolute"
+      initial={{ scale: 0, opacity: 0, y: 30 }}
+      animate={{ scale: 1, opacity: 1, y: 0 }}
+      transition={{ 
+        delay, 
+        duration: 0.2, 
+        type: 'spring', 
+        stiffness: 400, 
+        damping: 25 
+      }}
       style={{ 
         width: `${SIZE}px`,
         height: `${SIZE}px`,
@@ -62,7 +71,7 @@ const SingleCube = ({ x, y, z }: { x: number; y: number; z: number }) => {
           border: '1px solid rgba(255,255,255,0.15)',
         }} 
       />
-    </div>
+    </motion.div>
   );
 };
 
@@ -131,16 +140,17 @@ export const CubeCount = memo(({ tier, onAnswer, playSound, triggerHaptic }: Cub
             marginTop: '-20%'
           }}
         >
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ type: 'spring', stiffness: 120, damping: 20 }}
-            style={{ transformStyle: 'preserve-3d' }}
-          >
+          <div style={{ transformStyle: 'preserve-3d' }}>
             {cubes.map((c, i) => (
-              <SingleCube key={`${c.x}-${c.y}-${c.z}-${i}`} x={c.x} y={c.y} z={c.z} />
+              <SingleCube 
+                key={`${c.x}-${c.y}-${c.z}-${i}`} 
+                x={c.x} 
+                y={c.y} 
+                z={c.z} 
+                delay={i * 0.02} // Fast stagger: ~0.6s for 30 cubes
+              />
             ))}
-          </motion.div>
+          </div>
         </div>
       </div>
 
