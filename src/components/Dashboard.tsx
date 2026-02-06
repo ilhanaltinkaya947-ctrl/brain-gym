@@ -31,7 +31,7 @@ export const Dashboard = ({
   const readiness = brainCharge > 0 ? brainCharge : 85;
 
   return (
-    <div className="h-screen flex flex-col px-5 py-6 safe-top safe-bottom relative bg-background overflow-hidden">
+    <div className="min-h-screen-dynamic flex flex-col px-5 py-4 safe-all relative bg-background overflow-hidden">
       {/* Minimal Header - Settings Only */}
       <motion.div
         initial={{ opacity: 0, y: -10 }}
