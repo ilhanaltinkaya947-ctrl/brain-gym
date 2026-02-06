@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
-import { RefreshCw, Home, Trophy, Target, Zap, Flame, Clock, Star } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { RefreshCw, Home, Trophy, Target, Zap, Flame, Clock, Star, Sparkles } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
 interface ResultScreenProps {
@@ -239,12 +239,58 @@ export const ResultScreen = ({
                 <span className="text-[9px] uppercase tracking-widest text-muted-foreground">Survival Time</span>
               </div>
 
-              <div className="glass-panel p-4 rounded-2xl flex flex-col items-center justify-center gap-1 relative overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-br from-neon-gold/5 to-transparent pointer-events-none" />
-                <Zap className="w-5 h-5 text-neon-gold mb-1" />
-                <span className="text-2xl font-light text-foreground tabular-nums">+{displayXP}</span>
+              {/* XP Card with Dynamic Animation */}
+              <motion.div 
+                className="glass-panel p-4 rounded-2xl flex flex-col items-center justify-center gap-1 relative overflow-hidden"
+                animate={{ 
+                  boxShadow: [
+                    '0 0 0px hsl(45 100% 50% / 0)',
+                    '0 0 20px hsl(45 100% 50% / 0.3)',
+                    '0 0 0px hsl(45 100% 50% / 0)',
+                  ]
+                }}
+                transition={{ duration: 2, repeat: Infinity, delay: 0.5 }}
+              >
+                <div className="absolute inset-0 bg-gradient-to-br from-neon-gold/10 to-transparent pointer-events-none" />
+                <motion.div
+                  animate={{ rotate: [0, 10, -10, 0], scale: [1, 1.1, 1] }}
+                  transition={{ duration: 1, delay: 0.3 }}
+                >
+                  <Zap className="w-5 h-5 text-neon-gold mb-1" />
+                </motion.div>
+                <motion.span 
+                  className="text-2xl font-light text-neon-gold tabular-nums"
+                  animate={{ scale: displayXP === xpEarned ? [1, 1.1, 1] : 1 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  +{displayXP}
+                </motion.span>
                 <span className="text-[9px] uppercase tracking-widest text-muted-foreground">XP Gained</span>
-              </div>
+                
+                {/* Sparkle particles */}
+                <AnimatePresence>
+                  {displayXP === xpEarned && (
+                    <>
+                      {[...Array(3)].map((_, i) => (
+                        <motion.div
+                          key={i}
+                          initial={{ opacity: 0, scale: 0, x: 0, y: 0 }}
+                          animate={{ 
+                            opacity: [0, 1, 0], 
+                            scale: [0, 1, 0.5],
+                            x: (Math.random() - 0.5) * 40,
+                            y: -20 - Math.random() * 20
+                          }}
+                          transition={{ duration: 0.6, delay: i * 0.1 }}
+                          className="absolute"
+                        >
+                          <Sparkles className="w-3 h-3 text-neon-gold" />
+                        </motion.div>
+                      ))}
+                    </>
+                  )}
+                </AnimatePresence>
+              </motion.div>
             </>
           ) : (
             /* CLASSIC MODE STATS: Accuracy + XP Gained */
@@ -256,12 +302,58 @@ export const ResultScreen = ({
                 <span className="text-[9px] uppercase tracking-widest text-muted-foreground">Accuracy</span>
               </div>
 
-              <div className="glass-panel p-4 rounded-2xl flex flex-col items-center justify-center gap-1 relative overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-br from-neon-gold/5 to-transparent pointer-events-none" />
-                <Zap className="w-5 h-5 text-neon-gold mb-1" />
-                <span className="text-2xl font-light text-foreground tabular-nums">+{displayXP}</span>
+              {/* XP Card with Dynamic Animation */}
+              <motion.div 
+                className="glass-panel p-4 rounded-2xl flex flex-col items-center justify-center gap-1 relative overflow-hidden"
+                animate={{ 
+                  boxShadow: [
+                    '0 0 0px hsl(45 100% 50% / 0)',
+                    '0 0 20px hsl(45 100% 50% / 0.3)',
+                    '0 0 0px hsl(45 100% 50% / 0)',
+                  ]
+                }}
+                transition={{ duration: 2, repeat: Infinity, delay: 0.5 }}
+              >
+                <div className="absolute inset-0 bg-gradient-to-br from-neon-gold/10 to-transparent pointer-events-none" />
+                <motion.div
+                  animate={{ rotate: [0, 10, -10, 0], scale: [1, 1.1, 1] }}
+                  transition={{ duration: 1, delay: 0.3 }}
+                >
+                  <Zap className="w-5 h-5 text-neon-gold mb-1" />
+                </motion.div>
+                <motion.span 
+                  className="text-2xl font-light text-neon-gold tabular-nums"
+                  animate={{ scale: displayXP === xpEarned ? [1, 1.1, 1] : 1 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  +{displayXP}
+                </motion.span>
                 <span className="text-[9px] uppercase tracking-widest text-muted-foreground">XP Gained</span>
-              </div>
+                
+                {/* Sparkle particles */}
+                <AnimatePresence>
+                  {displayXP === xpEarned && (
+                    <>
+                      {[...Array(3)].map((_, i) => (
+                        <motion.div
+                          key={i}
+                          initial={{ opacity: 0, scale: 0, x: 0, y: 0 }}
+                          animate={{ 
+                            opacity: [0, 1, 0], 
+                            scale: [0, 1, 0.5],
+                            x: (Math.random() - 0.5) * 40,
+                            y: -20 - Math.random() * 20
+                          }}
+                          transition={{ duration: 0.6, delay: i * 0.1 }}
+                          className="absolute"
+                        >
+                          <Sparkles className="w-3 h-3 text-neon-gold" />
+                        </motion.div>
+                      ))}
+                    </>
+                  )}
+                </AnimatePresence>
+              </motion.div>
             </>
           )}
         </motion.div>

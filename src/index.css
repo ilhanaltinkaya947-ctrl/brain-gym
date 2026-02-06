@@ -56,6 +56,27 @@
     --success: 142 76% 36%;
     --cosmic-purple: 280 100% 50%;
     
+    /* Tier-Based Theme Colors (Dynamic Difficulty) */
+    --tier-1-primary: 173 80% 40%;      /* Teal - Calm, Basics */
+    --tier-1-secondary: 210 60% 45%;    /* Blue tint */
+    --tier-1-glow: 173 80% 50%;
+    
+    --tier-2-primary: 210 100% 55%;     /* Blue - Focus */
+    --tier-2-secondary: 240 80% 60%;    /* Purple tint */
+    --tier-2-glow: 210 100% 65%;
+    
+    --tier-3-primary: 280 90% 55%;      /* Purple - Flow */
+    --tier-3-secondary: 300 80% 50%;    /* Magenta tint */
+    --tier-3-glow: 280 100% 65%;
+    
+    --tier-4-primary: 25 95% 55%;       /* Orange - Elite */
+    --tier-4-secondary: 15 90% 50%;     /* Red-orange tint */
+    --tier-4-glow: 25 100% 60%;
+    
+    --tier-5-primary: 0 85% 55%;        /* Red - God Mode */
+    --tier-5-secondary: 350 90% 50%;    /* Deep red tint */
+    --tier-5-glow: 0 100% 60%;
+    
     /* Game Colors */
     --game-math: 210 100% 50%;
     --game-color: 280 100% 50%;
