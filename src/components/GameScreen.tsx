@@ -106,7 +106,7 @@ export const GameScreen = ({ gameState, generateMathQuestion, onAnswer, onQuit, 
       )}
       
       {/* CLEAN HUD HEADER */}
-      <div className="safe-top px-6 pt-6 pb-2 flex justify-between items-start z-20">
+      <div className="safe-top px-6 pt-4 pb-2 flex justify-between items-start z-20">
         {/* Left: Close Button */}
         <button 
           onClick={onQuit} 
@@ -115,39 +115,68 @@ export const GameScreen = ({ gameState, generateMathQuestion, onAnswer, onQuit, 
           <X className="w-6 h-6" />
         </button>
         
-        {/* Center: Hero Score + Streak */}
+        {/* Center: Hero Metric (Score for Classic, Streak for Endless) */}
         <div className="flex flex-col items-center">
-          <motion.span 
-            key={gameState.score}
-            initial={{ scale: 1.2, opacity: 0.5 }}
-            animate={{ scale: 1, opacity: 1 }}
-            className="font-mono text-6xl font-bold tracking-tight"
-          >
-            {gameState.score}
-          </motion.span>
-          
-          {/* Streak Fire */}
-          {gameState.streak > 0 && (
-            <motion.div 
-              className={`flex items-center gap-1 mt-1 ${isHighMultiplier ? 'text-orange-400' : 'text-muted-foreground'}`}
-              animate={isHighMultiplier ? { scale: [1, 1.1, 1] } : {}}
-              transition={{ duration: 0.5, repeat: Infinity }}
-            >
-              <Flame className={`w-4 h-4 ${isHighMultiplier ? 'fill-orange-400' : ''}`} />
-              <span className="text-sm font-bold">{gameState.streak}</span>
-            </motion.div>
+          {isEndless ? (
+            <>
+              {/* ENDLESS MODE: Streak is Hero */}
+              <motion.div 
+                key={gameState.streak}
+                initial={{ scale: 1.2, opacity: 0.5 }}
+                animate={{ scale: 1, opacity: 1 }}
+                className="flex items-center gap-2"
+              >
+                <motion.div
+                  animate={isHighMultiplier ? { scale: [1, 1.15, 1] } : {}}
+                  transition={{ duration: 0.4, repeat: Infinity }}
+                >
+                  <Flame className={`w-10 h-10 ${isHighMultiplier ? 'text-orange-400 fill-orange-400' : 'text-destructive fill-destructive/50'}`} />
+                </motion.div>
+                <span className="font-mono text-6xl font-bold tracking-tight">
+                  {gameState.streak}
+                </span>
+              </motion.div>
+              {/* Subtle score in endless */}
+              <span className="text-xs text-muted-foreground/50 mt-1 font-mono">
+                {gameState.score} pts
+              </span>
+            </>
+          ) : (
+            <>
+              {/* CLASSIC MODE: Score is Hero */}
+              <motion.span 
+                key={gameState.score}
+                initial={{ scale: 1.2, opacity: 0.5 }}
+                animate={{ scale: 1, opacity: 1 }}
+                className="font-mono text-6xl font-bold tracking-tight"
+              >
+                {gameState.score}
+              </motion.span>
+              
+              {/* Streak Fire below score */}
+              {gameState.streak > 0 && (
+                <motion.div 
+                  className={`flex items-center gap-1 mt-1 ${isHighMultiplier ? 'text-orange-400' : 'text-muted-foreground'}`}
+                  animate={isHighMultiplier ? { scale: [1, 1.1, 1] } : {}}
+                  transition={{ duration: 0.5, repeat: Infinity }}
+                >
+                  <Flame className={`w-4 h-4 ${isHighMultiplier ? 'fill-orange-400' : ''}`} />
+                  <span className="text-sm font-bold">{gameState.streak}</span>
+                </motion.div>
+              )}
+            </>
           )}
         </div>
         
         {/* Right: Best Score */}
-        <div className="flex items-center gap-1 text-muted-foreground opacity-60">
-          <span className="text-sm">🏆</span>
+        <div className="flex flex-col items-end text-muted-foreground opacity-60">
+          <span className="text-[10px] uppercase tracking-wider">Best</span>
           <span className="font-mono text-sm font-medium">{bestScore || 0}</span>
         </div>
       </div>
 
-      {/* GAME AREA */}
-      <div className="flex-1 flex items-center justify-center p-6 relative z-10 pb-20">
+      {/* GAME AREA - Vertically Centered */}
+      <div className="flex-1 flex items-center justify-center px-6 py-4 relative z-10">
         <motion.div 
           layout 
           className="w-full max-w-sm aspect-square rounded-[2rem] backdrop-blur-2xl bg-card/30 border border-border/30 shadow-2xl flex items-center justify-center relative overflow-hidden ring-1 ring-border/10"
@@ -155,6 +184,9 @@ export const GameScreen = ({ gameState, generateMathQuestion, onAnswer, onQuit, 
           {renderCurrentGame()}
         </motion.div>
       </div>
+      
+      {/* Bottom Safe Area Spacer */}
+      <div className="safe-bottom" />
     </motion.div>
   );
 };
