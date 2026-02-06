@@ -194,7 +194,7 @@ const Index = () => {
     setCurrentScreen('game');
   };
 
-  const handleGameEnd = useCallback((score: number, streak: number, correct: number, wrong: number) => {
+  const handleGameEnd = useCallback((score: number, streak: number, correct: number, wrong: number, peakSpeed?: number, duration?: number, sessionXP?: number) => {
     const isEndlessLoss = gameConfig.mode === 'endless' && wrong > 0;
     setWasEndlessMode(gameConfig.mode === 'endless');
     
@@ -209,10 +209,8 @@ const Index = () => {
     }
     triggerHaptic('medium');
     
-    // Calculate XP gained (10 XP per correct answer + streak bonus)
-    const baseXP = correct * 10;
-    const streakBonus = Math.floor(streak / 5) * 25; // Bonus every 5 streak
-    const xpGained = baseXP + streakBonus;
+    // Use passed sessionXP if available, otherwise calculate fallback
+    const xpGained = sessionXP !== undefined ? sessionXP : (correct * 10 + Math.floor(streak / 5) * 25);
     
     setLastScore(score);
     setLastStreak(streak);

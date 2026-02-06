@@ -23,7 +23,7 @@ interface MixedGameScreenProps {
   enabledGames: MiniGameType[];
   generateMathQuestion: (streak?: number, mode?: GameMode) => MathQuestion;
   generateColorQuestion: () => ColorQuestion;
-  onGameEnd: (score: number, streak: number, correct: number, wrong: number, peakSpeed?: number, duration?: number) => void;
+  onGameEnd: (score: number, streak: number, correct: number, wrong: number, peakSpeed?: number, duration?: number, sessionXP?: number) => void;
   onQuit: () => void;
   playSound: (type: 'correct' | 'wrong' | 'tick' | 'heartbeat', tier?: number) => void;
   triggerHaptic: (type: 'light' | 'medium' | 'heavy') => void;
@@ -64,6 +64,7 @@ export const MixedGameScreen = ({
   const [correct, setCorrect] = useState(0);
   const [wrong, setWrong] = useState(0);
   const [wrongStreak, setWrongStreak] = useState(0); // Track consecutive wrong answers
+  const [sessionXP, setSessionXP] = useState(0); // XP earned during this session (resets on 3+ wrong streak)
   const [timeLeft, setTimeLeft] = useState(mode === 'classic' ? CLASSIC_DURATION : 0);
   const [isGameOver, setIsGameOver] = useState(false);
   const [isScreenShaking, setIsScreenShaking] = useState(false);
@@ -71,6 +72,7 @@ export const MixedGameScreen = ({
   const [showComboText, setShowComboText] = useState(false);
   const [hasTriggeredNewRecord, setHasTriggeredNewRecord] = useState(false);
   const [floatingXP, setFloatingXP] = useState<{ amount: number; key: number } | null>(null);
+  const [showXPReset, setShowXPReset] = useState(false); // Visual feedback for XP reset
   
   // Calculate current tier based on streak, respecting minimum starting tier
   // Streak >= 5 gives a +1 tier boost for difficulty
@@ -152,9 +154,9 @@ export const MixedGameScreen = ({
     if (isGameOver) {
       if (heartbeatRef.current) clearInterval(heartbeatRef.current);
       if (timerRef.current) clearInterval(timerRef.current);
-      onGameEnd(score, streak, correct, wrong, adaptiveState.peakGameSpeed, getSessionDuration());
+      onGameEnd(score, streak, correct, wrong, adaptiveState.peakGameSpeed, getSessionDuration(), sessionXP);
     }
-  }, [isGameOver, score, streak, correct, wrong, onGameEnd, adaptiveState.peakGameSpeed, getSessionDuration]);
+  }, [isGameOver, score, streak, correct, wrong, onGameEnd, adaptiveState.peakGameSpeed, getSessionDuration, sessionXP]);
 
   // Update sound pitch based on streak
   useEffect(() => {
@@ -233,10 +235,15 @@ export const MixedGameScreen = ({
       const basePoints = 10 + speedBonus;
       const points = Math.floor(basePoints * streakMultiplier * speedMultiplier * tierMultiplier);
       
-      // Show floating XP animation
+      // Calculate XP gain for this answer
       const xpGain = Math.floor(10 * tierMultiplier);
+      
+      // Show floating XP animation
       setFloatingXP({ amount: xpGain, key: Date.now() });
       setTimeout(() => setFloatingXP(null), 1000);
+      
+      // Accumulate session XP
+      setSessionXP(prev => prev + xpGain);
       
       setScore(prev => prev + points);
       setStreakState(prev => prev + 1);
@@ -257,15 +264,16 @@ export const MixedGameScreen = ({
       const newWrongStreak = wrongStreak + 1;
       setWrongStreak(newWrongStreak);
       
-      // 3+ wrong in a row in Classic mode = XP/Score reset!
+      // 3+ wrong in a row in Classic mode = Session XP reset!
       if (newWrongStreak >= 3) {
-        setScore(0); // Full reset
+        setSessionXP(0); // Reset session XP, not score
         setWrongStreak(0); // Reset wrong streak counter
-        // Visual feedback could be added here
-      } else {
-        setScore(prev => Math.max(0, prev - 50));
+        // Show visual feedback
+        setShowXPReset(true);
+        setTimeout(() => setShowXPReset(false), 1500);
       }
       
+      setScore(prev => Math.max(0, prev - 50));
       setStreakState(0);
       setWrong(prev => prev + 1);
       
@@ -503,6 +511,40 @@ export const MixedGameScreen = ({
             <span className="text-5xl font-black text-gradient-gold drop-shadow-lg">
               +{streak * 2} COMBO!
             </span>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* XP Reset Warning (3+ wrong in a row) */}
+      <AnimatePresence>
+        {showXPReset && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.5 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.8 }}
+            className="absolute inset-0 flex items-center justify-center z-[60] pointer-events-none"
+          >
+            <motion.div
+              animate={{ 
+                scale: [1, 1.1, 1],
+                opacity: [1, 0.8, 1]
+              }}
+              transition={{ duration: 0.3, repeat: 3 }}
+              className="flex flex-col items-center gap-2 px-8 py-5 rounded-2xl"
+              style={{
+                background: 'linear-gradient(135deg, hsl(0, 85%, 20%) 0%, hsl(0, 70%, 15%) 100%)',
+                border: '2px solid hsl(0, 85%, 50%)',
+                boxShadow: '0 0 40px hsl(0, 85%, 50% / 0.5)',
+              }}
+            >
+              <Zap className="w-10 h-10 text-destructive" />
+              <span className="text-2xl font-black text-destructive uppercase tracking-wider">
+                XP RESET
+              </span>
+              <span className="text-xs text-muted-foreground uppercase">
+                3 wrong in a row
+              </span>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
