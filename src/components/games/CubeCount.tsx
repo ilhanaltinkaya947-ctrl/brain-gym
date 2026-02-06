@@ -8,40 +8,59 @@ interface CubeCountProps {
   triggerHaptic: (type: 'light' | 'medium' | 'heavy') => void;
 }
 
-// VISUAL COMPONENT: BLUE 3D CUBE
+// HIGH-CONTRAST 3D CUBE with shadows
 const SingleCube = ({ x, y, z }: { x: number; y: number; z: number }) => {
-  const SIZE = 44;
+  const SIZE = 40;
   const HALF = SIZE / 2;
   
+  // Isometric positioning
   const translate = `translate3d(${x * SIZE}px, ${y * SIZE}px, ${z * SIZE}px)`;
+  
+  // Proper depth sorting: higher x + y + z = in front
+  const sortOrder = (x + y) * 10 + z * 100;
   
   return (
     <div 
-      className="absolute transition-all duration-300 ease-out"
+      className="absolute"
       style={{ 
         width: `${SIZE}px`,
         height: `${SIZE}px`,
         transformStyle: 'preserve-3d', 
         transform: translate, 
-        zIndex: (x * 100) + (y * 100) + (z * 100) 
+        zIndex: sortOrder,
       }}
     >
-      {/* TOP FACE (Brightest / Light Source) */}
+      {/* TOP FACE - Brightest (Light source from above) */}
       <div 
-        className="absolute inset-0 bg-[#22d3ee] border border-white/30" 
-        style={{ transform: `translateZ(${HALF}px)` }} 
+        className="absolute inset-0"
+        style={{ 
+          transform: `translateZ(${HALF}px)`,
+          background: 'linear-gradient(135deg, #67e8f9 0%, #22d3ee 100%)',
+          boxShadow: 'inset 0 0 8px rgba(255,255,255,0.4), 0 1px 2px rgba(0,0,0,0.2)',
+          border: '1px solid rgba(255,255,255,0.3)',
+        }} 
       />
       
-      {/* RIGHT FACE (Darkest / Shadow) */}
+      {/* RIGHT FACE - Darkest (Shadow side) */}
       <div 
-        className="absolute inset-0 bg-[#0369a1] border border-white/30" 
-        style={{ transform: `rotateY(90deg) translateZ(${HALF}px)` }} 
+        className="absolute inset-0"
+        style={{ 
+          transform: `rotateY(90deg) translateZ(${HALF}px)`,
+          background: 'linear-gradient(180deg, #0369a1 0%, #0c4a6e 100%)',
+          boxShadow: 'inset 0 0 10px rgba(0,0,0,0.3)',
+          border: '1px solid rgba(0,0,0,0.2)',
+        }} 
       />
 
-      {/* FRONT FACE (Medium / Base Color) */}
+      {/* FRONT FACE - Medium (Base color) */}
       <div 
-        className="absolute inset-0 bg-[#0ea5e9] border border-white/30" 
-        style={{ transform: `rotateX(-90deg) translateZ(${HALF}px)` }} 
+        className="absolute inset-0"
+        style={{ 
+          transform: `rotateX(-90deg) translateZ(${HALF}px)`,
+          background: 'linear-gradient(180deg, #0ea5e9 0%, #0284c7 100%)',
+          boxShadow: 'inset 0 2px 6px rgba(255,255,255,0.15), inset 0 -2px 6px rgba(0,0,0,0.15)',
+          border: '1px solid rgba(255,255,255,0.15)',
+        }} 
       />
     </div>
   );
@@ -70,6 +89,9 @@ export const CubeCount = memo(({ tier, onAnswer, playSound, triggerHaptic }: Cub
       }
     }
 
+    // Sort cubes for proper rendering order (back to front)
+    newCubes.sort((a, b) => (a.x + a.y + a.z) - (b.x + b.y + b.z));
+
     setCubes(newCubes);
     setTotalBlocks(count);
 
@@ -92,46 +114,52 @@ export const CubeCount = memo(({ tier, onAnswer, playSound, triggerHaptic }: Cub
   };
 
   return (
-    <div className="flex flex-col items-center justify-center h-full w-full overflow-hidden bg-gradient-to-b from-black/20 to-black/60">
+    <div className="flex flex-col items-center justify-center h-full w-full overflow-hidden">
       
       {/* 3D SCENE WRAPPER */}
-      <div className="relative w-64 h-64 flex items-center justify-center mb-10" style={{ perspective: '1200px' }}>
+      <div 
+        className="relative w-64 h-64 flex items-center justify-center mb-8" 
+        style={{ perspective: '800px' }}
+      >
         <div 
           className="relative w-full h-full"
           style={{ 
             transformStyle: 'preserve-3d', 
-            transform: 'rotateX(60deg) rotateZ(45deg) scale(0.85)',
-            marginLeft: '-15%', 
-            marginTop: '-15%'
+            // Lower angle (50deg) shows more of the cube walls
+            transform: 'rotateX(50deg) rotateZ(45deg) scale(0.9)',
+            marginLeft: '-10%', 
+            marginTop: '-20%'
           }}
         >
           <motion.div 
-            initial={{ opacity: 0, scale: 0.5, z: -100 }}
-            animate={{ opacity: 1, scale: 1, z: 0 }}
-            transition={{ type: 'spring', stiffness: 100, damping: 20 }}
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ type: 'spring', stiffness: 120, damping: 20 }}
+            style={{ transformStyle: 'preserve-3d' }}
           >
             {cubes.map((c, i) => (
-              <SingleCube key={i} x={c.x} y={c.y} z={c.z} />
+              <SingleCube key={`${c.x}-${c.y}-${c.z}-${i}`} x={c.x} y={c.y} z={c.z} />
             ))}
           </motion.div>
         </div>
       </div>
 
       {/* ANSWER BUTTONS */}
-      <div className="grid grid-cols-4 gap-3 w-full max-w-md z-10 px-4">
+      <div className="grid grid-cols-4 gap-3 w-full max-w-xs z-10 px-4">
         {options.map(opt => (
-          <button
+          <motion.button
             key={opt}
+            whileTap={{ scale: 0.95 }}
             onClick={() => handleGuess(opt)}
-            className="h-16 bg-card/80 border border-white/10 backdrop-blur rounded-2xl text-2xl font-black shadow-lg hover:bg-cyan-500 hover:text-white hover:border-cyan-400 active:scale-95 transition-all"
+            className="h-14 bg-card/60 border border-border/30 backdrop-blur-sm rounded-2xl text-xl font-bold shadow-lg hover:bg-primary hover:text-primary-foreground hover:border-primary/50 active:scale-95 transition-all"
           >
             {opt}
-          </button>
+          </motion.button>
         ))}
       </div>
       
-      <p className="mt-6 text-xs text-muted-foreground font-mono uppercase tracking-widest opacity-60">
-        Count the blocks
+      <p className="mt-4 text-xs text-muted-foreground/60 font-mono uppercase tracking-widest">
+        Count all blocks
       </p>
     </div>
   );
