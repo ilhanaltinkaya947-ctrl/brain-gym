@@ -107,10 +107,10 @@ export const SpeedMath = memo(({
       ref={containerRef}
       animate={isShaking ? { x: [-8, 8, -8, 8, 0] } : {}}
       transition={{ duration: 0.4 }}
-      className="flex flex-col items-center justify-center h-full px-6"
+      className="flex flex-col items-center justify-between py-6 px-4 min-h-[70vh]"
     >
       {/* Timer bar */}
-      <div className="w-full max-w-sm h-2 bg-muted/30 rounded-full overflow-hidden mb-8 border border-border/50">
+      <div className="w-full max-w-xs h-1.5 bg-muted/30 rounded-full overflow-hidden border border-border/50">
         <motion.div
           className="h-full rounded-full"
           style={{
@@ -126,7 +126,7 @@ export const SpeedMath = memo(({
         />
       </div>
 
-      {/* Question */}
+      {/* Question - Centered */}
       <AnimatePresence mode="wait">
         <motion.div
           key={question.question}
@@ -134,17 +134,17 @@ export const SpeedMath = memo(({
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: -20, scale: 0.9 }}
           transition={{ duration: 0.2 }}
-          className="text-center mb-12"
+          className="text-center flex-1 flex flex-col items-center justify-center"
         >
-          <p className="text-sm text-muted-foreground mb-4 uppercase tracking-widest">Solve</p>
-          <h2 className="text-7xl font-black font-mono text-glow-cyan">
+          <p className="text-xs text-muted-foreground mb-3 uppercase tracking-widest">Solve</p>
+          <h2 className="text-6xl font-black font-mono text-glow-cyan leading-tight">
             {question.question}
           </h2>
         </motion.div>
       </AnimatePresence>
 
       {/* Answer Grid - Energy Cell Buttons */}
-      <div className="grid grid-cols-2 gap-4 w-full max-w-sm">
+      <div className="grid grid-cols-2 gap-3 w-full max-w-xs">
         {question.options.map((option, index) => (
           <motion.button
             key={`${question.question}-${option}`}
@@ -160,7 +160,7 @@ export const SpeedMath = memo(({
             whileHover={{ scale: 1.05, borderColor: 'hsl(var(--neon-cyan))' }}
             whileTap={{ scale: 1.15 }}
             onClick={(e) => handleAnswer(option, e)}
-            className={`btn-energy-cell p-7 rounded-2xl text-4xl font-black font-mono transition-all duration-150 ${
+            className={`btn-energy-cell py-5 px-4 rounded-2xl text-3xl font-black font-mono transition-all duration-150 ${
               correctButton === option ? 'correct' : ''
             }`}
             style={{
