@@ -122,22 +122,22 @@ export const GameScreen = ({ gameState, generateMathQuestion, onAnswer, onQuit, 
               {/* ENDLESS MODE: Streak is Hero */}
               <motion.div 
                 key={gameState.streak}
-                initial={{ scale: 1.2, opacity: 0.5 }}
+                initial={{ scale: 1.3, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
-                className="flex items-center gap-2"
+                className="flex items-center gap-3"
               >
                 <motion.div
-                  animate={isHighMultiplier ? { scale: [1, 1.15, 1] } : {}}
-                  transition={{ duration: 0.4, repeat: Infinity }}
+                  animate={{ scale: [1, 1.2, 1], rotate: [0, 5, -5, 0] }}
+                  transition={{ duration: 0.6, repeat: Infinity }}
                 >
-                  <Flame className={`w-10 h-10 ${isHighMultiplier ? 'text-orange-400 fill-orange-400' : 'text-destructive fill-destructive/50'}`} />
+                  <Flame className="w-12 h-12 text-orange-500 fill-orange-500 drop-shadow-[0_0_12px_rgba(249,115,22,0.6)]" />
                 </motion.div>
-                <span className="font-mono text-6xl font-bold tracking-tight">
+                <span className="font-mono text-7xl font-black tracking-tighter">
                   {gameState.streak}
                 </span>
               </motion.div>
               {/* Subtle score in endless */}
-              <span className="text-xs text-muted-foreground/50 mt-1 font-mono">
+              <span className="text-[10px] text-muted-foreground/40 mt-2 font-mono uppercase tracking-widest">
                 {gameState.score} pts
               </span>
             </>
@@ -146,9 +146,9 @@ export const GameScreen = ({ gameState, generateMathQuestion, onAnswer, onQuit, 
               {/* CLASSIC MODE: Score is Hero */}
               <motion.span 
                 key={gameState.score}
-                initial={{ scale: 1.2, opacity: 0.5 }}
+                initial={{ scale: 1.3, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
-                className="font-mono text-6xl font-bold tracking-tight"
+                className="font-mono text-7xl font-black tracking-tighter"
               >
                 {gameState.score}
               </motion.span>
@@ -156,12 +156,12 @@ export const GameScreen = ({ gameState, generateMathQuestion, onAnswer, onQuit, 
               {/* Streak Fire below score */}
               {gameState.streak > 0 && (
                 <motion.div 
-                  className={`flex items-center gap-1 mt-1 ${isHighMultiplier ? 'text-orange-400' : 'text-muted-foreground'}`}
-                  animate={isHighMultiplier ? { scale: [1, 1.1, 1] } : {}}
+                  className={`flex items-center gap-1.5 mt-2 ${isHighMultiplier ? 'text-orange-400' : 'text-muted-foreground/60'}`}
+                  animate={isHighMultiplier ? { scale: [1, 1.15, 1] } : {}}
                   transition={{ duration: 0.5, repeat: Infinity }}
                 >
-                  <Flame className={`w-4 h-4 ${isHighMultiplier ? 'fill-orange-400' : ''}`} />
-                  <span className="text-sm font-bold">{gameState.streak}</span>
+                  <Flame className={`w-5 h-5 ${isHighMultiplier ? 'fill-orange-400' : ''}`} />
+                  <span className="text-base font-bold">{gameState.streak}</span>
                 </motion.div>
               )}
             </>
@@ -176,7 +176,7 @@ export const GameScreen = ({ gameState, generateMathQuestion, onAnswer, onQuit, 
       </div>
 
       {/* GAME AREA - Vertically Centered */}
-      <div className="flex-1 flex items-center justify-center px-6 py-4 relative z-10">
+      <div className="flex-1 flex items-center justify-center w-full min-h-[60vh] px-6 py-4 relative z-10">
         <motion.div 
           layout 
           className="w-full max-w-sm aspect-square rounded-[2rem] backdrop-blur-2xl bg-card/30 border border-border/30 shadow-2xl flex items-center justify-center relative overflow-hidden ring-1 ring-border/10"
