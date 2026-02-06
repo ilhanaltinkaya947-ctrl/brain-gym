@@ -1,4 +1,4 @@
-import { useEffect, useRef, useMemo, memo } from 'react';
+import { useEffect, useRef, useMemo } from 'react';
 import { AdaptivePhase } from '@/hooks/useAdaptiveEngine';
 import { useIsMobile } from '@/hooks/use-mobile';
 
@@ -46,7 +46,7 @@ const TIER_COLORS = {
 };
 
 // Simple CSS-only background for mobile
-const MobileHeatBackground = memo(({ tier = 1 }: { tier: number }) => {
+function MobileHeatBackground({ tier = 1 }: { tier: number }) {
   const colors = TIER_COLORS[tier as keyof typeof TIER_COLORS] || TIER_COLORS[1];
   
   return (
@@ -58,12 +58,10 @@ const MobileHeatBackground = memo(({ tier = 1 }: { tier: number }) => {
       }}
     />
   );
-});
-
-MobileHeatBackground.displayName = 'MobileHeatBackground';
+}
 
 // Desktop animated background
-const DesktopHeatBackground = memo(({ gameSpeed, phase, tier = 1 }: HeatBackgroundProps) => {
+function DesktopHeatBackground({ gameSpeed, phase, tier = 1 }: HeatBackgroundProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const particlesRef = useRef<Particle[]>([]);
   const animationRef = useRef<number>();
@@ -194,16 +192,13 @@ const DesktopHeatBackground = memo(({ gameSpeed, phase, tier = 1 }: HeatBackgrou
       <div className="fixed inset-0 pointer-events-none z-0 opacity-30" style={overlayStyle} />
     </>
   );
-});
+}
 
-DesktopHeatBackground.displayName = 'DesktopHeatBackground';
-
-export const HeatBackground = memo(({ gameSpeed, phase, tier = 1 }: HeatBackgroundProps) => {
+export function HeatBackground({ gameSpeed, phase, tier = 1 }: HeatBackgroundProps) {
   const isMobile = useIsMobile();
   
-  return isMobile 
-    ? <MobileHeatBackground tier={tier} /> 
-    : <DesktopHeatBackground gameSpeed={gameSpeed} phase={phase} tier={tier} />;
-});
-
-HeatBackground.displayName = 'HeatBackground';
+  if (isMobile) {
+    return <MobileHeatBackground tier={tier} />;
+  }
+  return <DesktopHeatBackground gameSpeed={gameSpeed} phase={phase} tier={tier} />;
+}
