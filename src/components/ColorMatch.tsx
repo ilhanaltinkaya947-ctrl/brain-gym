@@ -10,6 +10,7 @@ interface ColorMatchProps {
   triggerHaptic: (type: 'light' | 'medium' | 'heavy') => void;
   streak: number;
   onScreenShake: () => void;
+  tier?: number;
 }
 
 const QUESTION_TIME = 2500; // 2.5 seconds - faster pace
@@ -20,7 +21,8 @@ export const ColorMatch = ({
   playSound, 
   triggerHaptic, 
   streak,
-  onScreenShake 
+  onScreenShake,
+  tier = 1
 }: ColorMatchProps) => {
   const [question, setQuestion] = useState<ColorQuestion>(generateQuestion);
   const [timeLeft, setTimeLeft] = useState(QUESTION_TIME);

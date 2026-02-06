@@ -3,12 +3,13 @@ import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
 
 interface NBackGhostProps {
-  onAnswer: (correct: boolean, speedBonus: number) => void;
+  onAnswer: (correct: boolean, speedBonus: number, tier?: number) => void;
   playSound: (type: 'correct' | 'wrong' | 'tick') => void;
   triggerHaptic: (type: 'light' | 'medium' | 'heavy') => void;
   onScreenShake: () => void;
   nBack?: number;
   runeCount?: number;
+  tier?: number;
 }
 
 // Mystical runes for visual appeal
@@ -21,6 +22,7 @@ export const NBackGhost = ({
   onScreenShake,
   nBack = 2,
   runeCount = 6,
+  tier = 1,
 }: NBackGhostProps) => {
   const [sequence, setSequence] = useState<string[]>([]);
   const [currentRune, setCurrentRune] = useState<string>('');

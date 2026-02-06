@@ -161,17 +161,22 @@ export const useSounds = (enabled: boolean = true) => {
     });
   }, []);
 
-  const playSound = useCallback((type: SoundType) => {
+  const playSound = useCallback((type: SoundType, tier: number = 1) => {
     if (!enabled) return;
     
     const ctx = getAudioContext();
     const time = ctx.currentTime;
+    
+    // Tier-based pitch multiplier: higher tiers = higher pitch
+    const tierPitchMultiplier = 1 + (tier - 1) * 0.1; // Tier 1: 1x, Tier 5: 1.4x
 
     switch (type) {
       case 'correct': {
         // Get note from C major scale based on streak (loops through octave)
         const noteIndex = streakRef.current % C_MAJOR_SCALE.length;
-        const frequency = C_MAJOR_SCALE[noteIndex];
+        const baseFrequency = C_MAJOR_SCALE[noteIndex];
+        // Apply tier-based pitch adjustment
+        const frequency = baseFrequency * tierPitchMultiplier;
         const volume = NOTE_VOLUMES[noteIndex];
         
         playPianoNote(ctx, frequency, volume, time);
@@ -184,17 +189,17 @@ export const useSounds = (enabled: boolean = true) => {
       }
 
       case 'wrong': {
-        // Dissonant piano chord - sounds "off"
+        // Dissonant piano chord - sounds "off", lower pitch at higher tiers (more dramatic)
         playDissonantChord(ctx, time);
         break;
       }
 
       case 'tick': {
-        // Soft tick
+        // Soft tick with tier-adjusted pitch
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
         osc.type = 'sine';
-        osc.frequency.setValueAtTime(800, time);
+        osc.frequency.setValueAtTime(800 * tierPitchMultiplier, time);
         gain.gain.setValueAtTime(0.04, time);
         gain.gain.exponentialRampToValueAtTime(0.001, time + 0.03);
         osc.connect(gain);
@@ -236,16 +241,19 @@ export const useSounds = (enabled: boolean = true) => {
       }
 
       case 'heartbeat': {
-        // Deep heartbeat for tension
+        // Deep heartbeat for tension - lower at higher tiers (more ominous)
         const beat1 = ctx.createOscillator();
         const beat2 = ctx.createOscillator();
         const gain1 = ctx.createGain();
         const gain2 = ctx.createGain();
         
+        // Higher tiers = lower heartbeat (more ominous)
+        const heartbeatPitch = 1 / tierPitchMultiplier;
+        
         beat1.type = 'sine';
         beat2.type = 'sine';
-        beat1.frequency.setValueAtTime(55, time);
-        beat2.frequency.setValueAtTime(50, time + 0.1);
+        beat1.frequency.setValueAtTime(55 * heartbeatPitch, time);
+        beat2.frequency.setValueAtTime(50 * heartbeatPitch, time + 0.1);
         
         gain1.gain.setValueAtTime(0.1, time);
         gain1.gain.exponentialRampToValueAtTime(0.001, time + 0.08);

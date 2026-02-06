@@ -11,6 +11,7 @@ interface ParadoxFlowProps {
   followChance?: number;
   streak?: number;
   mode?: 'classic' | 'endless';
+  tier?: number;
 }
 
 type Direction = 'UP' | 'DOWN' | 'LEFT' | 'RIGHT';
