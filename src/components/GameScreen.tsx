@@ -8,15 +8,13 @@ import { SpeedMath } from './SpeedMath';
 import { ParadoxFlow } from './games/ParadoxFlow';
 import { SuitDeception } from './games/SuitDeception';
 import { ChimpMemory } from './games/ChimpMemory';
-import { CubeCount } from './games/CubeCount';
 
 // --- GAME REGISTRY ---
 const GAMES_MAP: Record<string, React.ComponentType<any>> = {
   'speedMath': SpeedMath,
   'paradoxFlow': ParadoxFlow,
   'suitDeception': SuitDeception,
-  'chimpMemory': ChimpMemory,
-  'cubeCount': CubeCount
+  'chimpMemory': ChimpMemory
 };
 
 export const GameScreen = ({ gameState, generateMathQuestion, onAnswer, onQuit, playSound, triggerHaptic, setStreak, bestScore, onScreenShake }: any) => {
