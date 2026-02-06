@@ -6,20 +6,22 @@ interface NeuralBrainProps {
   brainCharge?: number;
 }
 
-// Simplified static brain for mobile - no animations
+// Simplified brain for mobile - with subtle CSS animations
 function MobileBrain({ size = 200 }: { size: number }) {
   return (
     <div className="relative" style={{ width: size, height: size }}>
-      {/* Simple static glow */}
-      <div
+      {/* Animated glow pulse */}
+      <motion.div
         className="absolute inset-0 rounded-full"
         style={{
-          background: `radial-gradient(circle at 50% 50%, hsl(var(--neon-cyan) / 0.2) 0%, transparent 50%)`,
+          background: `radial-gradient(circle at 50% 50%, hsl(var(--neon-cyan) / 0.25) 0%, transparent 50%)`,
         }}
+        animate={{ opacity: [0.5, 0.8, 0.5], scale: [1, 1.05, 1] }}
+        transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
       />
 
       <svg viewBox="0 0 100 100" className="absolute inset-0 w-full h-full">
-        {/* Simplified gradients - no filters for performance */}
+        {/* Simplified gradients */}
         <defs>
           <radialGradient id="somaGradSimple" cx="35%" cy="35%">
             <stop offset="0%" stopColor="hsl(var(--foreground))" />
@@ -57,17 +59,69 @@ function MobileBrain({ size = 200 }: { size: number }) {
           <path d="M44 82 Q48 85 52 87" strokeWidth="1.2" />
         </g>
 
-        {/* Soma */}
-        <circle cx="50" cy="50" r="10" fill="url(#somaGradSimple)" />
+        {/* Animated Soma */}
+        <motion.circle 
+          cx="50" 
+          cy="50" 
+          r="10" 
+          fill="url(#somaGradSimple)"
+          animate={{ scale: [1, 1.05, 1] }}
+          style={{ transformOrigin: '50px 50px' }}
+          transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
+        />
         <circle cx="47" cy="47" r="3.5" fill="hsl(var(--foreground))" fillOpacity="0.2" />
         
-        {/* Terminal dots - static */}
-        <circle cx="22" cy="13" r="2" fill="hsl(var(--foreground))" opacity="0.5" />
-        <circle cx="78" cy="13" r="2" fill="hsl(var(--foreground))" opacity="0.5" />
-        <circle cx="36" cy="87" r="2" fill="hsl(var(--neon-cyan))" opacity="0.7" />
-        <circle cx="43" cy="89" r="2" fill="hsl(var(--neon-cyan))" opacity="0.7" />
-        <circle cx="52" cy="87" r="2" fill="hsl(var(--neon-cyan))" opacity="0.7" />
+        {/* Terminal dots - with subtle pulse */}
+        <motion.circle 
+          cx="22" cy="13" r="2" 
+          fill="hsl(var(--foreground))" 
+          animate={{ opacity: [0.4, 0.7, 0.4] }}
+          transition={{ duration: 2, repeat: Infinity }}
+        />
+        <motion.circle 
+          cx="78" cy="13" r="2" 
+          fill="hsl(var(--foreground))" 
+          animate={{ opacity: [0.4, 0.7, 0.4] }}
+          transition={{ duration: 2, repeat: Infinity, delay: 0.3 }}
+        />
+        <motion.circle 
+          cx="36" cy="87" r="2" 
+          fill="hsl(var(--neon-cyan))" 
+          animate={{ opacity: [0.5, 0.9, 0.5] }}
+          transition={{ duration: 1.8, repeat: Infinity }}
+        />
+        <motion.circle 
+          cx="43" cy="89" r="2" 
+          fill="hsl(var(--neon-cyan))" 
+          animate={{ opacity: [0.5, 0.9, 0.5] }}
+          transition={{ duration: 1.8, repeat: Infinity, delay: 0.2 }}
+        />
+        <motion.circle 
+          cx="52" cy="87" r="2" 
+          fill="hsl(var(--neon-cyan))" 
+          animate={{ opacity: [0.5, 0.9, 0.5] }}
+          transition={{ duration: 1.8, repeat: Infinity, delay: 0.4 }}
+        />
       </svg>
+      
+      {/* Central soma glow */}
+      <div className="absolute inset-0 flex items-center justify-center">
+        <motion.div
+          className="rounded-full"
+          style={{
+            width: size * 0.11,
+            height: size * 0.11,
+          }}
+          animate={{
+            boxShadow: [
+              `0 0 ${size * 0.04}px hsl(var(--neon-cyan) / 0.4)`,
+              `0 0 ${size * 0.07}px hsl(var(--neon-cyan) / 0.6)`,
+              `0 0 ${size * 0.04}px hsl(var(--neon-cyan) / 0.4)`,
+            ],
+          }}
+          transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
+        />
+      </div>
     </div>
   );
 }

@@ -645,21 +645,21 @@ export const MixedGameScreen = ({
             )}
           </div>
 
-          {/* Center: Hero Score + Timer + Streak */}
+          {/* Center: Hero Score + Timer */}
           <div className="flex flex-col items-center">
-            {/* Main Score */}
+            {/* Main Score/Streak */}
             <motion.span
               key={scoreKey}
               initial={{ scale: 1.2, opacity: 0.5 }}
               animate={{ scale: 1, opacity: 1 }}
-              className="font-mono text-6xl font-bold tracking-tight"
+              className="font-mono text-6xl font-bold tracking-tight tabular-nums"
             >
               {mode === 'classic' ? score : streak}
             </motion.span>
             
             {/* Timer for Classic Mode */}
             {mode === 'classic' && (
-              <span className="font-mono text-sm text-muted-foreground mt-1">
+              <span className="font-mono text-sm text-muted-foreground/70 mt-1 tabular-nums">
                 {formatTime(timeLeft)}
               </span>
             )}
@@ -667,12 +667,12 @@ export const MixedGameScreen = ({
             {/* XP Counter for Endless Mode */}
             {mode === 'endless' && (
               <motion.div 
-                className="flex items-center gap-1 mt-1"
+                className="flex items-center gap-1.5 mt-2"
                 animate={streak >= 20 ? { scale: [1, 1.05, 1] } : {}}
                 transition={{ duration: 0.5, repeat: Infinity }}
               >
-                <Zap className={`w-4 h-4 ${streak >= 20 ? 'text-neon-gold' : 'text-muted-foreground'}`} />
-                <span className={`text-sm font-bold tabular-nums ${streak >= 20 ? 'text-neon-gold' : 'text-muted-foreground'}`}>
+                <Zap className={`w-4 h-4 ${streak >= 20 ? 'text-neon-gold' : 'text-muted-foreground/60'}`} />
+                <span className={`text-sm font-semibold tabular-nums ${streak >= 20 ? 'text-neon-gold' : 'text-muted-foreground/60'}`}>
                   {sessionXP} XP
                 </span>
                 {streak >= 20 && (
@@ -682,33 +682,60 @@ export const MixedGameScreen = ({
                 )}
               </motion.div>
             )}
-            
-            {/* Streak Fire */}
-            {streak > 0 && mode === 'classic' && (
-              <motion.div 
-                className={`flex items-center gap-1 mt-1 ${
-                  adaptiveState.gameSpeed >= 1.5 ? 'text-orange-400' : 'text-muted-foreground'
-                }`}
-                animate={adaptiveState.gameSpeed >= 1.5 ? { scale: [1, 1.1, 1] } : {}}
-                transition={{ duration: 0.5, repeat: Infinity }}
-              >
-                <Flame className={`w-4 h-4 ${adaptiveState.gameSpeed >= 1.5 ? 'fill-orange-400' : ''}`} />
-                <span className="text-sm font-bold">{streak}</span>
-              </motion.div>
-            )}
           </div>
 
-          {/* Right: Best Score + XP (Classic) */}
-          <div className="flex flex-col items-end gap-1">
-            <div className="flex items-center gap-1 text-muted-foreground opacity-60">
-              <span className="text-sm">🏆</span>
-              <span className="font-mono text-sm font-medium">
+          {/* Right: Streak Fire (both modes) + Best */}
+          <div className="flex flex-col items-end gap-2">
+            {/* Animated Streak Fire */}
+            {streak > 0 && (
+              <motion.div 
+                className="flex items-center gap-1.5"
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+              >
+                <motion.div
+                  className="relative"
+                  animate={{
+                    scale: [1, 1.15, 1],
+                    y: [0, -2, 0],
+                  }}
+                  transition={{ duration: 0.8, repeat: Infinity, ease: 'easeInOut' }}
+                >
+                  {/* Glow */}
+                  <motion.div
+                    className="absolute inset-0 blur-md rounded-full"
+                    animate={{ opacity: [0.4, 0.8, 0.4] }}
+                    transition={{ duration: 1, repeat: Infinity }}
+                    style={{
+                      background: `radial-gradient(circle, hsl(25, 100%, 50%, 0.6) 0%, transparent 70%)`,
+                    }}
+                  />
+                  <Flame 
+                    className="w-5 h-5 text-orange-500 relative z-10" 
+                    style={{ fill: 'hsl(25, 100%, 50%)' }}
+                  />
+                </motion.div>
+                <motion.span 
+                  className="text-lg font-bold text-orange-500 tabular-nums"
+                  animate={{ scale: [1, 1.05, 1] }}
+                  transition={{ duration: 1.5, repeat: Infinity }}
+                >
+                  {streak}
+                </motion.span>
+              </motion.div>
+            )}
+            
+            {/* Best Score/Streak */}
+            <div className="flex items-center gap-1 text-muted-foreground/50">
+              <Trophy className="w-3.5 h-3.5" />
+              <span className="font-mono text-xs font-medium tabular-nums">
                 {mode === 'classic' ? bestScore : bestStreak}
               </span>
             </div>
+            
             {/* Session XP for Classic Mode */}
             {mode === 'classic' && (
-              <div className="flex items-center gap-1 text-muted-foreground opacity-60">
+              <div className="flex items-center gap-1 text-muted-foreground/50">
                 <Zap className="w-3 h-3" />
                 <span className="font-mono text-xs font-medium tabular-nums">
                   {sessionXP}
