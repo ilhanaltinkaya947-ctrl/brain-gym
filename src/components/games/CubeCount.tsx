@@ -22,14 +22,13 @@ const SingleCube = ({ x, y, z, delay }: { x: number; y: number; z: number; delay
   return (
     <motion.div 
       className="absolute"
-      initial={{ scale: 0, opacity: 0, y: 30 }}
+      initial={{ scale: 0, opacity: 0, y: 20 }}
       animate={{ scale: 1, opacity: 1, y: 0 }}
       transition={{ 
         delay, 
-        duration: 0.2, 
         type: 'spring', 
-        stiffness: 400, 
-        damping: 25 
+        stiffness: 500, 
+        damping: 30 
       }}
       style={{ 
         width: `${SIZE}px`,
@@ -147,7 +146,7 @@ export const CubeCount = memo(({ tier, onAnswer, playSound, triggerHaptic }: Cub
                 x={c.x} 
                 y={c.y} 
                 z={c.z} 
-                delay={i * 0.02} // Fast stagger: ~0.6s for 30 cubes
+                delay={i * 0.01} // Ultra-fast stagger: ~0.3s for 30 cubes
               />
             ))}
           </div>
