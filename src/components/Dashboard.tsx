@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
 import { Zap, Settings, Star, Flame, Trophy } from 'lucide-react';
-import { NeuralBrain } from './NeuralBrain';
+import { NeuralCore } from './NeuralCore';
 
 interface DashboardProps {
   onStartGame: () => void;
@@ -72,9 +72,9 @@ export const Dashboard = ({
             }}
           />
           
-          {/* Neural Brain Visual - Centered */}
+          {/* Neural Core Visual - Centered */}
           <div className="relative z-10">
-            <NeuralBrain size={240} brainCharge={readiness} />
+            <NeuralCore size={240} brainCharge={readiness} />
           </div>
         </motion.div>
 
