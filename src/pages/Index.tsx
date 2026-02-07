@@ -6,7 +6,7 @@ import { MixedGameScreen } from '../components/MixedGameScreen';
 import { ResultScreen } from '../components/ResultScreen';
 import { NeuralBackground } from '../components/NeuralBackground';
 import { SettingsModal, AppSettings } from '../components/SettingsModal';
-import { OnboardingFlow } from '../components/OnboardingFlow';
+import { OnboardingFlow } from '../components/Onboarding/OnboardingFlow';
 import { ModeSelectionOverlay } from '../components/ModeSelectionOverlay';
 import { useGameEngine } from '../hooks/useGameEngine';
 import { useSounds } from '../hooks/useSounds';
@@ -52,10 +52,13 @@ const DEFAULT_SETTINGS: AppSettings = {
 };
 
 const Index = () => {
-  const [showSplash, setShowSplash] = useState(true);
+  // Check if first-time user (FTUE)
+  const [showOnboarding, setShowOnboarding] = useState(() => {
+    return !localStorage.getItem('axon-hasSeenOnboarding');
+  });
+  const [showSplash, setShowSplash] = useState(!showOnboarding); // Skip splash if showing onboarding
   const [currentScreen, setCurrentScreen] = useState<Screen>('dashboard');
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [onboardingOpen, setOnboardingOpen] = useState(false);
   const [modeSelectionOpen, setModeSelectionOpen] = useState(false);
   
   // App settings
@@ -161,11 +164,6 @@ const Index = () => {
   const handleOpenSettings = () => {
     playSound('tick');
     setSettingsOpen(true);
-  };
-
-  const handleOpenOnboarding = () => {
-    playSound('tick');
-    setOnboardingOpen(true);
   };
 
   const handleStartGame = () => {
@@ -285,6 +283,15 @@ const Index = () => {
     ? userStats.classicHighScore 
     : userStats.endlessBestStreak;
 
+   // Onboarding - early return for first-time users
+   if (showOnboarding) {
+     return (
+       <AnimatePresence>
+         <OnboardingFlow onComplete={() => setShowOnboarding(false)} />
+       </AnimatePresence>
+     );
+   }
+
    // Splash screen - early return for cleaner architecture
    if (showSplash) {
      return (
@@ -376,13 +383,6 @@ const Index = () => {
         onClose={() => setSettingsOpen(false)}
         settings={appSettings}
         onSettingsChange={setAppSettings}
-      />
-
-      {/* Onboarding Flow */}
-      <OnboardingFlow
-        isOpen={onboardingOpen}
-        onClose={() => setOnboardingOpen(false)}
-        onComplete={() => setOnboardingOpen(false)}
       />
 
       {/* Mode Selection Overlay */}
