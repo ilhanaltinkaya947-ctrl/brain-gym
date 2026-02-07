@@ -1,4 +1,5 @@
 import { useCallback, useRef } from 'react';
+import { haptics } from '@/utils/despia';
 
 type SoundType = 'correct' | 'wrong' | 'tick' | 'start' | 'complete' | 'lose' | 'milestone' | 'heartbeat';
 
@@ -276,14 +277,27 @@ export const useSounds = (enabled: boolean = true) => {
     }
   }, [enabled, getAudioContext, playPianoNote, playDissonantChord, playMilestoneChord, playLoseSound]);
 
-  const triggerHaptic = useCallback((type: 'light' | 'medium' | 'heavy' = 'light') => {
-    if ('vibrate' in navigator) {
-      const patterns = {
-        light: [8],
-        medium: [15],
-        heavy: [25, 8, 25],
-      };
-      navigator.vibrate(patterns[type]);
+  /**
+   * Trigger haptic feedback - uses native Despia haptics when available,
+   * falls back to Vibration API for web
+   */
+  const triggerHaptic = useCallback((type: 'light' | 'medium' | 'heavy' | 'success' | 'error' = 'light') => {
+    switch (type) {
+      case 'light':
+        haptics.light();
+        break;
+      case 'medium':
+        haptics.medium();
+        break;
+      case 'heavy':
+        haptics.heavy();
+        break;
+      case 'success':
+        haptics.success();
+        break;
+      case 'error':
+        haptics.error();
+        break;
     }
   }, []);
 
