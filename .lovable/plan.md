@@ -1,172 +1,158 @@
 
-# Despia Native Integration Plan
+# Animated Biological Neuron Visual
 
 ## Overview
-Despia provides a simpler path to native mobile deployment than Capacitor. Instead of setting up local development environments with Xcode/Android Studio, Despia handles cloud builds and offers one-click publishing with built-in native features.
+Transform the `NeuralBrain` component into a detailed, biologically-accurate neuron matching the reference image. The new design features extensive branching dendrites, a glowing magenta soma, a curved axon with myelin sheath segments, and premium pulsating animations.
 
 ---
 
-## 1. Add Despia SDK
+## Visual Elements to Create
 
-### Package Installation
-```
-@aspect/despia-runtime - The Despia JavaScript SDK
-```
+### 1. Soma (Cell Body)
+- Central irregular star-like shape (not a circle)
+- Multi-layered glow: magenta/pink inner core, purple outer halo
+- Pulsating animation that breathes every 2-3 seconds
+- Particle sparkles around the soma
 
-This single package provides access to all native features through a unified API.
+### 2. Dendrites (Top Branches)
+- 5-7 main branches extending upward and outward
+- Each branch subdivides 2-3 times (tree-like fractal pattern)
+- Cyan/teal color gradient from thick at base to thin at tips
+- Subtle signal pulse animations traveling toward soma
+
+### 3. Axon with Myelin Sheath
+- Single thick trunk curving downward from soma
+- 5-6 oval "bead" segments representing myelin sheath nodes
+- Slight pink/flesh tint on sheath segments
+- Gap between each segment (Nodes of Ranvier)
+
+### 4. Axon Terminals (Bottom Branches)
+- 3-4 branches splitting at axon end
+- Smaller sub-branches on each terminal
+- Cyan color matching dendrites
+- Signal pulses traveling outward (away from soma)
 
 ---
 
-## 2. Create Despia Utility Module
-
-### `src/utils/despia.ts`
-A utility module to safely interact with Despia features with web fallbacks:
+## Animation System
 
 ```text
-Features to wrap:
-├── isNative()        - Check if running in native app
-├── haptics
-│   ├── light()       - Light tap feedback
-│   ├── medium()      - Medium impact
-│   ├── heavy()       - Heavy impact
-│   └── success()     - Success pattern
-├── notifications
-│   ├── requestPermission()
-│   └── scheduleDaily()
-└── platform
-    ├── isIOS()
-    └── isAndroid()
+Animations Timeline:
+├── Soma Pulse: scale 1.0 → 1.08 → 1.0 (2.5s loop)
+├── Soma Glow: opacity 0.6 → 1.0 → 0.6 (3s loop)
+├── Dendrite Signal: travel toward soma (1.5s, staggered)
+├── Axon Signal: travel away from soma (1.2s, staggered)
+└── Myelin Shimmer: subtle opacity wave (4s loop)
 ```
-
-The wrapper will check if Despia is available (native) and gracefully fall back to web APIs or no-ops when running in browser.
 
 ---
 
-## 3. Create useDespia Hook
+## Color Palette
 
-### `src/hooks/useDespia.ts`
-A React hook providing easy access to Despia features:
+| Element | Color |
+|---------|-------|
+| Soma Core | `hsl(300, 80%, 70%)` - Bright Magenta |
+| Soma Glow | `hsl(280, 70%, 60%)` - Purple/Pink |
+| Dendrites | `hsl(190, 90%, 65%)` - Cyan/Teal |
+| Axon | `hsl(190, 80%, 60%)` - Cyan |
+| Myelin Sheath | `hsl(320, 40%, 75%)` - Pale Pink |
+| Signal Pulses | `hsl(180, 100%, 75%)` - Bright Cyan |
 
+---
+
+## Technical Implementation
+
+### File: `src/components/NeuralBrain.tsx`
+
+**Structure:**
 ```text
-Hook returns:
-├── isNative: boolean
-├── platform: 'ios' | 'android' | 'web'
-├── haptic: {
-│   ├── light: () => void
-│   ├── medium: () => void
-│   ├── heavy: () => void
-│   └── success: () => void
-│ }
-└── notifications: {
-    └── requestPermission: () => Promise<boolean>
-}
+<svg viewBox="0 0 100 100">
+  <defs>
+    <!-- Filters -->
+    <filter id="somaGlow">      <!-- Multi-layer magenta glow -->
+    <filter id="dendriteGlow">  <!-- Subtle cyan glow -->
+    <filter id="signalGlow">    <!-- Bright pulse glow -->
+    
+    <!-- Gradients -->
+    <radialGradient id="somaGrad">    <!-- Magenta center fade -->
+    <linearGradient id="dendriteGrad"> <!-- Cyan thickness fade -->
+    <linearGradient id="myelinGrad">  <!-- Pink sheath gradient -->
+  </defs>
+  
+  <!-- Layer 1: Dendrites (background) -->
+  <g class="dendrites">
+    <!-- 5-7 main branches with sub-branches -->
+    <path d="M50 45 Q45 35 30 20" /> <!-- Branch 1 -->
+    <path d="M30 20 Q25 15 15 10" /> <!-- Sub-branch 1a -->
+    <!-- ... more branches -->
+  </g>
+  
+  <!-- Layer 2: Axon trunk with myelin -->
+  <g class="axon">
+    <path d="M50 55 Q52 65 48 75 Q44 85 40 90" /> <!-- Main trunk -->
+    <!-- Myelin segments -->
+    <ellipse cx="51" cy="60" rx="3" ry="4" />
+    <ellipse cx="50" cy="68" rx="3" ry="4" />
+    <!-- ... more segments -->
+  </g>
+  
+  <!-- Layer 3: Axon terminals -->
+  <g class="terminals">
+    <path d="M40 90 Q35 93 28 95" />
+    <path d="M40 90 Q42 95 45 98" />
+    <!-- ... more terminals -->
+  </g>
+  
+  <!-- Layer 4: Soma (foreground) -->
+  <g class="soma">
+    <!-- Irregular star shape -->
+    <path d="M50 45 L53 48 L57 46 L54 50 ..." fill="somaGrad" />
+    <!-- Inner glow highlight -->
+    <circle cx="48" cy="48" r="3" opacity="0.5" />
+  </g>
+  
+  <!-- Layer 5: Signal pulses (animated) -->
+  <motion.circle class="dendrite-signal" />
+  <motion.circle class="axon-signal" />
+</svg>
 ```
 
----
-
-## 4. Integrate Haptics into Game Flow
-
-### Files to Modify
-
-**`src/hooks/useSounds.ts`**
-- Add haptic feedback alongside sound effects
-- `playSuccess()` → light haptic
-- `playError()` → heavy haptic
-- `playLevelUp()` → success pattern
-
-**`src/components/MixedGameScreen.tsx`**
-- Add haptic on correct answer (medium)
-- Add haptic on wrong answer (heavy)
-- Add haptic on streak milestone (success pattern)
-- Add haptic on game complete (success)
-
-**`src/components/games/ChimpMemory.tsx`**
-- Light haptic on cell tap
-- Success haptic on completing a sequence
-
-**`src/components/SpeedMath.tsx`**
-- Light haptic on option selection
-- Medium haptic on correct answer
+### Mobile Optimization
+- Desktop: Full animation with signal pulses and glow filters
+- Mobile: Static dendrites/axon, simplified soma pulse only (CSS)
+- Reduced filter complexity on mobile for performance
 
 ---
 
-## 5. Safe Area & Status Bar
+## Files to Modify
 
-Despia provides built-in safe area handling:
-
-**`src/App.tsx`**
-- Add Despia status bar configuration on mount
-- Set status bar style to light content (for dark theme)
-- Enable fullscreen mode for immersive gameplay
-
----
-
-## 6. Future Native Features (Post-Launch)
-
-These can be added later without code changes in Lovable:
-
-| Feature | Use Case |
-|---------|----------|
-| **RevenueCat** | Premium subscription ($4.99/month) |
-| **OneSignal** | Daily training reminders at user's preferred time |
-| **AdMob Rewarded** | Watch ad for extra life or XP boost |
-| **Home Widgets** | Show current streak and brain charge |
-| **Biometrics** | Secure login with Face ID/Touch ID |
-| **Offline Mode** | Cache games for airplane mode |
+### 1. `src/components/NeuralBrain.tsx`
+Complete rewrite of both `MobileBrain` and `DesktopBrain` components:
+- New dendrite branch paths (tree-like structure)
+- Irregular soma shape instead of circle
+- Myelin sheath segments on axon
+- Updated color scheme (cyan/magenta)
+- Enhanced glow filters
+- Signal pulse animations on branches
 
 ---
 
-## 7. Files to Create/Modify
+## Performance Considerations
 
-### New Files
-1. **`src/utils/despia.ts`** - Despia wrapper with web fallbacks
-2. **`src/hooks/useDespia.ts`** - React hook for native features
-
-### Modified Files
-1. **`package.json`** - Add `@aspect/despia-runtime` dependency
-2. **`src/hooks/useSounds.ts`** - Integrate haptic feedback with sounds
-3. **`src/components/MixedGameScreen.tsx`** - Add haptics to game events
-4. **`src/components/games/ChimpMemory.tsx`** - Add tap haptics
-5. **`src/components/SpeedMath.tsx`** - Add answer haptics
-6. **`src/App.tsx`** - Initialize Despia on app mount
+1. **SVG Complexity**: Use `stroke-linecap="round"` for smooth branch ends
+2. **Filter Caching**: Reuse filter definitions across elements
+3. **Animation Batching**: Group signal pulses with same timing
+4. **Mobile Fallback**: CSS-only glow animation, no path animations
 
 ---
 
-## 8. Deployment Process
+## Expected Result
 
-After I make these code changes, here's your Despia workflow:
-
-1. **Publish your Lovable app** to get the live URL
-2. **Go to v3.despia.com** and create an account
-3. **Enter your published URL** (e.g., `https://neuro-flow-brain-boost.lovable.app`)
-4. **Configure app details**: Name, icons, splash screen
-5. **Select native features** you want enabled
-6. **One-click build** - Despia builds on their M2 machines
-7. **Download** the .ipa (iOS) or .aab (Android) file
-8. **Submit to stores** or use their one-click submission
-
-### Over-the-Air Updates
-After initial app store approval, any changes you make in Lovable will automatically reflect in the native app - no new app store submission needed for web code changes.
-
----
-
-## Pricing Summary
-
-| Option | Price | Includes |
-|--------|-------|----------|
-| Solo (iOS only) | $249 one-time | 200 build minutes, source export |
-| Solo (Android only) | $249 one-time | 200 build minutes, source export |
-| Hybrid (Both) | $498 one-time | 400 build minutes, source export |
-
-All native plugins (haptics, notifications, payments, ads) are **free** and included.
-
----
-
-## Summary
-
-This integration will:
-- Add native haptic feedback throughout the game
-- Prepare the codebase for Despia's native features
-- Keep web compatibility (graceful fallbacks)
-- Enable future monetization (RevenueCat, AdMob)
-- Allow over-the-air updates after initial store approval
+The new neuron will:
+- Look biologically accurate like the reference image
+- Have a glowing magenta soma that pulses rhythmically
+- Feature extensive cyan dendrite branches at top
+- Include a curved axon with visible myelin sheath segments
+- Show signal pulses traveling through the neural pathways
+- Maintain smooth 60fps performance on desktop
+- Gracefully degrade to simpler animation on mobile
