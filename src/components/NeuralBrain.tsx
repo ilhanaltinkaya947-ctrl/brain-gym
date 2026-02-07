@@ -6,117 +6,179 @@ interface NeuralBrainProps {
   brainCharge?: number;
 }
 
-// Simplified brain for mobile - with subtle CSS animations
+// Dendrite branch paths - tree-like structure
+const dendritePaths = [
+  // Left main branch
+  { d: "M50 42 Q42 35 32 25", width: 2.5 },
+  { d: "M32 25 Q25 18 18 12", width: 1.8 },
+  { d: "M32 25 Q28 20 22 18", width: 1.4 },
+  { d: "M28 30 Q22 25 15 22", width: 1.2 },
+  { d: "M18 12 Q14 8 10 5", width: 1 },
+  { d: "M18 12 Q22 7 25 3", width: 1 },
+  
+  // Center-left branch
+  { d: "M48 40 Q44 28 40 18", width: 2.2 },
+  { d: "M40 18 Q36 10 32 5", width: 1.5 },
+  { d: "M40 18 Q44 12 46 6", width: 1.3 },
+  { d: "M42 25 Q38 20 34 16", width: 1.1 },
+  
+  // Center branch
+  { d: "M50 38 L50 22", width: 2.5 },
+  { d: "M50 22 Q47 14 44 8", width: 1.6 },
+  { d: "M50 22 Q53 14 56 8", width: 1.6 },
+  { d: "M50 22 L50 10", width: 1.4 },
+  { d: "M50 10 Q48 5 46 2", width: 1 },
+  { d: "M50 10 Q52 5 54 2", width: 1 },
+  
+  // Center-right branch
+  { d: "M52 40 Q56 28 60 18", width: 2.2 },
+  { d: "M60 18 Q64 10 68 5", width: 1.5 },
+  { d: "M60 18 Q56 12 54 6", width: 1.3 },
+  { d: "M58 25 Q62 20 66 16", width: 1.1 },
+  
+  // Right main branch
+  { d: "M50 42 Q58 35 68 25", width: 2.5 },
+  { d: "M68 25 Q75 18 82 12", width: 1.8 },
+  { d: "M68 25 Q72 20 78 18", width: 1.4 },
+  { d: "M72 30 Q78 25 85 22", width: 1.2 },
+  { d: "M82 12 Q86 8 90 5", width: 1 },
+  { d: "M82 12 Q78 7 75 3", width: 1 },
+  
+  // Side branches
+  { d: "M44 48 Q32 46 20 44", width: 1.8 },
+  { d: "M20 44 Q12 42 5 40", width: 1.2 },
+  { d: "M56 48 Q68 46 80 44", width: 1.8 },
+  { d: "M80 44 Q88 42 95 40", width: 1.2 },
+];
+
+// Axon terminal paths
+const axonTerminals = [
+  { d: "M42 88 Q36 92 28 95", width: 1.4 },
+  { d: "M28 95 Q24 97 20 98", width: 1 },
+  { d: "M42 88 Q38 94 35 98", width: 1.2 },
+  { d: "M42 88 Q42 93 41 97", width: 1.2 },
+  { d: "M42 88 Q46 92 50 95", width: 1.4 },
+  { d: "M50 95 Q54 97 58 98", width: 1 },
+  { d: "M42 88 Q48 93 54 96", width: 1.2 },
+];
+
+// Myelin sheath segments
+const myelinSegments = [
+  { cx: 49, cy: 62, rx: 4, ry: 5 },
+  { cx: 47, cy: 72, rx: 4, ry: 5 },
+  { cx: 44, cy: 81, rx: 3.5, ry: 4.5 },
+];
+
+// Mobile: Simplified static with CSS pulse
 function MobileBrain({ size = 200 }: { size: number }) {
   return (
     <div className="relative" style={{ width: size, height: size }}>
-      {/* Animated glow pulse */}
+      {/* Ambient glow */}
       <motion.div
         className="absolute inset-0 rounded-full"
         style={{
-          background: `radial-gradient(circle at 50% 50%, hsl(var(--neon-cyan) / 0.25) 0%, transparent 50%)`,
+          background: `radial-gradient(circle at 50% 45%, hsl(300, 70%, 50%, 0.2) 0%, transparent 45%)`,
         }}
-        animate={{ opacity: [0.5, 0.8, 0.5], scale: [1, 1.05, 1] }}
+        animate={{ opacity: [0.5, 0.8, 0.5], scale: [1, 1.03, 1] }}
         transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
       />
 
       <svg viewBox="0 0 100 100" className="absolute inset-0 w-full h-full">
-        {/* Simplified gradients */}
         <defs>
-          <radialGradient id="somaGradSimple" cx="35%" cy="35%">
-            <stop offset="0%" stopColor="hsl(var(--foreground))" />
-            <stop offset="50%" stopColor="hsl(var(--neon-cyan))" stopOpacity="0.6" />
-            <stop offset="100%" stopColor="hsl(var(--neon-cyan))" stopOpacity="0.2" />
+          <radialGradient id="somaMobileGrad" cx="40%" cy="40%">
+            <stop offset="0%" stopColor="hsl(320, 90%, 85%)" />
+            <stop offset="40%" stopColor="hsl(300, 80%, 70%)" />
+            <stop offset="80%" stopColor="hsl(280, 70%, 55%)" />
+            <stop offset="100%" stopColor="hsl(270, 60%, 45%)" stopOpacity="0.6" />
           </radialGradient>
+          <linearGradient id="dendriteMobileGrad" x1="0%" y1="100%" x2="0%" y2="0%">
+            <stop offset="0%" stopColor="hsl(190, 90%, 65%)" />
+            <stop offset="100%" stopColor="hsl(180, 85%, 55%)" stopOpacity="0.5" />
+          </linearGradient>
+          <linearGradient id="myelinMobileGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="hsl(320, 50%, 80%)" />
+            <stop offset="100%" stopColor="hsl(300, 40%, 70%)" />
+          </linearGradient>
         </defs>
 
-        {/* Static dendrites */}
-        <g stroke="hsl(var(--foreground))" strokeLinecap="round" fill="none" opacity="0.5">
-          <path d="M45 42 Q38 32 30 22" strokeWidth="2" />
-          <path d="M30 22 Q26 17 22 13" strokeWidth="1.2" />
-          <path d="M50 40 L50 25" strokeWidth="2" />
-          <path d="M50 25 Q46 18 42 13" strokeWidth="1.2" />
-          <path d="M50 25 Q54 18 58 13" strokeWidth="1.2" />
-          <path d="M55 42 Q62 32 70 22" strokeWidth="2" />
-          <path d="M70 22 Q74 17 78 13" strokeWidth="1.2" />
-          <path d="M42 50 Q32 48 22 46" strokeWidth="1.6" />
-          <path d="M58 50 Q68 48 78 46" strokeWidth="1.6" />
+        {/* Dendrites - static */}
+        <g stroke="url(#dendriteMobileGrad)" strokeLinecap="round" fill="none" opacity="0.7">
+          {dendritePaths.slice(0, 15).map((path, i) => (
+            <path key={i} d={path.d} strokeWidth={path.width * 0.9} />
+          ))}
         </g>
 
-        {/* Static axon */}
+        {/* Axon trunk */}
         <path
-          d="M50 58 Q50 66 48 72 Q46 78 44 82"
-          stroke="hsl(var(--foreground))"
-          strokeWidth="2.2"
+          d="M50 55 Q50 60 49 65 Q48 72 46 78 Q44 84 42 88"
+          stroke="hsl(190, 80%, 60%)"
+          strokeWidth="3"
           strokeLinecap="round"
           fill="none"
-          opacity="0.55"
+          opacity="0.7"
         />
-        
-        <g stroke="hsl(var(--foreground))" strokeLinecap="round" fill="none" opacity="0.4">
-          <path d="M44 82 Q40 85 36 87" strokeWidth="1.2" />
-          <path d="M44 82 Q44 86 43 89" strokeWidth="1.2" />
-          <path d="M44 82 Q48 85 52 87" strokeWidth="1.2" />
+
+        {/* Myelin segments */}
+        {myelinSegments.map((seg, i) => (
+          <ellipse
+            key={i}
+            cx={seg.cx}
+            cy={seg.cy}
+            rx={seg.rx}
+            ry={seg.ry}
+            fill="url(#myelinMobileGrad)"
+            opacity="0.8"
+          />
+        ))}
+
+        {/* Axon terminals */}
+        <g stroke="hsl(190, 85%, 60%)" strokeLinecap="round" fill="none" opacity="0.6">
+          {axonTerminals.map((path, i) => (
+            <path key={i} d={path.d} strokeWidth={path.width} />
+          ))}
         </g>
 
-        {/* Animated Soma */}
-        <motion.circle 
-          cx="50" 
-          cy="50" 
-          r="10" 
-          fill="url(#somaGradSimple)"
-          animate={{ scale: [1, 1.05, 1] }}
-          style={{ transformOrigin: '50px 50px' }}
+        {/* Soma - irregular star shape */}
+        <motion.path
+          d="M50 42 Q54 44 56 42 Q58 46 56 48 Q58 52 56 54 Q54 56 50 54 Q46 56 44 54 Q42 52 44 48 Q42 46 44 42 Q46 44 50 42"
+          fill="url(#somaMobileGrad)"
+          animate={{ scale: [1, 1.06, 1] }}
+          style={{ transformOrigin: '50px 48px' }}
           transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
         />
-        <circle cx="47" cy="47" r="3.5" fill="hsl(var(--foreground))" fillOpacity="0.2" />
         
-        {/* Terminal dots - with subtle pulse */}
-        <motion.circle 
-          cx="22" cy="13" r="2" 
-          fill="hsl(var(--foreground))" 
-          animate={{ opacity: [0.4, 0.7, 0.4] }}
-          transition={{ duration: 2, repeat: Infinity }}
-        />
-        <motion.circle 
-          cx="78" cy="13" r="2" 
-          fill="hsl(var(--foreground))" 
-          animate={{ opacity: [0.4, 0.7, 0.4] }}
-          transition={{ duration: 2, repeat: Infinity, delay: 0.3 }}
-        />
-        <motion.circle 
-          cx="36" cy="87" r="2" 
-          fill="hsl(var(--neon-cyan))" 
-          animate={{ opacity: [0.5, 0.9, 0.5] }}
-          transition={{ duration: 1.8, repeat: Infinity }}
-        />
-        <motion.circle 
-          cx="43" cy="89" r="2" 
-          fill="hsl(var(--neon-cyan))" 
-          animate={{ opacity: [0.5, 0.9, 0.5] }}
-          transition={{ duration: 1.8, repeat: Infinity, delay: 0.2 }}
-        />
-        <motion.circle 
-          cx="52" cy="87" r="2" 
-          fill="hsl(var(--neon-cyan))" 
-          animate={{ opacity: [0.5, 0.9, 0.5] }}
-          transition={{ duration: 1.8, repeat: Infinity, delay: 0.4 }}
-        />
+        {/* Soma highlight */}
+        <circle cx="47" cy="46" r="3" fill="hsl(320, 100%, 90%)" fillOpacity="0.4" />
+
+        {/* Terminal bulbs */}
+        {[
+          { cx: 20, cy: 98, delay: 0 },
+          { cx: 35, cy: 98, delay: 0.2 },
+          { cx: 41, cy: 97, delay: 0.4 },
+          { cx: 58, cy: 98, delay: 0.6 },
+        ].map((dot, i) => (
+          <motion.circle
+            key={i}
+            cx={dot.cx}
+            cy={dot.cy}
+            r="2"
+            fill="hsl(180, 100%, 75%)"
+            animate={{ opacity: [0.4, 0.9, 0.4] }}
+            transition={{ duration: 1.8, repeat: Infinity, delay: dot.delay }}
+          />
+        ))}
       </svg>
-      
-      {/* Central soma glow */}
-      <div className="absolute inset-0 flex items-center justify-center">
+
+      {/* Soma glow overlay */}
+      <div className="absolute inset-0 flex items-center justify-center" style={{ top: '-4%' }}>
         <motion.div
           className="rounded-full"
-          style={{
-            width: size * 0.11,
-            height: size * 0.11,
-          }}
+          style={{ width: size * 0.13, height: size * 0.13 }}
           animate={{
             boxShadow: [
-              `0 0 ${size * 0.04}px hsl(var(--neon-cyan) / 0.4)`,
-              `0 0 ${size * 0.07}px hsl(var(--neon-cyan) / 0.6)`,
-              `0 0 ${size * 0.04}px hsl(var(--neon-cyan) / 0.4)`,
+              `0 0 ${size * 0.05}px hsl(300, 80%, 65%, 0.5)`,
+              `0 0 ${size * 0.09}px hsl(300, 80%, 65%, 0.7)`,
+              `0 0 ${size * 0.05}px hsl(300, 80%, 65%, 0.5)`,
             ],
           }}
           transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
@@ -126,36 +188,46 @@ function MobileBrain({ size = 200 }: { size: number }) {
   );
 }
 
-// Full animated brain for desktop
+// Desktop: Full animation with signal pulses
 function DesktopBrain({ size = 200, brainCharge = 0 }: NeuralBrainProps) {
-  const glowIntensity = Math.max(0.5, brainCharge / 100);
+  const glowIntensity = Math.max(0.6, brainCharge / 100);
 
   return (
     <div className="relative" style={{ width: size, height: size }}>
-      {/* Soft ambient glow */}
+      {/* Ambient magenta glow */}
       <motion.div
         className="absolute inset-0 rounded-full"
         style={{
-          background: `radial-gradient(circle at 50% 50%, hsl(var(--neon-cyan) / ${glowIntensity * 0.25}) 0%, transparent 50%)`,
+          background: `radial-gradient(circle at 50% 45%, hsl(300, 70%, 50%, ${glowIntensity * 0.25}) 0%, transparent 50%)`,
         }}
-        animate={{ opacity: [0.5, 0.8, 0.5] }}
+        animate={{ opacity: [0.5, 0.9, 0.5] }}
         transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
       />
 
-      <svg
-        viewBox="0 0 100 100"
-        className="absolute inset-0 w-full h-full"
-      >
+      <svg viewBox="0 0 100 100" className="absolute inset-0 w-full h-full">
         <defs>
-          <filter id="softGlow" x="-50%" y="-50%" width="200%" height="200%">
-            <feGaussianBlur stdDeviation="1.5" result="blur" />
+          {/* Soma glow filter - magenta */}
+          <filter id="somaGlow" x="-100%" y="-100%" width="300%" height="300%">
+            <feGaussianBlur stdDeviation="3" result="blur1" />
+            <feGaussianBlur stdDeviation="1.5" result="blur2" />
+            <feMerge>
+              <feMergeNode in="blur1" />
+              <feMergeNode in="blur2" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+
+          {/* Dendrite glow - cyan */}
+          <filter id="dendriteGlow" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="1" result="blur" />
             <feMerge>
               <feMergeNode in="blur" />
               <feMergeNode in="SourceGraphic" />
             </feMerge>
           </filter>
-          
-          <filter id="strongGlow" x="-100%" y="-100%" width="300%" height="300%">
+
+          {/* Signal pulse glow */}
+          <filter id="signalGlow" x="-100%" y="-100%" width="300%" height="300%">
             <feGaussianBlur stdDeviation="2.5" result="blur" />
             <feMerge>
               <feMergeNode in="blur" />
@@ -163,128 +235,205 @@ function DesktopBrain({ size = 200, brainCharge = 0 }: NeuralBrainProps) {
               <feMergeNode in="SourceGraphic" />
             </feMerge>
           </filter>
-          
-          <radialGradient id="somaGrad" cx="35%" cy="35%">
-            <stop offset="0%" stopColor="hsl(var(--foreground))" />
-            <stop offset="50%" stopColor="hsl(var(--neon-cyan))" stopOpacity="0.6" />
-            <stop offset="100%" stopColor="hsl(var(--neon-cyan))" stopOpacity="0.2" />
+
+          {/* Soma gradient - magenta/pink */}
+          <radialGradient id="somaGrad" cx="40%" cy="40%">
+            <stop offset="0%" stopColor="hsl(320, 90%, 85%)" />
+            <stop offset="35%" stopColor="hsl(300, 80%, 70%)" />
+            <stop offset="70%" stopColor="hsl(280, 70%, 55%)" />
+            <stop offset="100%" stopColor="hsl(270, 60%, 45%)" stopOpacity="0.7" />
           </radialGradient>
+
+          {/* Dendrite gradient - cyan/teal */}
+          <linearGradient id="dendriteGrad" x1="0%" y1="100%" x2="0%" y2="0%">
+            <stop offset="0%" stopColor="hsl(190, 90%, 65%)" />
+            <stop offset="50%" stopColor="hsl(185, 85%, 60%)" />
+            <stop offset="100%" stopColor="hsl(180, 80%, 50%)" stopOpacity="0.6" />
+          </linearGradient>
+
+          {/* Myelin sheath gradient - pale pink */}
+          <linearGradient id="myelinGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="hsl(320, 50%, 82%)" />
+            <stop offset="50%" stopColor="hsl(310, 45%, 75%)" />
+            <stop offset="100%" stopColor="hsl(300, 40%, 68%)" />
+          </linearGradient>
+
+          {/* Axon gradient */}
+          <linearGradient id="axonGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stopColor="hsl(190, 85%, 65%)" />
+            <stop offset="100%" stopColor="hsl(185, 80%, 55%)" />
+          </linearGradient>
         </defs>
 
-        {/* === DENDRITES === */}
-        <g stroke="hsl(var(--foreground))" strokeLinecap="round" fill="none" filter="url(#softGlow)">
-          <path d="M45 42 Q38 32 30 22" strokeWidth="2" opacity="0.55" />
-          <path d="M30 22 Q26 17 22 13" strokeWidth="1.2" opacity="0.4" />
-          <path d="M36 30 Q30 28 24 26" strokeWidth="1" opacity="0.35" />
-          <path d="M50 40 L50 25" strokeWidth="2" opacity="0.55" />
-          <path d="M50 25 Q46 18 42 13" strokeWidth="1.2" opacity="0.4" />
-          <path d="M50 25 Q54 18 58 13" strokeWidth="1.2" opacity="0.4" />
-          <path d="M55 42 Q62 32 70 22" strokeWidth="2" opacity="0.55" />
-          <path d="M70 22 Q74 17 78 13" strokeWidth="1.2" opacity="0.4" />
-          <path d="M64 30 Q70 28 76 26" strokeWidth="1" opacity="0.35" />
-          <path d="M42 50 Q32 48 22 46" strokeWidth="1.6" opacity="0.5" />
-          <path d="M22 46 Q17 45 12 44" strokeWidth="1" opacity="0.35" />
-          <path d="M58 50 Q68 48 78 46" strokeWidth="1.6" opacity="0.5" />
-          <path d="M78 46 Q83 45 88 44" strokeWidth="1" opacity="0.35" />
+        {/* === DENDRITES (Top Branches) === */}
+        <g stroke="url(#dendriteGrad)" strokeLinecap="round" fill="none" filter="url(#dendriteGlow)">
+          {dendritePaths.map((path, i) => (
+            <path 
+              key={i} 
+              d={path.d} 
+              strokeWidth={path.width} 
+              opacity={0.75 - (i * 0.01)}
+            />
+          ))}
         </g>
 
-        {/* === AXON === */}
+        {/* === AXON TRUNK === */}
         <path
-          d="M50 58 Q50 66 48 72 Q46 78 44 82"
-          stroke="hsl(var(--foreground))"
-          strokeWidth="2.2"
+          d="M50 55 Q50 60 49 65 Q48 72 46 78 Q44 84 42 88"
+          stroke="url(#axonGrad)"
+          strokeWidth="3.5"
           strokeLinecap="round"
           fill="none"
-          opacity="0.55"
-          filter="url(#softGlow)"
+          opacity="0.8"
+          filter="url(#dendriteGlow)"
         />
-        
-        <g stroke="hsl(var(--foreground))" strokeLinecap="round" fill="none" filter="url(#softGlow)">
-          <path d="M44 82 Q40 85 36 87" strokeWidth="1.2" opacity="0.4" />
-          <path d="M44 82 Q44 86 43 89" strokeWidth="1.2" opacity="0.4" />
-          <path d="M44 82 Q48 85 52 87" strokeWidth="1.2" opacity="0.4" />
+
+        {/* === MYELIN SHEATH SEGMENTS === */}
+        <g filter="url(#dendriteGlow)">
+          {myelinSegments.map((seg, i) => (
+            <motion.ellipse
+              key={i}
+              cx={seg.cx}
+              cy={seg.cy}
+              rx={seg.rx}
+              ry={seg.ry}
+              fill="url(#myelinGrad)"
+              opacity={0.85}
+              animate={{ opacity: [0.75, 0.95, 0.75] }}
+              transition={{ 
+                duration: 4, 
+                repeat: Infinity, 
+                delay: i * 0.4,
+                ease: 'easeInOut'
+              }}
+            />
+          ))}
         </g>
 
-        {/* === SOMA === */}
-        <motion.circle
-          cx="50"
-          cy="50"
-          r="10"
+        {/* === AXON TERMINALS (Bottom Branches) === */}
+        <g stroke="url(#axonGrad)" strokeLinecap="round" fill="none" filter="url(#dendriteGlow)">
+          {axonTerminals.map((path, i) => (
+            <path key={i} d={path.d} strokeWidth={path.width} opacity="0.7" />
+          ))}
+        </g>
+
+        {/* === SOMA (Cell Body) - Irregular Star Shape === */}
+        <motion.path
+          d="M50 40 Q55 43 58 40 Q60 45 58 50 Q61 54 58 58 Q54 60 50 58 Q46 60 42 58 Q39 54 42 50 Q40 45 42 40 Q45 43 50 40"
           fill="url(#somaGrad)"
-          filter="url(#strongGlow)"
-          animate={{ scale: [1, 1.05, 1] }}
-          style={{ transformOrigin: '50px 50px' }}
+          filter="url(#somaGlow)"
+          animate={{ 
+            scale: [1, 1.08, 1],
+            opacity: [0.9, 1, 0.9]
+          }}
+          style={{ transformOrigin: '50px 49px' }}
           transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
         />
         
-        <circle cx="47" cy="47" r="3.5" fill="hsl(var(--foreground))" fillOpacity="0.2" />
-        <circle cx="46" cy="46" r="1.5" fill="hsl(var(--foreground))" fillOpacity="0.35" />
+        {/* Soma inner highlights */}
+        <circle cx="46" cy="46" r="4" fill="hsl(320, 100%, 90%)" fillOpacity="0.35" />
+        <circle cx="45" cy="45" r="2" fill="hsl(320, 100%, 95%)" fillOpacity="0.5" />
 
-        {/* === SIGNAL PULSES === */}
+        {/* === DENDRITE SIGNAL PULSES (toward soma) === */}
+        {[
+          { path: "M18 12 Q25 18 32 25 Q42 35 50 42", delay: 0 },
+          { path: "M82 12 Q75 18 68 25 Q58 35 50 42", delay: 1.5 },
+          { path: "M32 5 Q36 10 40 18 Q44 28 48 40", delay: 3 },
+          { path: "M68 5 Q64 10 60 18 Q56 28 52 40", delay: 4.5 },
+          { path: "M5 40 Q12 42 20 44 Q32 46 44 48", delay: 2 },
+          { path: "M95 40 Q88 42 80 44 Q68 46 56 48", delay: 3.5 },
+        ].map((signal, i) => (
+          <motion.circle
+            key={`dendrite-signal-${i}`}
+            r="2.5"
+            fill="hsl(180, 100%, 75%)"
+            filter="url(#signalGlow)"
+            animate={{ 
+              opacity: [0, 1, 1, 0], 
+              offsetDistance: ['0%', '100%'] 
+            }}
+            transition={{ 
+              duration: 1.5, 
+              repeat: Infinity, 
+              repeatDelay: 5,
+              delay: signal.delay, 
+              ease: 'easeIn' 
+            }}
+            style={{ offsetPath: `path('${signal.path}')` }}
+          />
+        ))}
+
+        {/* === AXON SIGNAL PULSE (away from soma) === */}
         <motion.circle
-          r="2"
-          fill="hsl(var(--neon-cyan))"
-          filter="url(#strongGlow)"
-          animate={{ opacity: [0, 1, 1, 0], offsetDistance: ['100%', '0%'] }}
-          transition={{ duration: 1.2, repeat: Infinity, repeatDelay: 3, delay: 2, ease: 'easeIn' }}
-          style={{ offsetPath: "path('M30 22 Q38 32 45 42')" }}
+          r="3"
+          fill="hsl(180, 100%, 75%)"
+          filter="url(#signalGlow)"
+          animate={{ 
+            opacity: [0, 1, 1, 0], 
+            offsetDistance: ['0%', '100%'] 
+          }}
+          transition={{ 
+            duration: 1.2, 
+            repeat: Infinity, 
+            repeatDelay: 2.5,
+            delay: 2, 
+            ease: 'easeOut' 
+          }}
+          style={{ offsetPath: "path('M50 55 Q50 60 49 65 Q48 72 46 78 Q44 84 42 88')" }}
         />
-        <motion.circle
-          r="2"
-          fill="hsl(var(--neon-cyan))"
-          filter="url(#strongGlow)"
-          animate={{ opacity: [0, 1, 1, 0], offsetDistance: ['100%', '0%'] }}
-          transition={{ duration: 1.2, repeat: Infinity, repeatDelay: 3, delay: 3.2, ease: 'easeIn' }}
-          style={{ offsetPath: "path('M70 22 Q62 32 55 42')" }}
-        />
-        
-        <motion.circle
-          r="2.5"
-          fill="hsl(var(--neon-cyan))"
-          filter="url(#strongGlow)"
-          animate={{ opacity: [0, 1, 1, 0], offsetDistance: ['0%', '100%'] }}
-          transition={{ duration: 1, repeat: Infinity, repeatDelay: 2.5, delay: 2.5, ease: 'easeOut' }}
-          style={{ offsetPath: "path('M50 58 Q50 66 48 72 Q46 78 44 82')" }}
-        />
-        
-        {/* === TERMINAL DOTS === */}
-        <motion.circle cx="22" cy="13" r="2" fill="hsl(var(--foreground))" filter="url(#softGlow)"
-          animate={{ opacity: [0.4, 0.8, 0.4] }}
-          transition={{ duration: 2, repeat: Infinity, delay: 0.8 }}
-        />
-        <motion.circle cx="78" cy="13" r="2" fill="hsl(var(--foreground))" filter="url(#softGlow)"
-          animate={{ opacity: [0.4, 0.8, 0.4] }}
-          transition={{ duration: 2, repeat: Infinity, delay: 0.85 }}
-        />
-        
+
+        {/* === TERMINAL BULBS === */}
+        {[
+          { cx: 10, cy: 5, r: 2.2, delay: 0 },
+          { cx: 25, cy: 3, r: 2, delay: 0.3 },
+          { cx: 46, cy: 2, r: 2, delay: 0.1 },
+          { cx: 54, cy: 2, r: 2, delay: 0.2 },
+          { cx: 75, cy: 3, r: 2, delay: 0.4 },
+          { cx: 90, cy: 5, r: 2.2, delay: 0.5 },
+        ].map((dot, i) => (
+          <motion.circle
+            key={`dendrite-tip-${i}`}
+            cx={dot.cx}
+            cy={dot.cy}
+            r={dot.r}
+            fill="hsl(190, 90%, 65%)"
+            filter="url(#dendriteGlow)"
+            animate={{ opacity: [0.5, 0.9, 0.5] }}
+            transition={{ duration: 2.2, repeat: Infinity, delay: dot.delay }}
+          />
+        ))}
+
         {/* Axon terminal bulbs */}
-        <motion.circle cx="36" cy="87" r="2" fill="hsl(var(--neon-cyan))" filter="url(#strongGlow)"
-          animate={{ opacity: [0.5, 1, 0.5] }}
-          transition={{ duration: 1.8, repeat: Infinity, delay: 1.2 }}
-        />
-        <motion.circle cx="43" cy="89" r="2" fill="hsl(var(--neon-cyan))" filter="url(#strongGlow)"
-          animate={{ opacity: [0.5, 1, 0.5] }}
-          transition={{ duration: 1.8, repeat: Infinity, delay: 1.3 }}
-        />
-        <motion.circle cx="52" cy="87" r="2" fill="hsl(var(--neon-cyan))" filter="url(#strongGlow)"
-          animate={{ opacity: [0.5, 1, 0.5] }}
-          transition={{ duration: 1.8, repeat: Infinity, delay: 1.4 }}
-        />
+        {[
+          { cx: 20, cy: 98, delay: 0 },
+          { cx: 35, cy: 98, delay: 0.2 },
+          { cx: 41, cy: 97, delay: 0.3 },
+          { cx: 54, cy: 96, delay: 0.4 },
+          { cx: 58, cy: 98, delay: 0.5 },
+        ].map((dot, i) => (
+          <motion.circle
+            key={`axon-tip-${i}`}
+            cx={dot.cx}
+            cy={dot.cy}
+            r="2.5"
+            fill="hsl(180, 100%, 75%)"
+            filter="url(#signalGlow)"
+            animate={{ opacity: [0.5, 1, 0.5] }}
+            transition={{ duration: 1.8, repeat: Infinity, delay: dot.delay }}
+          />
+        ))}
       </svg>
 
-      {/* Central soma glow */}
-      <div className="absolute inset-0 flex items-center justify-center">
+      {/* Soma glow overlay */}
+      <div className="absolute inset-0 flex items-center justify-center" style={{ top: '-2%' }}>
         <motion.div
           className="rounded-full"
-          style={{
-            width: size * 0.11,
-            height: size * 0.11,
-          }}
+          style={{ width: size * 0.18, height: size * 0.18 }}
           animate={{
             boxShadow: [
-              `0 0 ${size * 0.04}px hsl(var(--neon-cyan) / 0.4), 0 0 ${size * 0.08}px hsl(var(--neon-cyan) / 0.2)`,
-              `0 0 ${size * 0.07}px hsl(var(--neon-cyan) / 0.6), 0 0 ${size * 0.14}px hsl(var(--neon-cyan) / 0.35)`,
-              `0 0 ${size * 0.04}px hsl(var(--neon-cyan) / 0.4), 0 0 ${size * 0.08}px hsl(var(--neon-cyan) / 0.2)`,
+              `0 0 ${size * 0.06}px hsl(300, 80%, 65%, 0.4), 0 0 ${size * 0.12}px hsl(280, 70%, 55%, 0.2)`,
+              `0 0 ${size * 0.1}px hsl(300, 80%, 65%, 0.65), 0 0 ${size * 0.18}px hsl(280, 70%, 55%, 0.35)`,
+              `0 0 ${size * 0.06}px hsl(300, 80%, 65%, 0.4), 0 0 ${size * 0.12}px hsl(280, 70%, 55%, 0.2)`,
             ],
           }}
           transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
