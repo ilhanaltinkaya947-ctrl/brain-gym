@@ -7,82 +7,81 @@ interface NeuralBrainProps {
   brainCharge?: number;
 }
 
-// Dendrite branch definitions for reuse
+// Cleaner dendrite branches - less overlap, better structure
 const dendriteBranches = [
-  // Left major fan
-  { d: "M50 44 Q35 35 18 22", width: 2.5 },
-  { d: "M18 22 Q10 15 4 8", width: 1.6 },
-  { d: "M18 22 Q12 18 6 16", width: 1.3 },
-  { d: "M28 32 Q18 26 8 22", width: 1.4 },
+  // Left side - spaced out fan
+  { d: "M50 42 Q38 34 22 24", width: 2.2 },
+  { d: "M22 24 Q14 18 8 14", width: 1.4 },
+  { d: "M22 24 Q16 22 10 22", width: 1.2 },
   
   // Center-left
-  { d: "M48 42 Q40 30 35 15", width: 2.2 },
-  { d: "M35 15 Q30 8 24 3", width: 1.4 },
-  { d: "M35 15 Q38 8 40 3", width: 1.2 },
+  { d: "M48 40 Q42 30 38 20", width: 2 },
+  { d: "M38 20 Q34 14 30 10", width: 1.3 },
+  { d: "M38 20 Q40 14 42 10", width: 1.1 },
   
   // Center
-  { d: "M50 42 Q50 28 50 14", width: 2.4 },
-  { d: "M50 14 Q44 6 38 2", width: 1.3 },
-  { d: "M50 14 Q56 6 62 2", width: 1.3 },
-  { d: "M50 14 L50 4", width: 1.4 },
+  { d: "M50 40 Q50 30 50 18", width: 2.2 },
+  { d: "M50 18 Q46 12 42 8", width: 1.2 },
+  { d: "M50 18 Q54 12 58 8", width: 1.2 },
   
   // Center-right
-  { d: "M52 42 Q60 30 65 15", width: 2.2 },
-  { d: "M65 15 Q70 8 76 3", width: 1.4 },
-  { d: "M65 15 Q62 8 60 3", width: 1.2 },
+  { d: "M52 40 Q58 30 62 20", width: 2 },
+  { d: "M62 20 Q66 14 70 10", width: 1.3 },
+  { d: "M62 20 Q60 14 58 10", width: 1.1 },
   
-  // Right major fan
-  { d: "M50 44 Q65 35 82 22", width: 2.5 },
-  { d: "M82 22 Q90 15 96 8", width: 1.6 },
-  { d: "M82 22 Q88 18 94 16", width: 1.3 },
-  { d: "M72 32 Q82 26 92 22", width: 1.4 },
+  // Right side - spaced out fan
+  { d: "M50 42 Q62 34 78 24", width: 2.2 },
+  { d: "M78 24 Q86 18 92 14", width: 1.4 },
+  { d: "M78 24 Q84 22 90 22", width: 1.2 },
   
-  // Side horizontal
-  { d: "M44 48 Q28 46 10 44", width: 1.8 },
-  { d: "M56 48 Q72 46 90 44", width: 1.8 },
+  // Side extensions
+  { d: "M44 46 Q30 44 16 42", width: 1.6 },
+  { d: "M56 46 Q70 44 84 42", width: 1.6 },
 ];
 
-// Dendrite tip positions
+// Dendrite tip positions - cleaned up
 const dendriteTips = [
-  { cx: 4, cy: 8 }, { cx: 6, cy: 16 }, { cx: 8, cy: 22 },
-  { cx: 24, cy: 3 }, { cx: 40, cy: 3 }, { cx: 38, cy: 2 },
-  { cx: 50, cy: 4 }, { cx: 62, cy: 2 }, { cx: 60, cy: 3 },
-  { cx: 76, cy: 3 }, { cx: 96, cy: 8 }, { cx: 94, cy: 16 },
-  { cx: 92, cy: 22 }, { cx: 10, cy: 44 }, { cx: 90, cy: 44 },
+  { cx: 8, cy: 14 }, { cx: 10, cy: 22 },
+  { cx: 30, cy: 10 }, { cx: 42, cy: 10 }, { cx: 42, cy: 8 },
+  { cx: 50, cy: 18 },
+  { cx: 58, cy: 10 }, { cx: 58, cy: 8 }, { cx: 70, cy: 10 },
+  { cx: 92, cy: 14 }, { cx: 90, cy: 22 },
+  { cx: 16, cy: 42 }, { cx: 84, cy: 42 },
 ];
 
-// Axon terminal branches
+// Axon path - adjusted to stay within bounds
+const axonPath = "M50 52 Q49 60 48 68 Q46 76 44 82";
+
+// Axon terminal branches - shortened to fit within viewBox
 const axonTerminals = [
-  { d: "M42 92 Q30 95 18 97", width: 1.5 },
-  { d: "M18 97 Q10 98 4 98", width: 1.1 },
-  { d: "M42 92 Q38 96 34 98", width: 1.3 },
-  { d: "M42 92 Q42 96 42 99", width: 1.3 },
-  { d: "M42 92 Q48 95 56 97", width: 1.5 },
-  { d: "M56 97 Q66 98 76 98", width: 1.1 },
-  { d: "M42 92 Q52 95 62 98", width: 1.3 },
+  { d: "M44 82 Q36 85 28 88", width: 1.4 },
+  { d: "M28 88 Q22 90 18 91", width: 1 },
+  { d: "M44 82 Q40 86 36 89", width: 1.2 },
+  { d: "M44 82 Q44 86 44 90", width: 1.2 },
+  { d: "M44 82 Q50 85 56 88", width: 1.4 },
+  { d: "M56 88 Q62 90 68 91", width: 1 },
+  { d: "M44 82 Q52 85 58 89", width: 1.2 },
 ];
 
-// Terminal tip positions
+// Terminal tip positions - adjusted
 const terminalTips = [
-  { cx: 4, cy: 98 }, { cx: 34, cy: 98 }, { cx: 42, cy: 99 },
-  { cx: 62, cy: 98 }, { cx: 76, cy: 98 },
+  { cx: 18, cy: 91 }, { cx: 36, cy: 89 }, { cx: 44, cy: 90 },
+  { cx: 58, cy: 89 }, { cx: 68, cy: 91 },
 ];
 
-// Signal path definitions
+// Signal path definitions - updated
 const signalPaths = [
-  // Dendrite → Soma (incoming signals)
-  { path: "M4 8 Q10 15 18 22 Q35 35 50 44", type: 'in' },
-  { path: "M96 8 Q90 15 82 22 Q65 35 50 44", type: 'in' },
-  { path: "M24 3 Q30 8 35 15 Q40 30 48 42", type: 'in' },
-  { path: "M76 3 Q70 8 65 15 Q60 30 52 42", type: 'in' },
-  { path: "M50 4 L50 14 Q50 28 50 42", type: 'in' },
-  { path: "M10 44 Q28 46 44 48", type: 'in' },
-  { path: "M90 44 Q72 46 56 48", type: 'in' },
-  // Soma → Axon (outgoing signals)
-  { path: "M50 54 Q48 65 46 76 Q44 84 42 92", type: 'out' },
+  { path: "M8 14 Q14 18 22 24 Q38 34 50 42", type: 'in' },
+  { path: "M92 14 Q86 18 78 24 Q62 34 50 42", type: 'in' },
+  { path: "M30 10 Q34 14 38 20 Q42 30 48 40", type: 'in' },
+  { path: "M70 10 Q66 14 62 20 Q58 30 52 40", type: 'in' },
+  { path: "M50 18 Q50 30 50 40", type: 'in' },
+  { path: "M16 42 Q30 44 44 46", type: 'in' },
+  { path: "M84 42 Q70 44 56 46", type: 'in' },
+  { path: axonPath, type: 'out' },
 ];
 
-// Mobile: Optimized CSS-only with elegant static design
+// Mobile: Optimized with clean design
 function MobileBrain({ size = 200, brainCharge = 0 }: { size: number; brainCharge: number }) {
   const glowIntensity = 0.5 + (brainCharge / 100) * 0.5;
   
@@ -95,7 +94,7 @@ function MobileBrain({ size = 200, brainCharge = 0 }: { size: number; brainCharg
           left: '30%',
           top: '35%',
           width: '40%',
-          height: '30%',
+          height: '25%',
           background: `radial-gradient(circle, 
             hsla(300, 90%, 65%, ${glowIntensity * 0.5}) 0%, 
             hsla(280, 80%, 50%, ${glowIntensity * 0.2}) 40%, 
@@ -132,15 +131,15 @@ function MobileBrain({ size = 200, brainCharge = 0 }: { size: number; brainCharg
         {/* Dendrite tips */}
         <g fill="hsl(180, 100%, 70%)" opacity="0.85">
           {dendriteTips.map((tip, i) => (
-            <circle key={i} cx={tip.cx} cy={tip.cy} r="1.8" />
+            <circle key={i} cx={tip.cx} cy={tip.cy} r="1.6" />
           ))}
         </g>
 
-        {/* Axon - single clean line, no ugly segments */}
+        {/* Axon */}
         <path
-          d="M50 54 Q48 65 46 76 Q44 84 42 92"
+          d={axonPath}
           stroke="hsl(180, 100%, 60%)"
-          strokeWidth="3"
+          strokeWidth="2.8"
           strokeLinecap="round"
           fill="none"
           opacity="0.85"
@@ -156,31 +155,32 @@ function MobileBrain({ size = 200, brainCharge = 0 }: { size: number; brainCharg
         {/* Terminal tips */}
         <g fill="hsl(180, 100%, 75%)" opacity="0.85">
           {terminalTips.map((tip, i) => (
-            <circle key={i} cx={tip.cx} cy={tip.cy} r="2" />
+            <circle key={i} cx={tip.cx} cy={tip.cy} r="1.8" />
           ))}
         </g>
 
-        {/* Soma - clean glowing orb */}
-        <circle cx="50" cy="49" r="12" fill="url(#somaMobileGrad)" />
-        <circle cx="46" cy="45" r="4" fill="hsla(320, 100%, 95%, 0.5)" />
-        <circle cx="45" cy="44" r="2" fill="hsla(330, 100%, 98%, 0.7)" />
+        {/* Soma */}
+        <circle cx="50" cy="47" r="10" fill="url(#somaMobileGrad)" />
+        <circle cx="46" cy="44" r="3.5" fill="hsla(320, 100%, 95%, 0.5)" />
+        <circle cx="45" cy="43" r="1.5" fill="hsla(330, 100%, 98%, 0.7)" />
       </svg>
 
-      {/* Mobile signal pulses - CSS-based */}
+      {/* Mobile signal pulses */}
       {[0, 1, 2].map((i) => (
         <motion.div
           key={i}
           className="absolute rounded-full"
           style={{
-            width: 6,
-            height: 6,
+            width: 5,
+            height: 5,
             background: 'hsl(180, 100%, 80%)',
-            boxShadow: '0 0 8px hsl(180, 100%, 70%)',
+            boxShadow: '0 0 6px hsl(180, 100%, 70%)',
             left: '50%',
-            top: '10%',
+            marginLeft: -2.5,
+            top: '15%',
           }}
           animate={{
-            top: ['10%', '45%'],
+            top: ['15%', '42%'],
             opacity: [0, 1, 1, 0],
             scale: [0.8, 1.2, 1, 0.8],
           }}
@@ -196,20 +196,17 @@ function MobileBrain({ size = 200, brainCharge = 0 }: { size: number; brainCharg
   );
 }
 
-// Desktop: Full premium animation with cascade effect
+// Desktop: Full premium animation with trailing glow
 function DesktopBrain({ size = 200, brainCharge = 0 }: NeuralBrainProps) {
   const glowIntensity = 0.6 + (brainCharge / 100) * 0.4;
   
-  // Dynamic signal frequency based on brain charge
   const signalFrequency = useMemo(() => {
-    // Base: slower signals, High charge: rapid cascade
     const baseDelay = brainCharge > 70 ? 0.3 : brainCharge > 40 ? 0.6 : 1;
     const repeatDelay = brainCharge > 70 ? 0.5 : brainCharge > 40 ? 1.5 : 3;
     return { baseDelay, repeatDelay };
   }, [brainCharge]);
 
-  // Number of active signals based on charge
-  const activeSignals = brainCharge > 70 ? 8 : brainCharge > 40 ? 6 : 4;
+  const activeSignals = brainCharge > 70 ? 7 : brainCharge > 40 ? 5 : 4;
 
   return (
     <div className="relative" style={{ width: size, height: size }}>
@@ -217,10 +214,10 @@ function DesktopBrain({ size = 200, brainCharge = 0 }: NeuralBrainProps) {
       <motion.div
         className="absolute rounded-full"
         style={{
-          left: '25%',
-          top: '30%',
-          width: '50%',
-          height: '40%',
+          left: '28%',
+          top: '32%',
+          width: '44%',
+          height: '30%',
           background: `radial-gradient(ellipse at 50% 50%, 
             hsla(300, 90%, 65%, ${glowIntensity * 0.6}) 0%, 
             hsla(280, 80%, 50%, ${glowIntensity * 0.3}) 40%, 
@@ -238,28 +235,28 @@ function DesktopBrain({ size = 200, brainCharge = 0 }: NeuralBrainProps) {
         <motion.div
           className="absolute rounded-full"
           style={{
-            left: '20%',
-            top: '25%',
-            width: '60%',
-            height: '50%',
+            left: '22%',
+            top: '28%',
+            width: '56%',
+            height: '44%',
             background: `radial-gradient(ellipse at 50% 50%, 
-              hsla(180, 100%, 70%, ${(brainCharge - 50) / 100 * 0.4}) 0%, 
+              hsla(180, 100%, 70%, ${(brainCharge - 50) / 100 * 0.35}) 0%, 
               transparent 60%)`,
           }}
           animate={{ 
-            opacity: [0.3, 0.7, 0.3],
-            scale: [0.95, 1.15, 0.95],
+            opacity: [0.3, 0.6, 0.3],
+            scale: [0.95, 1.12, 0.95],
           }}
           transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
         />
       )}
 
-      <svg viewBox="0 0 100 100" className="absolute inset-0 w-full h-full overflow-visible">
+      <svg viewBox="0 0 100 100" className="absolute inset-0 w-full h-full">
         <defs>
           {/* Soma glow filter */}
           <filter id="somaGlow" x="-100%" y="-100%" width="300%" height="300%">
-            <feGaussianBlur stdDeviation="3" result="blur1" />
-            <feGaussianBlur stdDeviation="1.5" result="blur2" />
+            <feGaussianBlur stdDeviation="2.5" result="blur1" />
+            <feGaussianBlur stdDeviation="1.2" result="blur2" />
             <feMerge>
               <feMergeNode in="blur1" />
               <feMergeNode in="blur2" />
@@ -267,9 +264,9 @@ function DesktopBrain({ size = 200, brainCharge = 0 }: NeuralBrainProps) {
             </feMerge>
           </filter>
 
-          {/* Signal glow filter */}
-          <filter id="signalGlow" x="-150%" y="-150%" width="400%" height="400%">
-            <feGaussianBlur stdDeviation="2.5" result="blur" />
+          {/* Signal glow filter - enhanced for trailing effect */}
+          <filter id="signalGlow" x="-200%" y="-200%" width="500%" height="500%">
+            <feGaussianBlur stdDeviation="2" result="blur" />
             <feMerge>
               <feMergeNode in="blur" />
               <feMergeNode in="blur" />
@@ -277,9 +274,22 @@ function DesktopBrain({ size = 200, brainCharge = 0 }: NeuralBrainProps) {
             </feMerge>
           </filter>
 
+          {/* Gold signal trail filter - extra glow for trailing effect */}
+          <filter id="goldTrailGlow" x="-300%" y="-300%" width="700%" height="700%">
+            <feGaussianBlur stdDeviation="4" result="blur1" />
+            <feGaussianBlur stdDeviation="2" result="blur2" />
+            <feGaussianBlur stdDeviation="1" result="blur3" />
+            <feMerge>
+              <feMergeNode in="blur1" />
+              <feMergeNode in="blur2" />
+              <feMergeNode in="blur3" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+
           {/* Soft dendrite glow */}
           <filter id="dendGlow" x="-50%" y="-50%" width="200%" height="200%">
-            <feGaussianBlur stdDeviation="1" result="blur" />
+            <feGaussianBlur stdDeviation="0.8" result="blur" />
             <feMerge>
               <feMergeNode in="blur" />
               <feMergeNode in="SourceGraphic" />
@@ -297,16 +307,23 @@ function DesktopBrain({ size = 200, brainCharge = 0 }: NeuralBrainProps) {
 
           {/* Cyan dendrite gradient */}
           <linearGradient id="cyanGrad" x1="50%" y1="100%" x2="50%" y2="0%">
-            <stop offset="0%" stopColor="hsl(180, 100%, 70%)" />
-            <stop offset="50%" stopColor="hsl(178, 95%, 60%)" />
-            <stop offset="100%" stopColor="hsl(175, 90%, 50%)" stopOpacity="0.5" />
+            <stop offset="0%" stopColor="hsl(180, 100%, 68%)" />
+            <stop offset="50%" stopColor="hsl(178, 95%, 58%)" />
+            <stop offset="100%" stopColor="hsl(175, 90%, 48%)" stopOpacity="0.5" />
           </linearGradient>
 
           {/* Axon gradient */}
           <linearGradient id="axonGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stopColor="hsl(180, 100%, 68%)" />
-            <stop offset="100%" stopColor="hsl(178, 95%, 55%)" />
+            <stop offset="0%" stopColor="hsl(180, 100%, 66%)" />
+            <stop offset="100%" stopColor="hsl(178, 95%, 52%)" />
           </linearGradient>
+
+          {/* Gold signal gradient for trailing effect */}
+          <radialGradient id="goldSignalGrad" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stopColor="hsl(50, 100%, 90%)" />
+            <stop offset="40%" stopColor="hsl(45, 100%, 70%)" />
+            <stop offset="100%" stopColor="hsl(40, 100%, 55%)" />
+          </radialGradient>
         </defs>
 
         {/* === DENDRITES === */}
@@ -316,43 +333,43 @@ function DesktopBrain({ size = 200, brainCharge = 0 }: NeuralBrainProps) {
               key={i} 
               d={branch.d} 
               strokeWidth={branch.width} 
-              opacity={0.85 - (i % 4) * 0.05}
+              opacity={0.85}
             />
           ))}
         </g>
 
-        {/* Dendrite tip bulbs with staggered pulse */}
+        {/* Dendrite tip bulbs */}
         {dendriteTips.map((tip, i) => (
           <motion.circle
             key={`tip-${i}`}
             cx={tip.cx}
             cy={tip.cy}
-            r="2"
-            fill="hsl(180, 100%, 75%)"
+            r="1.8"
+            fill="hsl(180, 100%, 72%)"
             filter="url(#dendGlow)"
             animate={{ 
               opacity: [0.5, 1, 0.5], 
-              r: [1.8, 2.4, 1.8] 
+              r: [1.6, 2.2, 1.6] 
             }}
             transition={{ 
               duration: 2, 
               repeat: Infinity, 
-              delay: (i * 0.15) % 1.5, 
+              delay: (i * 0.12) % 1.2, 
               ease: 'easeInOut' 
             }}
           />
         ))}
 
-        {/* === AXON - Clean elegant line === */}
+        {/* === AXON === */}
         <motion.path
-          d="M50 54 Q48 65 46 76 Q44 84 42 92"
+          d={axonPath}
           stroke="url(#axonGrad)"
-          strokeWidth="3.5"
+          strokeWidth="3"
           strokeLinecap="round"
           fill="none"
           filter="url(#dendGlow)"
           animate={{
-            strokeWidth: brainCharge > 60 ? [3.5, 4.2, 3.5] : 3.5,
+            strokeWidth: brainCharge > 60 ? [3, 3.8, 3] : 3,
           }}
           transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
         />
@@ -370,12 +387,12 @@ function DesktopBrain({ size = 200, brainCharge = 0 }: NeuralBrainProps) {
             key={`term-${i}`}
             cx={tip.cx}
             cy={tip.cy}
-            r="2.5"
-            fill="hsl(180, 100%, 78%)"
+            r="2.2"
+            fill="hsl(180, 100%, 75%)"
             filter="url(#signalGlow)"
             animate={{ 
               opacity: [0.5, 1, 0.5], 
-              r: [2.2, 3, 2.2] 
+              r: [2, 2.8, 2] 
             }}
             transition={{ 
               duration: 1.8, 
@@ -386,17 +403,17 @@ function DesktopBrain({ size = 200, brainCharge = 0 }: NeuralBrainProps) {
           />
         ))}
 
-        {/* === SOMA (Cell Body) === */}
+        {/* === SOMA === */}
         <g filter="url(#somaGlow)">
           {/* Outer pulse */}
           <motion.circle
             cx="50"
-            cy="49"
-            r="14"
-            fill="hsla(290, 85%, 55%, 0.25)"
+            cy="47"
+            r="12"
+            fill="hsla(290, 85%, 55%, 0.2)"
             animate={{ 
-              r: brainCharge > 50 ? [14, 18, 14] : [14, 16, 14],
-              opacity: [0.2, 0.4, 0.2],
+              r: brainCharge > 50 ? [12, 15, 12] : [12, 14, 12],
+              opacity: [0.15, 0.35, 0.15],
             }}
             transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
           />
@@ -404,32 +421,31 @@ function DesktopBrain({ size = 200, brainCharge = 0 }: NeuralBrainProps) {
           {/* Main soma orb */}
           <motion.circle
             cx="50"
-            cy="49"
-            r="11"
+            cy="47"
+            r="9"
             fill="url(#somaGrad)"
             animate={{ 
-              r: brainCharge > 70 ? [11, 12.5, 11] : [11, 11.8, 11],
+              r: brainCharge > 70 ? [9, 10.5, 9] : [9, 9.8, 9],
             }}
             transition={{ duration: 2.2, repeat: Infinity, ease: 'easeInOut' }}
           />
           
           {/* Inner highlights */}
-          <circle cx="46" cy="45" r="5" fill="hsla(320, 100%, 94%, 0.4)" />
-          <circle cx="45" cy="44" r="2.5" fill="hsla(325, 100%, 96%, 0.6)" />
-          <circle cx="44" cy="43" r="1.2" fill="hsla(330, 100%, 98%, 0.8)" />
+          <circle cx="46" cy="44" r="4" fill="hsla(320, 100%, 94%, 0.4)" />
+          <circle cx="45" cy="43" r="2" fill="hsla(325, 100%, 96%, 0.6)" />
+          <circle cx="44.5" cy="42.5" r="1" fill="hsla(330, 100%, 98%, 0.8)" />
         </g>
 
-        {/* === SIGNAL PULSES === */}
-        {/* Incoming dendrite signals */}
+        {/* === INCOMING SIGNAL PULSES (cyan) === */}
         {signalPaths.slice(0, activeSignals).map((signal, i) => (
           signal.type === 'in' && (
             <motion.circle
               key={`sig-in-${i}`}
-              r={brainCharge > 60 ? "3.5" : "3"}
-              fill="hsl(180, 100%, 85%)"
+              r={brainCharge > 60 ? "3" : "2.5"}
+              fill="hsl(180, 100%, 82%)"
               filter="url(#signalGlow)"
               animate={{ 
-                opacity: [0, 1, 1, 0.8, 0], 
+                opacity: [0, 1, 1, 0.6, 0], 
                 offsetDistance: ['0%', '100%'],
               }}
               transition={{ 
@@ -444,72 +460,114 @@ function DesktopBrain({ size = 200, brainCharge = 0 }: NeuralBrainProps) {
           )
         ))}
 
-        {/* Outgoing axon signal */}
-        {signalPaths.filter(s => s.type === 'out').map((signal, i) => (
+        {/* === GOLD AXON SIGNAL WITH TRAILING GLOW === */}
+        {/* Trail particles - follow behind main signal */}
+        {[0.15, 0.3, 0.45].map((trailOffset, i) => (
           <motion.circle
-            key={`sig-out-${i}`}
-            r={brainCharge > 60 ? "4" : "3.5"}
-            fill="hsl(50, 100%, 75%)"
-            filter="url(#signalGlow)"
+            key={`trail-${i}`}
+            r={2.5 - i * 0.5}
+            fill={`hsla(50, 100%, ${75 - i * 10}%, ${0.8 - i * 0.2})`}
+            filter="url(#goldTrailGlow)"
             animate={{ 
-              opacity: [0, 1, 1, 0], 
+              opacity: [0, 0.6 - i * 0.15, 0.6 - i * 0.15, 0], 
               offsetDistance: ['0%', '100%'],
             }}
             transition={{ 
-              duration: brainCharge > 70 ? 0.6 : 1,
+              duration: brainCharge > 70 ? 0.7 : 1.1,
               repeat: Infinity, 
               repeatDelay: signalFrequency.repeatDelay * 0.8,
-              delay: 0.5,
+              delay: 0.5 + trailOffset,
               ease: 'easeOut',
             }}
-            style={{ offsetPath: `path('${signal.path}')` }}
+            style={{ offsetPath: `path('${axonPath}')` }}
           />
         ))}
+        
+        {/* Main gold signal */}
+        <motion.circle
+          r={brainCharge > 60 ? "3.5" : "3"}
+          fill="url(#goldSignalGrad)"
+          filter="url(#goldTrailGlow)"
+          animate={{ 
+            opacity: [0, 1, 1, 0.7, 0], 
+            offsetDistance: ['0%', '100%'],
+          }}
+          transition={{ 
+            duration: brainCharge > 70 ? 0.7 : 1.1,
+            repeat: Infinity, 
+            repeatDelay: signalFrequency.repeatDelay * 0.8,
+            delay: 0.5,
+            ease: 'easeOut',
+          }}
+          style={{ offsetPath: `path('${axonPath}')` }}
+        />
 
-        {/* CASCADE EFFECT - Extra rapid signals when charge is high */}
+        {/* === CASCADE EFFECT - Extra signals when charge > 60 === */}
         {brainCharge > 60 && (
           <>
             {[0, 1, 2, 3].map((i) => (
               <motion.circle
                 key={`cascade-${i}`}
-                r="2.5"
-                fill="hsl(180, 100%, 90%)"
+                r="2"
+                fill="hsl(180, 100%, 88%)"
                 filter="url(#signalGlow)"
                 animate={{ 
-                  opacity: [0, 0.8, 0.8, 0], 
+                  opacity: [0, 0.7, 0.7, 0], 
                   offsetDistance: ['0%', '100%'],
                 }}
                 transition={{ 
                   duration: 0.6,
                   repeat: Infinity, 
-                  repeatDelay: 0.3,
-                  delay: i * 0.2,
+                  repeatDelay: 0.4,
+                  delay: i * 0.18,
                   ease: 'linear',
                 }}
-                style={{ offsetPath: `path('${signalPaths[i % signalPaths.length].path}')` }}
+                style={{ offsetPath: `path('${signalPaths[i % 7].path}')` }}
+              />
+            ))}
+            
+            {/* Extra gold trails in cascade */}
+            {[0, 1].map((i) => (
+              <motion.circle
+                key={`cascade-gold-${i}`}
+                r="2.5"
+                fill="hsl(50, 100%, 75%)"
+                filter="url(#goldTrailGlow)"
+                animate={{ 
+                  opacity: [0, 0.8, 0.6, 0], 
+                  offsetDistance: ['0%', '100%'],
+                }}
+                transition={{ 
+                  duration: 0.5,
+                  repeat: Infinity, 
+                  repeatDelay: 0.6,
+                  delay: 0.3 + i * 0.35,
+                  ease: 'easeOut',
+                }}
+                style={{ offsetPath: `path('${axonPath}')` }}
               />
             ))}
           </>
         )}
 
-        {/* OVERDRIVE CASCADE - Even more signals at very high charge */}
+        {/* === OVERDRIVE CASCADE - charge > 85 === */}
         {brainCharge > 85 && (
           <>
-            {[0, 1, 2, 3, 4, 5].map((i) => (
+            {[0, 1, 2, 3, 4].map((i) => (
               <motion.circle
                 key={`overdrive-${i}`}
-                r="2"
-                fill="hsl(60, 100%, 80%)"
+                r="1.8"
+                fill="hsl(55, 100%, 80%)"
                 filter="url(#signalGlow)"
                 animate={{ 
-                  opacity: [0, 1, 0], 
+                  opacity: [0, 0.9, 0], 
                   offsetDistance: ['0%', '100%'],
                 }}
                 transition={{ 
-                  duration: 0.4,
+                  duration: 0.35,
                   repeat: Infinity, 
                   repeatDelay: 0.15,
-                  delay: i * 0.12,
+                  delay: i * 0.1,
                   ease: 'linear',
                 }}
                 style={{ offsetPath: `path('${signalPaths[i % 7].path}')` }}
@@ -521,33 +579,26 @@ function DesktopBrain({ size = 200, brainCharge = 0 }: NeuralBrainProps) {
 
       {/* Premium soma glow overlay */}
       <div 
-        className="absolute flex items-center justify-center"
+        className="absolute flex items-center justify-center pointer-events-none"
         style={{ 
-          left: '42%', 
+          left: '43%', 
           top: '40%', 
-          width: '16%', 
-          height: '20%' 
+          width: '14%', 
+          height: '14%' 
         }}
       >
         <motion.div
-          className="rounded-full"
-          style={{ 
-            width: '100%', 
-            height: '100%',
-          }}
+          className="rounded-full w-full h-full"
           animate={{
             boxShadow: [
-              `0 0 ${size * 0.06}px hsla(300, 95%, 65%, ${glowIntensity * 0.6}), 
-               0 0 ${size * 0.12}px hsla(285, 90%, 55%, ${glowIntensity * 0.35}), 
-               0 0 ${size * 0.2}px hsla(270, 85%, 50%, ${glowIntensity * 0.15})`,
-              `0 0 ${size * 0.1}px hsla(300, 95%, 70%, ${glowIntensity * 0.85}), 
-               0 0 ${size * 0.18}px hsla(285, 90%, 60%, ${glowIntensity * 0.5}), 
-               0 0 ${size * 0.28}px hsla(270, 85%, 50%, ${glowIntensity * 0.25})`,
-              `0 0 ${size * 0.06}px hsla(300, 95%, 65%, ${glowIntensity * 0.6}), 
-               0 0 ${size * 0.12}px hsla(285, 90%, 55%, ${glowIntensity * 0.35}), 
-               0 0 ${size * 0.2}px hsla(270, 85%, 50%, ${glowIntensity * 0.15})`,
+              `0 0 ${size * 0.05}px hsla(300, 95%, 65%, ${glowIntensity * 0.5}), 
+               0 0 ${size * 0.1}px hsla(285, 90%, 55%, ${glowIntensity * 0.3})`,
+              `0 0 ${size * 0.08}px hsla(300, 95%, 70%, ${glowIntensity * 0.75}), 
+               0 0 ${size * 0.15}px hsla(285, 90%, 60%, ${glowIntensity * 0.45})`,
+              `0 0 ${size * 0.05}px hsla(300, 95%, 65%, ${glowIntensity * 0.5}), 
+               0 0 ${size * 0.1}px hsla(285, 90%, 55%, ${glowIntensity * 0.3})`,
             ],
-            scale: brainCharge > 70 ? [1, 1.15, 1] : [1, 1.08, 1],
+            scale: brainCharge > 70 ? [1, 1.12, 1] : [1, 1.06, 1],
           }}
           transition={{ 
             duration: brainCharge > 70 ? 1.5 : 2.5, 
