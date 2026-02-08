@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface WordConnectProps {
@@ -10,91 +10,103 @@ interface WordConnectProps {
   tier?: number;
 }
 
-// Word lists by difficulty
-// Word lists by difficulty - all words use unique letters only
+// Word sets - primary word and bonus words
+// Letters will be generated from the primary word automatically
 const WORD_SETS = [
-  // EASY (4-letter words) - 30 words
-  { letters: ['B', 'A', 'R', 'K'], words: ['BARK', 'ARK', 'BAR'] },
-  { letters: ['C', 'A', 'L', 'M'], words: ['CALM', 'CLAM', 'LAM'] },
-  { letters: ['D', 'A', 'W', 'N'], words: ['DAWN', 'WAD', 'DAN'] },
-  { letters: ['E', 'C', 'H', 'O'], words: ['ECHO', 'HOE', 'COE'] },
-  { letters: ['F', 'E', 'R', 'N'], words: ['FERN', 'FEN', 'ERN'] },
-  { letters: ['G', 'L', 'O', 'W'], words: ['GLOW', 'LOW', 'OWL'] },
-  { letters: ['H', 'A', 'Z', 'E'], words: ['HAZE', 'AZE', 'HAZ'] },
-  { letters: ['I', 'R', 'I', 'S'], words: ['IRIS'] }, // Note: has repeated letters, keeping for variety
-  { letters: ['J', 'E', 'S', 'T'], words: ['JEST', 'SET', 'JET'] },
-  { letters: ['K', 'N', 'O', 'T'], words: ['KNOT', 'NOT', 'TON'] },
-  { letters: ['L', 'A', 'M', 'P'], words: ['LAMP', 'LAP', 'PAL', 'MAP'] },
-  { letters: ['M', 'I', 'S', 'T'], words: ['MIST', 'SIT', 'ITS'] },
-  { letters: ['N', 'E', 'S', 'T'], words: ['NEST', 'SET', 'NET', 'TEN'] },
-  { letters: ['O', 'P', 'A', 'L'], words: ['OPAL', 'PAL', 'LAP'] },
-  { letters: ['P', 'I', 'N', 'E'], words: ['PINE', 'PIE', 'PEN', 'NIP'] },
-  { letters: ['Q', 'U', 'I', 'Z'], words: ['QUIZ'] },
-  { letters: ['R', 'E', 'I', 'F'], words: ['RIFE', 'IRE', 'FIR'] },
-  { letters: ['S', 'I', 'L', 'K'], words: ['SILK', 'ILK', 'SKI'] },
-  { letters: ['T', 'I', 'D', 'E'], words: ['TIDE', 'TIE', 'DIE', 'EDIT'] },
-  { letters: ['U', 'R', 'G', 'E'], words: ['URGE', 'RUG', 'RUE'] },
-  { letters: ['V', 'A', 'L', 'E'], words: ['VALE', 'VEAL', 'AVE', 'LEA'] },
-  { letters: ['W', 'R', 'E', 'N'], words: ['WREN', 'NEW', 'WEN'] },
-  { letters: ['Y', 'A', 'R', 'N'], words: ['YARN', 'RAN', 'NAY', 'RAY'] },
-  { letters: ['Z', 'O', 'N', 'E'], words: ['ZONE', 'ONE', 'ZEN'] },
-  { letters: ['A', 'R', 'C', 'H'], words: ['ARCH', 'CAR', 'ARC', 'CHAR'] },
-  { letters: ['B', 'O', 'L', 'T'], words: ['BOLT', 'LOT', 'BOT'] },
-  { letters: ['C', 'O', 'V', 'E'], words: ['COVE', 'COV', 'OVE'] },
-  { letters: ['D', 'U', 'S', 'K'], words: ['DUSK', 'DUK', 'SUK'] },
-  { letters: ['F', 'L', 'U', 'X'], words: ['FLUX'] },
-  { letters: ['G', 'R', 'I', 'T'], words: ['GRIT', 'RIG', 'GIT'] },
+  // EASY (4-letter words)
+  { primary: 'BARK', bonus: ['ARK', 'BAR'] },
+  { primary: 'CALM', bonus: ['CLAM', 'LAM'] },
+  { primary: 'DAWN', bonus: ['WAD', 'DAN'] },
+  { primary: 'ECHO', bonus: ['HOE'] },
+  { primary: 'FERN', bonus: ['FEN'] },
+  { primary: 'GLOW', bonus: ['LOW', 'OWL'] },
+  { primary: 'HAZE', bonus: ['AZE'] },
+  { primary: 'JEST', bonus: ['SET', 'JET'] },
+  { primary: 'KNOT', bonus: ['NOT', 'TON'] },
+  { primary: 'LAMP', bonus: ['LAP', 'PAL', 'MAP'] },
+  { primary: 'MIST', bonus: ['SIT', 'ITS'] },
+  { primary: 'NEST', bonus: ['SET', 'NET', 'TEN'] },
+  { primary: 'OPAL', bonus: ['PAL', 'LAP'] },
+  { primary: 'PINE', bonus: ['PIE', 'PEN', 'NIP'] },
+  { primary: 'QUIZ', bonus: [] },
+  { primary: 'RIFE', bonus: ['IRE', 'FIR'] },
+  { primary: 'SILK', bonus: ['ILK', 'SKI'] },
+  { primary: 'TIDE', bonus: ['TIE', 'DIE', 'EDIT'] },
+  { primary: 'URGE', bonus: ['RUG', 'RUE'] },
+  { primary: 'VALE', bonus: ['VEAL', 'AVE'] },
+  { primary: 'WREN', bonus: ['NEW', 'WEN'] },
+  { primary: 'YARN', bonus: ['RAN', 'NAY', 'RAY'] },
+  { primary: 'ZONE', bonus: ['ONE', 'ZEN'] },
+  { primary: 'ARCH', bonus: ['CAR', 'ARC', 'CHAR'] },
+  { primary: 'BOLT', bonus: ['LOT', 'BOT'] },
+  { primary: 'COVE', bonus: [] },
+  { primary: 'DUSK', bonus: [] },
+  { primary: 'FLUX', bonus: [] },
+  { primary: 'GRIT', bonus: ['RIG', 'GIT'] },
+  { primary: 'IRIS', bonus: [] }, // Has repeated I
 
-  // MEDIUM (5-letter words) - 20 words
-  { letters: ['B', 'L', 'A', 'Z', 'E'], words: ['BLAZE', 'ABLE', 'BALE', 'ZEAL'] },
-  { letters: ['C', 'H', 'A', 'R', 'M'], words: ['CHARM', 'CHAR', 'ARCH', 'MARC'] },
-  { letters: ['D', 'R', 'I', 'F', 'T'], words: ['DRIFT', 'RIFT', 'DIRT'] },
-  { letters: ['E', 'M', 'B', 'R'], words: ['EMBER'] },
-  { letters: ['F', 'R', 'O', 'S', 'T'], words: ['FROST', 'FORT', 'SORT', 'ROTS'] },
-  { letters: ['G', 'L', 'E', 'A', 'M'], words: ['GLEAM', 'LAME', 'MALE', 'GAME'] },
-  { letters: ['H', 'A', 'V', 'E', 'N'], words: ['HAVEN', 'HAVE', 'VANE', 'NAVE'] },
-  { letters: ['I', 'V', 'O', 'R', 'Y'], words: ['IVORY'] },
-  { letters: ['J', 'E', 'W', 'L'], words: ['JEWEL'] },
-  { letters: ['K', 'N', 'E', 'L'], words: ['KNEEL'] },
-  { letters: ['L', 'U', 'N', 'A', 'R'], words: ['LUNAR', 'ULNA', 'ORAL'] },
-  { letters: ['M', 'A', 'R', 'S', 'H'], words: ['MARSH', 'HARMS', 'MARS', 'SHAM'] },
-  { letters: ['N', 'O', 'B', 'L', 'E'], words: ['NOBLE', 'BONE', 'LONE', 'LOBE'] },
-  { letters: ['O', 'R', 'B', 'I', 'T'], words: ['ORBIT', 'TRIO', 'RIOT'] },
-  { letters: ['P', 'L', 'U', 'M', 'E'], words: ['PLUME', 'LUMP', 'MULE', 'PULE'] },
-  { letters: ['Q', 'U', 'I', 'L', 'T'], words: ['QUILT', 'QUIT', 'LIT'] },
-  { letters: ['R', 'I', 'D', 'G', 'E'], words: ['RIDGE', 'RIDE', 'DIRE', 'GRID'] },
-  { letters: ['S', 'T', 'O', 'R', 'M'], words: ['STORM', 'SORT', 'MOST', 'ROTS'] },
-  { letters: ['T', 'O', 'R', 'C', 'H'], words: ['TORCH', 'CHORT', 'COT', 'ROT'] },
-  { letters: ['V', 'I', 'D'], words: ['VIVID'] },
+  // MEDIUM (5-letter words)
+  { primary: 'BLAZE', bonus: ['ABLE', 'BALE', 'ZEAL'] },
+  { primary: 'CHARM', bonus: ['CHAR', 'ARCH', 'MARC'] },
+  { primary: 'DRIFT', bonus: ['RIFT', 'DIRT'] },
+  { primary: 'EMBER', bonus: [] },
+  { primary: 'FROST', bonus: ['FORT', 'SORT'] },
+  { primary: 'GLEAM', bonus: ['LAME', 'MALE', 'GAME'] },
+  { primary: 'HAVEN', bonus: ['HAVE', 'VANE', 'NAVE'] },
+  { primary: 'IVORY', bonus: [] },
+  { primary: 'JEWEL', bonus: [] }, // Has repeated E
+  { primary: 'KNEEL', bonus: [] }, // Has repeated E
+  { primary: 'LUNAR', bonus: ['ULNA'] },
+  { primary: 'MARSH', bonus: ['MARS', 'SHAM'] },
+  { primary: 'NOBLE', bonus: ['BONE', 'LONE', 'LOBE'] },
+  { primary: 'ORBIT', bonus: ['TRIO', 'RIOT'] },
+  { primary: 'PLUME', bonus: ['LUMP', 'MULE'] },
+  { primary: 'QUILT', bonus: ['QUIT', 'LIT'] },
+  { primary: 'RIDGE', bonus: ['RIDE', 'DIRE', 'GRID'] },
+  { primary: 'STORM', bonus: ['SORT', 'MOST'] },
+  { primary: 'TORCH', bonus: [] },
+  { primary: 'VIVID', bonus: [] }, // Has repeated V and I
+  { primary: 'SPEED', bonus: [] }, // Has repeated E
+  { primary: 'TEETH', bonus: [] }, // Has repeated E and T
 
-  // HARD (6-letter words) - 20 words
-  { letters: ['B', 'R', 'E', 'Z'], words: ['BREEZE'] },
-  { letters: ['C', 'A', 'N', 'Y', 'O'], words: ['CANYON', 'CANOPY'] },
-  { letters: ['D', 'A', 'Z', 'L', 'E'], words: ['DAZZLE', 'DAZE', 'ZEAL', 'LEAD'] },
-  { letters: ['E', 'M', 'R', 'G'], words: ['EMERGE'] },
-  { letters: ['F', 'R', 'O', 'Z', 'E', 'N'], words: ['FROZEN', 'FROZE', 'ZONE', 'FORE'] },
-  { letters: ['G', 'E', 'N', 'T', 'L'], words: ['GENTLE', 'GLEE', 'TEEN', 'LENT'] },
-  { letters: ['H', 'O', 'L', 'W'], words: ['HOLLOW', 'HOWL', 'LOW', 'OWL'] },
-  { letters: ['I', 'G', 'N', 'T', 'E'], words: ['IGNITE', 'TINGE', 'GENT'] },
-  { letters: ['J', 'I', 'G', 'S', 'A', 'W'], words: ['JIGSAW', 'JAWS', 'WIGS', 'SWIG'] },
-  { letters: ['K', 'I', 'N', 'D', 'L', 'E'], words: ['KINDLE', 'LIKED', 'INKED', 'KIND'] },
-  { letters: ['L', 'A', 'U', 'N', 'C', 'H'], words: ['LAUNCH', 'LUNCH', 'CLAN', 'HAUL'] },
-  { letters: ['M', 'E', 'A', 'D', 'O', 'W'], words: ['MEADOW', 'MADE', 'DAME', 'OWED'] },
-  { letters: ['N', 'I', 'M', 'B', 'L', 'E'], words: ['NIMBLE', 'LIMB', 'BILE', 'MILE'] },
-  { letters: ['O', 'R', 'C', 'H', 'I', 'D'], words: ['ORCHID', 'CHOIR', 'CORD', 'RICH'] },
-  { letters: ['P', 'I', 'L', 'O', 'W'], words: ['PILLOW', 'WILL', 'PILL', 'ILL'] },
-  { letters: ['Q', 'U', 'A', 'R', 'T', 'Z'], words: ['QUARTZ', 'QUART', 'RATZ'] },
-  { letters: ['R', 'I', 'D', 'L', 'E'], words: ['RIDDLE', 'IDLE', 'RIDE', 'DIRE'] },
-  { letters: ['S', 'H', 'I', 'E', 'L', 'D'], words: ['SHIELD', 'HIDES', 'SLIDE', 'SHIED'] },
-  { letters: ['T', 'H', 'R', 'I', 'V', 'E'], words: ['THRIVE', 'RIVET', 'HIVE', 'TIRE'] },
-  { letters: ['U', 'N', 'W', 'I', 'D'], words: ['UNWIND', 'WIND', 'WDIN'] },
+  // HARD (6-letter words) - many with repeated letters
+  { primary: 'BREEZE', bonus: [] }, // E repeated 3 times
+  { primary: 'CANYON', bonus: [] },
+  { primary: 'DAZZLE', bonus: ['DAZE', 'ZEAL'] }, // Z repeated
+  { primary: 'EMERGE', bonus: [] }, // E repeated 3 times
+  { primary: 'FROZEN', bonus: ['FROZE', 'ZONE'] },
+  { primary: 'GENTLE', bonus: ['TEEN', 'LENT'] }, // E repeated
+  { primary: 'HOLLOW', bonus: ['HOWL', 'LOW', 'OWL'] }, // L and O repeated
+  { primary: 'IGNITE', bonus: ['TINGE'] }, // I repeated
+  { primary: 'JIGSAW', bonus: ['JAWS', 'WIGS', 'SWIG'] },
+  { primary: 'KINDLE', bonus: ['KIND'] },
+  { primary: 'LAUNCH', bonus: ['LUNCH', 'CLAN', 'HAUL'] },
+  { primary: 'MEADOW', bonus: ['MADE', 'DAME', 'OWED'] },
+  { primary: 'NIMBLE', bonus: ['LIMB', 'BILE', 'MILE'] },
+  { primary: 'ORCHID', bonus: ['CHOIR', 'CORD', 'RICH'] },
+  { primary: 'PILLOW', bonus: ['WILL', 'PILL', 'ILL'] }, // L repeated 3 times
+  { primary: 'QUARTZ', bonus: ['QUART'] },
+  { primary: 'RIDDLE', bonus: ['IDLE', 'RIDE', 'DIRE'] }, // D repeated
+  { primary: 'SHIELD', bonus: ['SLIDE'] },
+  { primary: 'THRIVE', bonus: ['HIVE', 'TIRE'] },
+  { primary: 'COFFEE', bonus: [] }, // F and E repeated
+  { primary: 'TOFFEE', bonus: [] }, // F and E repeated
+  { primary: 'BANANA', bonus: [] }, // A and N repeated
+  { primary: 'PEPPER', bonus: [] }, // P and E repeated
+  { primary: 'LETTER', bonus: [] }, // T and E repeated
+  { primary: 'BETTER', bonus: [] }, // T and E repeated
+  { primary: 'BUTTER', bonus: [] }, // T repeated
 ];
 
+// Interface for tracking letter instances
+interface LetterInstance {
+  letter: string;
+  id: number; // Unique ID for each instance
+}
+
 export const WordConnect = ({ onAnswer, playSound, triggerHaptic, onScreenShake, difficulty = 1 }: WordConnectProps) => {
-  const [currentSet, setCurrentSet] = useState(() => {
-    const setIndex = Math.floor(Math.random() * WORD_SETS.length);
-    return WORD_SETS[setIndex];
-  });
+  const [currentSetIndex, setCurrentSetIndex] = useState(() => Math.floor(Math.random() * WORD_SETS.length));
+  const currentSet = WORD_SETS[currentSetIndex];
   
   const [selectedIndices, setSelectedIndices] = useState<number[]>([]);
   const [foundWords, setFoundWords] = useState<string[]>([]);
@@ -104,18 +116,46 @@ export const WordConnect = ({ onAnswer, playSound, triggerHaptic, onScreenShake,
   const containerRef = useRef<HTMLDivElement>(null);
   const letterRefs = useRef<(HTMLDivElement | null)[]>([]);
 
-  const letters = currentSet.letters;
-  const targetWord = currentSet.words[0]; // Main word to find
-  const bonusWords = currentSet.words.slice(1);
+  const targetWord = currentSet.primary;
+  const bonusWords = currentSet.bonus;
 
-  // Calculate letter positions in a circle
+  // Generate letter instances from the target word (including all duplicates)
+  const letterInstances: LetterInstance[] = useMemo(() => {
+    return targetWord.split('').map((letter, index) => ({
+      letter,
+      id: index, // Each position in the word gets a unique ID
+    }));
+  }, [targetWord]);
+
+  // Shuffle the letters for display (but keep the mapping)
+  const shuffledLetters = useMemo(() => {
+    const shuffled = [...letterInstances];
+    // Fisher-Yates shuffle
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled;
+  }, [letterInstances]);
+
+  // Calculate letter positions in a circle with dynamic sizing
   const getLetterPosition = (index: number, total: number) => {
     const angle = (index * 2 * Math.PI) / total - Math.PI / 2;
-    const radius = 90;
+    // Reduce radius for more letters to maintain touch target spacing
+    const baseRadius = 90;
+    const radius = total > 6 ? Math.max(70, baseRadius - (total - 6) * 8) : baseRadius;
     return {
       x: Math.cos(angle) * radius,
       y: Math.sin(angle) * radius,
     };
+  };
+
+  // Get letter button size based on count
+  const getLetterSize = (total: number) => {
+    if (total <= 5) return 56; // 14 * 4 = 56px (w-14)
+    if (total <= 6) return 52;
+    if (total <= 7) return 48;
+    return 44; // Minimum touch target size
   };
 
   // Check if point is inside letter circle
@@ -127,7 +167,7 @@ export const WordConnect = ({ onAnswer, playSound, triggerHaptic, onScreenShake,
         const centerX = rect.left + rect.width / 2;
         const centerY = rect.top + rect.height / 2;
         const distance = Math.sqrt(Math.pow(clientX - centerX, 2) + Math.pow(clientY - centerY, 2));
-        if (distance < 35) {
+        if (distance < 30) {
           return i;
         }
       }
@@ -138,7 +178,7 @@ export const WordConnect = ({ onAnswer, playSound, triggerHaptic, onScreenShake,
   const handlePointerDown = (index: number) => {
     setIsDragging(true);
     setSelectedIndices([index]);
-    setCurrentWord(letters[index]);
+    setCurrentWord(shuffledLetters[index].letter);
     playSound('tick');
     triggerHaptic('light');
   };
@@ -149,11 +189,11 @@ export const WordConnect = ({ onAnswer, playSound, triggerHaptic, onScreenShake,
     const letterIndex = getLetterAtPoint(e.clientX, e.clientY);
     if (letterIndex !== null && !selectedIndices.includes(letterIndex)) {
       setSelectedIndices(prev => [...prev, letterIndex]);
-      setCurrentWord(prev => prev + letters[letterIndex]);
+      setCurrentWord(prev => prev + shuffledLetters[letterIndex].letter);
       playSound('tick');
       triggerHaptic('light');
     }
-  }, [isDragging, selectedIndices, letters, playSound, triggerHaptic]);
+  }, [isDragging, selectedIndices, shuffledLetters, playSound, triggerHaptic]);
 
   const handlePointerUp = useCallback(() => {
     if (!isDragging) return;
@@ -172,7 +212,7 @@ export const WordConnect = ({ onAnswer, playSound, triggerHaptic, onScreenShake,
         onAnswer(true, word.length * 5);
         // Load new word set
         const newIndex = Math.floor(Math.random() * WORD_SETS.length);
-        setCurrentSet(WORD_SETS[newIndex]);
+        setCurrentSetIndex(newIndex);
         setFoundWords([]);
         setIsCorrect(null);
       }, 600);
@@ -203,9 +243,10 @@ export const WordConnect = ({ onAnswer, playSound, triggerHaptic, onScreenShake,
   const getLinePath = () => {
     if (selectedIndices.length < 2) return '';
     
+    const total = shuffledLetters.length;
     let path = '';
     selectedIndices.forEach((idx, i) => {
-      const pos = getLetterPosition(idx, letters.length);
+      const pos = getLetterPosition(idx, total);
       if (i === 0) {
         path = `M ${pos.x + 120} ${pos.y + 120}`;
       } else {
@@ -215,16 +256,19 @@ export const WordConnect = ({ onAnswer, playSound, triggerHaptic, onScreenShake,
     return path;
   };
 
+  const letterSize = getLetterSize(shuffledLetters.length);
+  const halfSize = letterSize / 2;
+
   return (
     <div className="flex flex-col items-center justify-center h-full px-6 py-8">
-      {/* Target word hint */}
+      {/* Target word hint - empty slots matching word length exactly */}
       <motion.div 
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         className="mb-8"
       >
         <div className="flex gap-2 justify-center">
-          {targetWord.split('').map((_, i) => (
+          {targetWord.split('').map((char, i) => (
             <motion.div
               key={i}
               className="w-10 h-10 rounded-lg border-2 flex items-center justify-center text-xl font-bold"
@@ -237,7 +281,7 @@ export const WordConnect = ({ onAnswer, playSound, triggerHaptic, onScreenShake,
                   : 'hsl(0 0% 8%)',
               }}
             >
-              {foundWords.includes(targetWord) ? targetWord[i] : ''}
+              {foundWords.includes(targetWord) ? char : ''}
             </motion.div>
           ))}
         </div>
@@ -302,19 +346,21 @@ export const WordConnect = ({ onAnswer, playSound, triggerHaptic, onScreenShake,
           />
         </div>
 
-        {/* Letters */}
-        {letters.map((letter, index) => {
-          const pos = getLetterPosition(index, letters.length);
+        {/* Letters - each instance is unique and selectable independently */}
+        {shuffledLetters.map((letterInstance, index) => {
+          const pos = getLetterPosition(index, shuffledLetters.length);
           const isSelected = selectedIndices.includes(index);
           
           return (
             <motion.div
-              key={index}
+              key={`${letterInstance.letter}-${letterInstance.id}`}
               ref={el => letterRefs.current[index] = el}
-              className="absolute w-14 h-14 rounded-full flex items-center justify-center cursor-pointer select-none"
+              className="absolute rounded-full flex items-center justify-center cursor-pointer select-none"
               style={{
-                left: `calc(50% + ${pos.x}px - 28px)`,
-                top: `calc(50% + ${pos.y}px - 28px)`,
+                width: letterSize,
+                height: letterSize,
+                left: `calc(50% + ${pos.x}px - ${halfSize}px)`,
+                top: `calc(50% + ${pos.y}px - ${halfSize}px)`,
                 background: isSelected 
                   ? 'linear-gradient(135deg, hsl(25 90% 55%), hsl(45 90% 55%))'
                   : 'hsl(0 0% 12%)',
@@ -325,8 +371,11 @@ export const WordConnect = ({ onAnswer, playSound, triggerHaptic, onScreenShake,
               transition={{ type: 'spring', stiffness: 400, damping: 20 }}
               onPointerDown={() => handlePointerDown(index)}
             >
-              <span className={`text-2xl font-black ${isSelected ? 'text-black' : 'text-foreground'}`}>
-                {letter}
+              <span 
+                className={`font-black ${isSelected ? 'text-black' : 'text-foreground'}`}
+                style={{ fontSize: letterSize > 48 ? '1.5rem' : '1.25rem' }}
+              >
+                {letterInstance.letter}
               </span>
             </motion.div>
           );
