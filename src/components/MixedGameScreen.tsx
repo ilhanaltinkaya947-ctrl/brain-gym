@@ -167,6 +167,8 @@ export const MixedGameScreen = ({
     }
   }, [isGameOver, score, streak, correct, wrong, onGameEnd, adaptiveState.peakGameSpeed, getSessionDuration, sessionXP]);
 
+  // Note: Continue granted effect moved below selectNextGame definition
+
   // Update sound pitch based on streak
   useEffect(() => {
     setStreak(streak);
