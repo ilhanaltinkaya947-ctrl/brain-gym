@@ -8,25 +8,46 @@ interface Node {
   vy: number;
 }
 
-// Static CSS-only background for mobile - no JS animation
+// Ambient CSS-only background for mobile with subtle float animations
 function MobileBackground() {
+  const dots = [
+    { top: '10%', left: '18%', size: 2, opacity: 0.4, delay: '0s', dur: '8s' },
+    { top: '22%', left: '72%', size: 1.5, opacity: 0.3, delay: '1s', dur: '10s' },
+    { top: '35%', left: '8%', size: 2, opacity: 0.25, delay: '2s', dur: '9s' },
+    { top: '42%', left: '85%', size: 1.5, opacity: 0.35, delay: '0.5s', dur: '11s' },
+    { top: '55%', left: '30%', size: 2, opacity: 0.3, delay: '3s', dur: '8s' },
+    { top: '62%', left: '65%', size: 1.5, opacity: 0.4, delay: '1.5s', dur: '10s' },
+    { top: '75%', left: '12%', size: 2, opacity: 0.25, delay: '2.5s', dur: '9s' },
+    { top: '78%', left: '55%', size: 1.5, opacity: 0.3, delay: '0s', dur: '11s' },
+    { top: '88%', left: '40%', size: 2, opacity: 0.2, delay: '1s', dur: '8s' },
+    { top: '15%', left: '48%', size: 1.5, opacity: 0.3, delay: '3.5s', dur: '10s' },
+    { top: '50%', left: '50%', size: 2, opacity: 0.15, delay: '2s', dur: '12s' },
+    { top: '92%', left: '78%', size: 1.5, opacity: 0.25, delay: '0.5s', dur: '9s' },
+  ];
+
   return (
-    <div 
+    <div
       className="fixed inset-0 pointer-events-none"
-      style={{ 
+      style={{
         zIndex: -1,
         background: 'linear-gradient(180deg, hsl(270, 30%, 8%) 0%, hsl(260, 35%, 6%) 50%, hsl(250, 40%, 4%) 100%)',
       }}
     >
-      {/* Static decorative dots - CSS only */}
-      <div className="absolute inset-0 opacity-20">
-        <div className="absolute w-1 h-1 bg-neon-cyan/50 rounded-full" style={{ top: '15%', left: '20%' }} />
-        <div className="absolute w-1 h-1 bg-neon-cyan/40 rounded-full" style={{ top: '25%', left: '70%' }} />
-        <div className="absolute w-1 h-1 bg-neon-cyan/30 rounded-full" style={{ top: '45%', left: '15%' }} />
-        <div className="absolute w-1 h-1 bg-neon-cyan/50 rounded-full" style={{ top: '60%', left: '80%' }} />
-        <div className="absolute w-1 h-1 bg-neon-cyan/40 rounded-full" style={{ top: '75%', left: '35%' }} />
-        <div className="absolute w-1 h-1 bg-neon-cyan/30 rounded-full" style={{ top: '85%', left: '60%' }} />
-      </div>
+      {dots.map((d, i) => (
+        <div
+          key={i}
+          className="absolute rounded-full"
+          style={{
+            top: d.top,
+            left: d.left,
+            width: d.size,
+            height: d.size,
+            backgroundColor: `rgba(0, 212, 255, ${d.opacity})`,
+            boxShadow: `0 0 ${d.size * 3}px rgba(0, 212, 255, ${d.opacity * 0.5})`,
+            animation: `neuralFloat ${d.dur} ease-in-out ${d.delay} infinite alternate`,
+          }}
+        />
+      ))}
     </div>
   );
 }

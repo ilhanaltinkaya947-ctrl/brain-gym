@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Dashboard } from '../components/Dashboard';
-import { SplashScreen } from '../components/SplashScreen';
 import { MixedGameScreen } from '../components/MixedGameScreen';
 import { ResultScreen } from '../components/ResultScreen';
 import { NeuralBackground } from '../components/NeuralBackground';
@@ -59,7 +58,6 @@ const Index = () => {
   const [showOnboarding, setShowOnboarding] = useState(() => {
     return !localStorage.getItem('axon-hasSeenOnboarding');
   });
-  const [showSplash, setShowSplash] = useState(!showOnboarding); // Skip splash if showing onboarding
   const [currentScreen, setCurrentScreen] = useState<Screen>('dashboard');
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [modeSelectionOpen, setModeSelectionOpen] = useState(false);
@@ -453,15 +451,6 @@ const Index = () => {
      );
    }
 
-   // Splash screen - early return for cleaner architecture
-   if (showSplash) {
-     return (
-       <AnimatePresence>
-         <SplashScreen onComplete={() => setShowSplash(false)} />
-       </AnimatePresence>
-     );
-   }
- 
    return (
      <div className="min-h-screen overflow-hidden relative">
        <NeuralBackground />
@@ -470,10 +459,10 @@ const Index = () => {
          {currentScreen === 'dashboard' && (
           <motion.div
             key="dashboard"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0, x: -100 }}
-            transition={{ duration: 0.3 }}
+            initial={{ opacity: 0, scale: 0.96 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, x: -60, scale: 0.97 }}
+            transition={{ type: 'spring', stiffness: 260, damping: 25 }}
           >
            <Dashboard
              onStartGame={handleStartGame}
@@ -489,10 +478,10 @@ const Index = () => {
          {currentScreen === 'game' && (
           <motion.div
             key="game"
-            initial={{ opacity: 0, x: 100 }}
+            initial={{ opacity: 0, x: 80 }}
             animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -100 }}
-            transition={{ duration: 0.3 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 28 }}
             className="h-screen"
           >
              <MixedGameScreen
@@ -517,10 +506,10 @@ const Index = () => {
          {currentScreen === 'result' && (
           <motion.div
             key="result"
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.3 }}
+            initial={{ opacity: 0, y: 40, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -30 }}
+            transition={{ type: 'spring', stiffness: 200, damping: 22 }}
           >
             <ResultScreen
               score={lastScore}
