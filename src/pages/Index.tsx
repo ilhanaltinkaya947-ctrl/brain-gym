@@ -11,6 +11,9 @@ import { ModeSelectionOverlay } from '../components/ModeSelectionOverlay';
 import { useGameEngine } from '../hooks/useGameEngine';
 import { useSounds } from '../hooks/useSounds';
 import { GameConfig, DEFAULT_CONFIG, MiniGameType, MIXABLE_GAMES } from '@/types/game';
+import { AdSkipModal } from '../components/AdSkipModal';
+import { ContinueModal } from '../components/ContinueModal';
+import { AD_CONFIG } from '@/utils/adManager';
 
 type Screen = 'dashboard' | 'game' | 'result';
 
@@ -135,6 +138,24 @@ const Index = () => {
   const [lastPreviousBest, setLastPreviousBest] = useState(0);
   const [selectedStartTier, setSelectedStartTier] = useState(1);
 
+  // Ad system state
+  const [adState, setAdState] = useState(() => {
+    const saved = localStorage.getItem('axon-ad-state');
+    if (saved) {
+      try { return JSON.parse(saved); } catch { /* ignore */ }
+    }
+    return { gamesPlayedSinceLastAd: 0, totalAdsWatched: 0, totalAdsSkipped: 0, xpSpentOnSkips: 0 };
+  });
+  const [showAdSkipModal, setShowAdSkipModal] = useState(false);
+  const [pendingNavigation, setPendingNavigation] = useState<'playAgain' | 'home' | null>(null);
+
+  // Continue modal state (Endless mode)
+  const [showContinueModal, setShowContinueModal] = useState(false);
+  const [continueGranted, setContinueGranted] = useState(false);
+  const [pendingDeathData, setPendingDeathData] = useState<{
+    score: number; streak: number; correct: number; wrong: number; sessionXP: number;
+  } | null>(null);
+
   // Derived state: brain charge based on today's play
   const brainCharge = useMemo(() => {
     const today = new Date().toDateString();
@@ -160,6 +181,11 @@ const Index = () => {
   useEffect(() => {
     localStorage.setItem('axon-user-stats', JSON.stringify(userStats));
   }, [userStats]);
+
+  // Persist ad state
+  useEffect(() => {
+    localStorage.setItem('axon-ad-state', JSON.stringify(adState));
+  }, [adState]);
 
   const handleOpenSettings = () => {
     playSound('tick');
@@ -261,21 +287,155 @@ const Index = () => {
       };
     });
 
+    // Increment games played for ad frequency tracking
+    setAdState((prev: typeof adState) => ({ ...prev, gamesPlayedSinceLastAd: prev.gamesPlayedSinceLastAd + 1 }));
+
     setCurrentScreen('result');
   }, [gameConfig.mode, gameStartTime, playSound, triggerHaptic]);
+
+  // Endless mode: handle continue request from MixedGameScreen
+  const handleRequestContinue = useCallback((score: number, streak: number, correct: number, wrong: number, sessionXP: number) => {
+    setPendingDeathData({ score, streak, correct, wrong, sessionXP });
+    setShowContinueModal(true);
+  }, []);
+
+  const handleContinueWithAd = useCallback(() => {
+    setShowContinueModal(false);
+    setPendingDeathData(null);
+    setContinueGranted(true);
+    setAdState((prev: typeof adState) => ({ ...prev, totalAdsWatched: prev.totalAdsWatched + 1 }));
+    // Reset continueGranted after a tick so it can be detected as a change
+    setTimeout(() => setContinueGranted(false), 100);
+  }, []);
+
+  const handleContinueWithXP = useCallback(() => {
+    setShowContinueModal(false);
+    setPendingDeathData(null);
+    // Deduct XP
+    setUserStats(prev => ({
+      ...prev,
+      totalXP: Math.max(0, prev.totalXP - AD_CONFIG.CONTINUE_COST),
+    }));
+    setAdState((prev: typeof adState) => ({
+      ...prev,
+      totalAdsSkipped: prev.totalAdsSkipped + 1,
+      xpSpentOnSkips: prev.xpSpentOnSkips + AD_CONFIG.CONTINUE_COST,
+    }));
+    setContinueGranted(true);
+    setTimeout(() => setContinueGranted(false), 100);
+  }, []);
+
+  const handleEndRun = useCallback(() => {
+    setShowContinueModal(false);
+    // Trigger actual game over with the pending death data
+    if (pendingDeathData) {
+      const { score, streak, correct, wrong, sessionXP } = pendingDeathData;
+      setPendingDeathData(null);
+      // Manually set last game results and go to result screen
+      setWasEndlessMode(true);
+      setLastScore(score);
+      setLastStreak(streak);
+      setLastCorrect(correct);
+      setLastWrong(wrong);
+      const xpGained = sessionXP;
+      setLastXPGained(xpGained);
+      const sessionDuration = Math.floor((Date.now() - gameStartTime) / 1000);
+      setLastSessionDuration(sessionDuration);
+      setLastPreviousBest(userStats.endlessBestStreak);
+
+      playSound('lose');
+      triggerHaptic('medium');
+
+      // Update stats
+      const today = new Date().toDateString();
+      setUserStats(prev => {
+        const isNewDay = prev.lastPlayedDate !== today;
+        let newDayStreak = prev.dayStreak;
+        if (isNewDay) {
+          const yesterday = new Date();
+          yesterday.setDate(yesterday.getDate() - 1);
+          newDayStreak = prev.lastPlayedDate === yesterday.toDateString() ? prev.dayStreak + 1 : 1;
+        }
+        const isNewHigh = streak > prev.endlessBestStreak;
+        setIsNewHighScore(isNewHigh);
+        return {
+          ...prev,
+          endlessBestStreak: Math.max(prev.endlessBestStreak, streak),
+          totalXP: prev.totalXP + xpGained,
+          totalGamesPlayed: prev.totalGamesPlayed + 1,
+          totalCorrectAnswers: prev.totalCorrectAnswers + correct,
+          lastPlayedDate: today,
+          dayStreak: newDayStreak,
+        };
+      });
+
+      setAdState((prev: typeof adState) => ({ ...prev, gamesPlayedSinceLastAd: prev.gamesPlayedSinceLastAd + 1 }));
+      setCurrentScreen('result');
+    }
+  }, [pendingDeathData, gameStartTime, userStats.endlessBestStreak, playSound, triggerHaptic]);
 
   const handleQuit = () => {
     setCurrentScreen('dashboard');
   };
 
+  // Check if ad should be shown before navigating
+  const checkAdBeforeNav = useCallback((destination: 'playAgain' | 'home') => {
+    if (adState.gamesPlayedSinceLastAd >= AD_CONFIG.FREQUENCY) {
+      setPendingNavigation(destination);
+      setShowAdSkipModal(true);
+    } else {
+      if (destination === 'playAgain') {
+        setGameStartTime(Date.now());
+        setCurrentScreen('game');
+      } else {
+        setCurrentScreen('dashboard');
+      }
+    }
+  }, [adState.gamesPlayedSinceLastAd]);
+
+  const handleAdWatched = useCallback(() => {
+    setShowAdSkipModal(false);
+    setAdState((prev: typeof adState) => ({
+      ...prev,
+      gamesPlayedSinceLastAd: 0,
+      totalAdsWatched: prev.totalAdsWatched + 1,
+    }));
+    if (pendingNavigation === 'playAgain') {
+      setGameStartTime(Date.now());
+      setCurrentScreen('game');
+    } else {
+      setCurrentScreen('dashboard');
+    }
+    setPendingNavigation(null);
+  }, [pendingNavigation]);
+
+  const handleAdSkippedWithXP = useCallback(() => {
+    setShowAdSkipModal(false);
+    setUserStats(prev => ({
+      ...prev,
+      totalXP: Math.max(0, prev.totalXP - AD_CONFIG.SKIP_COST),
+    }));
+    setAdState((prev: typeof adState) => ({
+      ...prev,
+      gamesPlayedSinceLastAd: 0,
+      totalAdsSkipped: prev.totalAdsSkipped + 1,
+      xpSpentOnSkips: prev.xpSpentOnSkips + AD_CONFIG.SKIP_COST,
+    }));
+    if (pendingNavigation === 'playAgain') {
+      setGameStartTime(Date.now());
+      setCurrentScreen('game');
+    } else {
+      setCurrentScreen('dashboard');
+    }
+    setPendingNavigation(null);
+  }, [pendingNavigation]);
+
   const handlePlayAgain = () => {
-    // Record new game start time
-    setGameStartTime(Date.now());
-    setCurrentScreen('game');
+    checkAdBeforeNav('playAgain');
   };
 
   const handleGoHome = () => {
-    setCurrentScreen('dashboard');
+    checkAdBeforeNav('home');
   };
 
   // Derived: display high score based on mode
@@ -347,6 +507,8 @@ const Index = () => {
                bestScore={userStats.classicHighScore}
                bestStreak={userStats.endlessBestStreak}
                startTier={selectedStartTier}
+               onRequestContinue={handleRequestContinue}
+               continueGranted={continueGranted}
              />
           </motion.div>
         )}
@@ -390,6 +552,25 @@ const Index = () => {
         isOpen={modeSelectionOpen}
         onClose={() => setModeSelectionOpen(false)}
         onSelectMode={handleSelectMode}
+      />
+
+      {/* Ad Skip Modal — shows every 3rd game when navigating from results */}
+      <AdSkipModal
+        isOpen={showAdSkipModal}
+        currentXP={userStats.totalXP}
+        onWatchAd={handleAdWatched}
+        onSkipWithXP={handleAdSkippedWithXP}
+      />
+
+      {/* Continue Modal — Endless mode second chance */}
+      <ContinueModal
+        isOpen={showContinueModal}
+        currentXP={userStats.totalXP}
+        currentStreak={pendingDeathData?.streak ?? 0}
+        currentScore={pendingDeathData?.score ?? 0}
+        onContinueWithAd={handleContinueWithAd}
+        onContinueWithXP={handleContinueWithXP}
+        onEndRun={handleEndRun}
       />
     </div>
   );

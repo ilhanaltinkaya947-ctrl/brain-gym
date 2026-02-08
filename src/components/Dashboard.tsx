@@ -138,7 +138,7 @@ export const Dashboard = ({
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.4, type: 'spring', stiffness: 100 }}
-        className="pt-4 pb-4 z-10"
+        className="pt-4 pb-2 z-10"
       >
         <motion.button
           whileHover={{ scale: 1.02, y: -2 }}
@@ -163,6 +163,11 @@ export const Dashboard = ({
           Start Training
         </motion.button>
       </motion.div>
+
+      {/* TODO: Replace with Despia AdMob banner */}
+      <div className="mt-3 mb-2 h-[50px] w-full rounded-xl border border-dashed border-white/20 bg-white/5 flex items-center justify-center z-10">
+        <span className="text-xs text-white/30">Ad Space</span>
+      </div>
     </div>
   );
 };

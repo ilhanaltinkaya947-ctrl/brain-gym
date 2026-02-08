@@ -6,11 +6,15 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import { initialize as initializeDespia } from "@/utils/despia";
+import { initializeAds } from "@/utils/adManager";
 
 const queryClient = new QueryClient();
 
 // Initialize Despia native features on app load
 initializeDespia();
+
+// Initialize ad system
+initializeAds();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>

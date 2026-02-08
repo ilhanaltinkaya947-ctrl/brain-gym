@@ -31,6 +31,8 @@ interface MixedGameScreenProps {
   bestScore: number;
   bestStreak: number;
   startTier?: number;
+  onRequestContinue?: (score: number, streak: number, correct: number, wrong: number, sessionXP: number) => void;
+  continueGranted?: boolean;
 }
 
 const CLASSIC_DURATION = 180; // 3 minutes
@@ -48,6 +50,8 @@ export const MixedGameScreen = ({
   bestScore,
   bestStreak,
   startTier = 1,
+  onRequestContinue,
+  continueGranted,
 }: MixedGameScreenProps) => {
   // Always use MIXABLE_GAMES directly for random game selection to ensure new games appear
   const [currentGame, setCurrentGame] = useState<MiniGameType>(() => {
@@ -73,6 +77,8 @@ export const MixedGameScreen = ({
   const [hasTriggeredNewRecord, setHasTriggeredNewRecord] = useState(false);
   const [floatingXP, setFloatingXP] = useState<{ amount: number; key: number } | null>(null);
   const [showXPReset, setShowXPReset] = useState(false); // Visual feedback for XP reset
+  const [hasContinued, setHasContinued] = useState(false); // Track if continue was used this session
+  const [pendingDeath, setPendingDeath] = useState(false); // Waiting for continue decision
   
   // Calculate time elapsed for Classic mode (180 - timeLeft)
   const timeElapsed = mode === 'classic' ? CLASSIC_DURATION - timeLeft : undefined;
@@ -160,6 +166,17 @@ export const MixedGameScreen = ({
       onGameEnd(score, streak, correct, wrong, adaptiveState.peakGameSpeed, getSessionDuration(), sessionXP);
     }
   }, [isGameOver, score, streak, correct, wrong, onGameEnd, adaptiveState.peakGameSpeed, getSessionDuration, sessionXP]);
+
+  // Handle continue granted from parent (Endless mode second chance)
+  useEffect(() => {
+    if (continueGranted && pendingDeath) {
+      setPendingDeath(false);
+      setHasContinued(true);
+      // Resume: generate next question, keep streak and score
+      setCurrentGame(selectNextGame());
+      questionStartTimeRef.current = Date.now();
+    }
+  }, [continueGranted, pendingDeath, selectNextGame]);
 
   // Update sound pitch based on streak
   useEffect(() => {
@@ -258,6 +275,12 @@ export const MixedGameScreen = ({
       setCurrentGame(selectNextGame());
     } else {
       if (mode === 'endless') {
+        // Check if player can use continue (first death only)
+        if (!hasContinued && onRequestContinue) {
+          setPendingDeath(true);
+          onRequestContinue(score, streak, correct, wrong + 1, sessionXP);
+          return;
+        }
         // Sudden death - increment wrong before game over
         setWrong(prev => prev + 1);
         setIsGameOver(true);
