@@ -21,7 +21,7 @@ import { useAdaptiveEngine, AdaptivePhase } from '@/hooks/useAdaptiveEngine';
 interface MixedGameScreenProps {
   mode: GameMode;
   enabledGames: MiniGameType[];
-  generateMathQuestion: (streak?: number, mode?: GameMode) => MathQuestion;
+  generateMathQuestion: (streak?: number, mode?: GameMode, timeElapsed?: number) => MathQuestion;
   generateColorQuestion: () => ColorQuestion;
   onGameEnd: (score: number, streak: number, correct: number, wrong: number, peakSpeed?: number, duration?: number, sessionXP?: number) => void;
   onQuit: () => void;
@@ -74,9 +74,12 @@ export const MixedGameScreen = ({
   const [floatingXP, setFloatingXP] = useState<{ amount: number; key: number } | null>(null);
   const [showXPReset, setShowXPReset] = useState(false); // Visual feedback for XP reset
   
-  // Calculate current tier based on streak, respecting minimum starting tier
+  // Calculate time elapsed for Classic mode (180 - timeLeft)
+  const timeElapsed = mode === 'classic' ? CLASSIC_DURATION - timeLeft : undefined;
+  
+  // Calculate current tier based on streak, mode, and time elapsed
   // Streak >= 5 gives a +1 tier boost for difficulty
-  const calculatedTier = getDifficultyTier(streak, mode);
+  const calculatedTier = getDifficultyTier(streak, mode, timeElapsed);
   const streakBoost = streak >= 5 ? 1 : 0; // Combo mode boosts difficulty
   const currentTier = Math.min(5, Math.max(startTier, calculatedTier) + streakBoost);
   const tierName = getTierName(currentTier);
@@ -302,7 +305,7 @@ export const MixedGameScreen = ({
       case 'speedMath':
         return (
           <SpeedMath
-            generateQuestion={() => generateMathQuestion(streak, mode)}
+            generateQuestion={() => generateMathQuestion(streak, mode, timeElapsed)}
             onAnswer={handleAnswer}
             playSound={playSoundWithTier}
             triggerHaptic={triggerHaptic}

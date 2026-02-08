@@ -92,17 +92,66 @@ const superscript = (n: number): string => {
   return String(n).split('').map(d => superscripts[d] || d).join('');
 };
 
-// Calculate difficulty tier based on streak and mode (5-tier system)
-export const getDifficultyTier = (streak: number, mode: 'classic' | 'endless'): number => {
+/**
+ * Calculate difficulty tier based on streak, mode, and time elapsed.
+ * 
+ * NEW THRESHOLDS (slower progression):
+ * - Tier 1: streak 0-8
+ * - Tier 2: streak 9-18
+ * - Tier 3: streak 19-30
+ * - Tier 4: streak 31-45
+ * - Tier 5: streak 46+
+ * 
+ * CLASSIC MODE TIME CAPS:
+ * - 0:00-1:00 (first minute): Max Tier 2
+ * - 1:00-2:00 (second minute): Max Tier 3
+ * - 2:00-3:00 (final minute): Max Tier 4 (Tier 5 only at 40+ streak)
+ * 
+ * Endless mode ramps 1.5x faster via effective streak multiplier.
+ */
+export const getDifficultyTier = (
+  streak: number, 
+  mode: 'classic' | 'endless',
+  timeElapsed?: number
+): number => {
   // Endless ramps up 1.5x faster
   const multiplier = mode === 'endless' ? 1.5 : 1;
   const effectiveStreak = Math.floor(streak * multiplier);
   
-  if (effectiveStreak <= 5) return 1;   // Basics
-  if (effectiveStreak <= 12) return 2;  // Focus
-  if (effectiveStreak <= 20) return 3;  // Flow
-  if (effectiveStreak <= 30) return 4;  // Elite
-  return 5; // God Mode
+  // Calculate tier from streak with SLOWER thresholds
+  let calculatedTier: number;
+  if (effectiveStreak <= 8) {
+    calculatedTier = 1;   // Basics (streak 0-8)
+  } else if (effectiveStreak <= 18) {
+    calculatedTier = 2;   // Focus (streak 9-18)
+  } else if (effectiveStreak <= 30) {
+    calculatedTier = 3;   // Flow (streak 19-30)
+  } else if (effectiveStreak <= 45) {
+    calculatedTier = 4;   // Elite (streak 31-45)
+  } else {
+    calculatedTier = 5;   // God Mode (streak 46+)
+  }
+  
+  // For classic mode, cap the max tier based on time phase
+  if (mode === 'classic' && timeElapsed !== undefined) {
+    let maxTier: number;
+    
+    if (timeElapsed < 60) {
+      // First minute: Stay easy (Tier 1-2)
+      maxTier = 2;
+    } else if (timeElapsed < 120) {
+      // Second minute: Medium difficulty (Tier 2-3)
+      maxTier = 3;
+    } else {
+      // Final minute: Allow harder content (Tier 3-4)
+      // Tier 5 only at extreme streak (40+)
+      maxTier = streak >= 40 ? 5 : 4;
+    }
+    
+    return Math.min(calculatedTier, maxTier);
+  }
+  
+  return calculatedTier;
 };
 
 export const getDifficultyLabel = (tier: number): string => {
@@ -151,64 +200,130 @@ export const useGameEngine = (initialMode: 'classic' | 'endless' = 'classic') =>
     return available[Math.floor(Math.random() * available.length)];
   }, []);
 
-  const generateMathQuestion = useCallback((overrideStreak?: number, overrideMode?: 'classic' | 'endless'): MathQuestion => {
+  /**
+   * Generate a math question with gradual complexity within tiers.
+   * 
+   * TIER 1 EARLY (streak 0-4): Addition only, numbers 1-20
+   * TIER 1 LATE (streak 5-8): Addition AND subtraction, numbers 1-30
+   * TIER 2 EARLY (streak 9-13): Simple multiplication (up to 6x6)
+   * TIER 2 LATE (streak 14-18): Full multiplication (12x12), three-number add
+   * TIER 3 EARLY (streak 19-24): Division with small numbers
+   * TIER 3 LATE (streak 25-30): Mixed operations, larger numbers
+   * TIER 4: Percentages, squares, cubes, simple algebra
+   * TIER 5: Logs, factorials, modular arithmetic, power combos
+   */
+  const generateMathQuestion = useCallback((
+    overrideStreak?: number, 
+    overrideMode?: 'classic' | 'endless',
+    timeElapsed?: number
+  ): MathQuestion => {
     const effectiveStreak = overrideStreak !== undefined ? overrideStreak : gameState.streak;
     const effectiveMode = overrideMode !== undefined ? overrideMode : gameState.mode;
-    const tier = getDifficultyTier(effectiveStreak, effectiveMode);
+    const tier = getDifficultyTier(effectiveStreak, effectiveMode, timeElapsed);
+    
     let question: string;
     let answer: number;
 
     if (tier === 1) {
-      // TIER 1 "Basics": Simple addition/subtraction (1-50)
-      const ops = ['+', '-'];
-      const op = ops[Math.floor(Math.random() * ops.length)];
-      const a = Math.floor(Math.random() * 45) + 5;
-      const b = Math.floor(Math.random() * 40) + 5;
-      if (op === '+') {
+      // TIER 1: Basics - Addition and subtraction
+      // Early (streak 0-4): Addition only, small numbers
+      // Late (streak 5-8): Add subtraction, slightly larger numbers
+      const isEarly = effectiveStreak <= 4;
+      
+      if (isEarly) {
+        // Addition only with numbers 1-20
+        const a = Math.floor(Math.random() * 18) + 2;
+        const b = Math.floor(Math.random() * 15) + 1;
         answer = a + b;
         question = `${a} + ${b}`;
       } else {
-        const larger = Math.max(a, b);
-        const smaller = Math.min(a, b);
-        answer = larger - smaller;
-        question = `${larger} - ${smaller}`;
+        // Addition AND subtraction with numbers 1-30
+        const useAddition = Math.random() < 0.6; // Still favor addition
+        if (useAddition) {
+          const a = Math.floor(Math.random() * 25) + 5;
+          const b = Math.floor(Math.random() * 20) + 5;
+          answer = a + b;
+          question = `${a} + ${b}`;
+        } else {
+          const a = Math.floor(Math.random() * 25) + 15;
+          const b = Math.floor(Math.random() * 15) + 5;
+          answer = a - b;
+          question = `${a} - ${b}`;
+        }
       }
     } else if (tier === 2) {
-      // TIER 2 "Focus": Multiplication (up to 12x12) & three-number addition
-      const questionType = Math.random();
-      if (questionType < 0.5) {
-        // Multiplication
-        const a = Math.floor(Math.random() * 11) + 2;
-        const b = Math.floor(Math.random() * 11) + 2;
+      // TIER 2: Focus - Multiplication and three-number addition
+      // Early (streak 9-13): Simple multiplication up to 6×6
+      // Late (streak 14-18): Full multiplication up to 12×12, three-number add
+      const effectiveStreakForTier = effectiveMode === 'endless' 
+        ? Math.floor(effectiveStreak * 1.5) 
+        : effectiveStreak;
+      const isEarly = effectiveStreakForTier <= 13;
+      
+      if (isEarly) {
+        // Simple multiplication (2-6 × 2-6)
+        const a = Math.floor(Math.random() * 5) + 2;
+        const b = Math.floor(Math.random() * 5) + 2;
         answer = a * b;
         question = `${a} × ${b}`;
       } else {
-        // Three-number addition
-        const a = Math.floor(Math.random() * 30) + 10;
-        const b = Math.floor(Math.random() * 30) + 10;
-        const c = Math.floor(Math.random() * 20) + 5;
-        answer = a + b + c;
-        question = `${a} + ${b} + ${c}`;
+        const questionType = Math.random();
+        if (questionType < 0.6) {
+          // Full multiplication (up to 12×12)
+          const a = Math.floor(Math.random() * 11) + 2;
+          const b = Math.floor(Math.random() * 11) + 2;
+          answer = a * b;
+          question = `${a} × ${b}`;
+        } else {
+          // Three-number addition
+          const a = Math.floor(Math.random() * 25) + 10;
+          const b = Math.floor(Math.random() * 20) + 10;
+          const c = Math.floor(Math.random() * 15) + 5;
+          answer = a + b + c;
+          question = `${a} + ${b} + ${c}`;
+        }
       }
     } else if (tier === 3) {
-      // TIER 3 "Flow": Division & large-scale add/subtract (100-500)
-      const questionType = Math.random();
-      if (questionType < 0.4) {
-        // Division with clean results
-        const divisor = Math.floor(Math.random() * 10) + 2;
-        const quotient = Math.floor(Math.random() * 15) + 5;
+      // TIER 3: Flow - Division and mixed operations
+      // Early (streak 19-24): Division with small, clean numbers
+      // Late (streak 25-30): Mixed operations, larger numbers
+      const effectiveStreakForTier = effectiveMode === 'endless' 
+        ? Math.floor(effectiveStreak * 1.5) 
+        : effectiveStreak;
+      const isEarly = effectiveStreakForTier <= 24;
+      
+      if (isEarly) {
+        // Division with small, clean numbers
+        const divisor = Math.floor(Math.random() * 6) + 2; // 2-7
+        const quotient = Math.floor(Math.random() * 10) + 2; // 2-11
         const dividend = divisor * quotient;
         answer = quotient;
         question = `${dividend} ÷ ${divisor}`;
       } else {
-        // Large subtraction (100-500 range)
-        const a = Math.floor(Math.random() * 300) + 200;
-        const b = Math.floor(Math.random() * 150) + 50;
-        answer = a - b;
-        question = `${a} - ${b}`;
+        const questionType = Math.random();
+        if (questionType < 0.4) {
+          // Division with larger numbers
+          const divisor = Math.floor(Math.random() * 10) + 2;
+          const quotient = Math.floor(Math.random() * 15) + 5;
+          const dividend = divisor * quotient;
+          answer = quotient;
+          question = `${dividend} ÷ ${divisor}`;
+        } else if (questionType < 0.7) {
+          // Large subtraction (100-400 range)
+          const a = Math.floor(Math.random() * 250) + 150;
+          const b = Math.floor(Math.random() * 100) + 50;
+          answer = a - b;
+          question = `${a} - ${b}`;
+        } else {
+          // Two-digit multiplication
+          const a = Math.floor(Math.random() * 8) + 12; // 12-19
+          const b = Math.floor(Math.random() * 6) + 2;  // 2-7
+          answer = a * b;
+          question = `${a} × ${b}`;
+        }
       }
     } else if (tier === 4) {
-      // TIER 4 "Elite": Percentages, cubes, harder algebra, larger squares
+      // TIER 4 "Elite": Percentages, squares, cubes, simple algebra
       const questionType = Math.random();
       if (questionType < 0.25) {
         // Percentages: x% of y
@@ -217,27 +332,27 @@ export const useGameEngine = (initialMode: 'classic' | 'endless' = 'classic') =>
         answer = (percent / 100) * base;
         question = `${percent}% of ${base}`;
       } else if (questionType < 0.45) {
+        // Squares (common ones: 11-15)
+        const base = Math.floor(Math.random() * 5) + 11;
+        answer = base * base;
+        question = `${base}²`;
+      } else if (questionType < 0.6) {
         // Cubes of small numbers
         const cube = PERFECT_CUBES[Math.floor(Math.random() * PERFECT_CUBES.length)];
         answer = cube.result;
         question = `${cube.base}³`;
-      } else if (questionType < 0.65) {
-        // Harder algebra: ax + b = c (larger numbers)
-        const x = Math.floor(Math.random() * 12) + 3;
-        const a = Math.floor(Math.random() * 6) + 2;
-        const b = Math.floor(Math.random() * 25) + 5;
+      } else if (questionType < 0.8) {
+        // Simple algebra: ax + b = c
+        const x = Math.floor(Math.random() * 10) + 2;
+        const a = Math.floor(Math.random() * 5) + 2;
+        const b = Math.floor(Math.random() * 20) + 5;
         const c = a * x + b;
         answer = x;
         question = `${a}x + ${b} = ${c}`;
-      } else if (questionType < 0.85) {
-        // Larger squares (11-18)
-        const base = Math.floor(Math.random() * 8) + 11;
-        answer = base * base;
-        question = `${base}²`;
       } else {
-        // Large multiplication
-        const a = Math.floor(Math.random() * 15) + 12;
-        const b = Math.floor(Math.random() * 10) + 3;
+        // Larger multiplication
+        const a = Math.floor(Math.random() * 10) + 12;
+        const b = Math.floor(Math.random() * 8) + 4;
         answer = a * b;
         question = `${a} × ${b}`;
       }
@@ -352,13 +467,13 @@ export const useGameEngine = (initialMode: 'classic' | 'endless' = 'classic') =>
   }, []);
 
   const startGame = useCallback((mode: 'classic' | 'endless' = 'classic', startTier: number = 1) => {
-    // Calculate initial streak to match starting tier
-    // Tier 1: streak 0, Tier 2: streak 6, Tier 3: streak 13, Tier 4: streak 21, Tier 5: streak 31
-    const tierStreakMap: Record<number, number> = { 1: 0, 2: 6, 3: 13, 4: 21, 5: 31 };
+    // Calculate initial streak to match starting tier (using NEW thresholds)
+    // Tier 1: streak 0, Tier 2: streak 9, Tier 3: streak 19, Tier 4: streak 31, Tier 5: streak 46
+    const tierStreakMap: Record<number, number> = { 1: 0, 2: 9, 3: 19, 4: 31, 5: 46 };
     const initialStreak = tierStreakMap[startTier] || 0;
     
-    // God Tier (tier 4+) starts with 2.5x speed multiplier
-    const initialSpeedMultiplier = startTier >= 4 ? 2.5 : startTier === 3 ? 1.5 : 1.0;
+    // God Tier (tier 4+) starts with 2.0x speed multiplier (reduced from 2.5)
+    const initialSpeedMultiplier = startTier >= 4 ? 2.0 : startTier === 3 ? 1.4 : 1.0;
     
     setGameState({
       score: 0,
@@ -414,12 +529,14 @@ export const useGameEngine = (initialMode: 'classic' | 'endless' = 'classic') =>
       const basePoints = isCorrect ? (10 + speedBonus * 20 + difficultyBonus) * tierMultiplier : -25;
       const points = Math.floor(basePoints * (isCorrect ? streakMultiplier : 1));
       
-      // Adaptive difficulty and speed
+      // Adaptive difficulty and speed - SLOWER RAMP
       let newSpeed = prev.speedMultiplier;
       if (isCorrect) {
-        newSpeed = Math.min(3.0, prev.speedMultiplier + 0.04);
+        // Reduced from +0.04 to +0.025 for slower progression
+        newSpeed = Math.min(3.0, prev.speedMultiplier + 0.025);
       } else {
-        newSpeed = Math.max(0.8, prev.speedMultiplier * 0.85);
+        // Reduced penalty from x0.85 to x0.9 (less punishing)
+        newSpeed = Math.max(0.8, prev.speedMultiplier * 0.9);
       }
       
       const newDifficulty = Math.floor(newSpeed * 1.5);
