@@ -3,235 +3,313 @@ import { haptics } from '@/utils/despia';
 
 type SoundType = 'correct' | 'wrong' | 'tick' | 'start' | 'complete' | 'lose' | 'milestone' | 'heartbeat';
 
-// C Major Scale - Do Re Mi Fa Sol La Si Do (ascending)
-const C_MAJOR_SCALE = [
-  261.63,  // C4 - Do
-  293.66,  // D4 - Re
-  329.63,  // E4 - Mi
-  349.23,  // F4 - Fa
-  392.00,  // G4 - Sol
-  440.00,  // A4 - La
-  493.88,  // B4 - Si
-  523.25,  // C5 - Do (octave)
+// Pentatonic Scale - Always sounds pleasant and harmonious
+const PENTATONIC_SCALE = [
+  523.25,  // C5
+  587.33,  // D5
+  659.25,  // E5
+  783.99,  // G5
+  880.00,  // A5
+  1046.50, // C6 (octave)
 ];
 
-// Volume reduction for higher notes (ear-friendly)
-const NOTE_VOLUMES = [0.32, 0.30, 0.28, 0.26, 0.24, 0.22, 0.20, 0.18];
+// Master volume (0.6 as requested for overall softness)
+const MASTER_GAIN = 0.6;
 
 export const useSounds = (enabled: boolean = true) => {
   const audioContextRef = useRef<AudioContext | null>(null);
+  const masterGainRef = useRef<GainNode | null>(null);
   const streakRef = useRef(0);
 
   const getAudioContext = useCallback(() => {
     if (!audioContextRef.current) {
       audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+      // Create master gain node
+      masterGainRef.current = audioContextRef.current.createGain();
+      masterGainRef.current.gain.setValueAtTime(MASTER_GAIN, audioContextRef.current.currentTime);
+      masterGainRef.current.connect(audioContextRef.current.destination);
     }
     return audioContextRef.current;
   }, []);
+
+  const getMasterGain = useCallback(() => {
+    if (!masterGainRef.current) {
+      getAudioContext();
+    }
+    return masterGainRef.current!;
+  }, [getAudioContext]);
 
   const setStreak = useCallback((streak: number) => {
     streakRef.current = streak;
   }, []);
 
-  // Crystal clear piano-like note
-  const playPianoNote = useCallback((ctx: AudioContext, frequency: number, volume: number, startTime: number) => {
-    // Main tone (sine for purity)
-    const osc1 = ctx.createOscillator();
-    const gain1 = ctx.createGain();
-    osc1.type = 'sine';
-    osc1.frequency.setValueAtTime(frequency, startTime);
+  // Create a low-pass filtered sine tone for warmth
+  const createWarmTone = useCallback((
+    ctx: AudioContext,
+    frequency: number,
+    volume: number,
+    startTime: number,
+    duration: number,
+    attackTime: number = 0.02,
+    filterFreq: number = 2000
+  ) => {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    const filter = ctx.createBiquadFilter();
     
-    // Subtle harmonic (one octave up, quieter)
-    const osc2 = ctx.createOscillator();
-    const gain2 = ctx.createGain();
-    osc2.type = 'sine';
-    osc2.frequency.setValueAtTime(frequency * 2, startTime);
+    // Pure sine wave for warmth
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(frequency, startTime);
     
-    // Piano-like envelope: fast attack, medium decay, no sustain
-    gain1.gain.setValueAtTime(0, startTime);
-    gain1.gain.linearRampToValueAtTime(volume, startTime + 0.008); // 8ms attack
-    gain1.gain.exponentialRampToValueAtTime(volume * 0.5, startTime + 0.08);
-    gain1.gain.exponentialRampToValueAtTime(0.001, startTime + 0.35);
+    // Low-pass filter to remove harsh frequencies
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(filterFreq, startTime);
+    filter.Q.setValueAtTime(0.7, startTime); // Gentle resonance
     
-    // Harmonic envelope (faster decay)
-    gain2.gain.setValueAtTime(0, startTime);
-    gain2.gain.linearRampToValueAtTime(volume * 0.15, startTime + 0.005);
-    gain2.gain.exponentialRampToValueAtTime(0.001, startTime + 0.2);
+    // Soft envelope: gentle attack, smooth exponential decay
+    gain.gain.setValueAtTime(0, startTime);
+    gain.gain.linearRampToValueAtTime(volume, startTime + attackTime);
+    gain.gain.exponentialRampToValueAtTime(volume * 0.3, startTime + duration * 0.4);
+    gain.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
     
-    osc1.connect(gain1);
-    osc2.connect(gain2);
-    gain1.connect(ctx.destination);
-    gain2.connect(ctx.destination);
+    // Connect through filter to master gain
+    osc.connect(filter);
+    filter.connect(gain);
+    gain.connect(getMasterGain());
     
-    osc1.start(startTime);
-    osc2.start(startTime);
-    osc1.stop(startTime + 0.4);
-    osc2.stop(startTime + 0.25);
-  }, []);
+    osc.start(startTime);
+    osc.stop(startTime + duration + 0.05);
+    
+    return { osc, gain, filter };
+  }, [getMasterGain]);
 
-  // Dissonant "wrong" chord - minor second clash
-  const playDissonantChord = useCallback((ctx: AudioContext, startTime: number) => {
-    // Play two clashing notes (minor second interval = maximum dissonance)
-    const baseFreq = 220; // A3
-    const clashFreq = 233.08; // Bb3 (minor second above)
+  // Soft pentatonic note for correct answers
+  const playCorrectNote = useCallback((ctx: AudioContext, tier: number) => {
+    const time = ctx.currentTime;
     
-    [baseFreq, clashFreq].forEach((freq, i) => {
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      
-      osc.type = 'triangle'; // Softer than square but still "off"
-      osc.frequency.setValueAtTime(freq, startTime);
-      
-      // Slightly offset for even more "clang"
-      const noteTime = startTime + i * 0.015;
-      gain.gain.setValueAtTime(0, noteTime);
-      gain.gain.linearRampToValueAtTime(0.18, noteTime + 0.01);
-      gain.gain.exponentialRampToValueAtTime(0.001, noteTime + 0.25);
-      
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      
-      osc.start(noteTime);
-      osc.stop(noteTime + 0.3);
-    });
+    // Get note from pentatonic scale based on streak (always sounds good)
+    const noteIndex = streakRef.current % PENTATONIC_SCALE.length;
+    const baseFrequency = PENTATONIC_SCALE[noteIndex];
     
-    // Add a low "thud" for impact
-    const thud = ctx.createOscillator();
-    const thudGain = ctx.createGain();
-    thud.type = 'sine';
-    thud.frequency.setValueAtTime(80, startTime);
-    thud.frequency.exponentialRampToValueAtTime(40, startTime + 0.15);
-    thudGain.gain.setValueAtTime(0.2, startTime);
-    thudGain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.15);
-    thud.connect(thudGain);
-    thudGain.connect(ctx.destination);
-    thud.start(startTime);
-    thud.stop(startTime + 0.2);
-  }, []);
+    // Subtler tier-based pitch adjustment (smaller shifts)
+    const tierPitchMultiplier = 1 + (tier - 1) * 0.05; // Tier 1: 1x, Tier 5: 1.2x
+    const frequency = baseFrequency * tierPitchMultiplier;
+    
+    // Warm sine wave with low-pass filter
+    createWarmTone(ctx, frequency, 0.15, time, 0.2, 0.02, 2000);
+    
+    // Add very subtle octave harmonic for richness
+    createWarmTone(ctx, frequency * 2, 0.03, time, 0.15, 0.02, 1500);
+  }, [createWarmTone]);
 
-  // Triumphant ascending chord for milestones
+  // Soft "boop" for wrong answers - gentle, not jarring
+  const playWrongSound = useCallback((ctx: AudioContext) => {
+    const time = ctx.currentTime;
+    
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    const filter = ctx.createBiquadFilter();
+    
+    // Low sine wave - soft boop
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(180, time);
+    
+    // Low-pass to keep it mellow
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(400, time);
+    filter.Q.setValueAtTime(0.5, time);
+    
+    // Quick, gentle envelope
+    gain.gain.setValueAtTime(0, time);
+    gain.gain.linearRampToValueAtTime(0.12, time + 0.01);
+    gain.gain.exponentialRampToValueAtTime(0.001, time + 0.15);
+    
+    osc.connect(filter);
+    filter.connect(gain);
+    gain.connect(getMasterGain());
+    
+    osc.start(time);
+    osc.stop(time + 0.2);
+  }, [getMasterGain]);
+
+  // Pentatonic ascending arpeggio for milestones
   const playMilestoneChord = useCallback((ctx: AudioContext) => {
     const time = ctx.currentTime;
-    // C Major chord ascending arpeggio
-    const chordFreqs = [261.63, 329.63, 392.00, 523.25]; // C, E, G, C5
+    // Pentatonic chord: C5, E5, G5, C6 - always sounds harmonious
+    const chordFreqs = [523.25, 659.25, 783.99, 1046.50];
     
     chordFreqs.forEach((freq, i) => {
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(freq, time);
-      
-      const noteTime = time + i * 0.04;
-      gain.gain.setValueAtTime(0, noteTime);
-      gain.gain.linearRampToValueAtTime(0.12, noteTime + 0.02);
-      gain.gain.exponentialRampToValueAtTime(0.06, noteTime + 0.25);
-      gain.gain.exponentialRampToValueAtTime(0.001, noteTime + 0.7);
-      
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      
-      osc.start(noteTime);
-      osc.stop(noteTime + 0.8);
+      // 100ms spacing between notes for musical feel
+      const noteTime = time + i * 0.1;
+      createWarmTone(ctx, freq, 0.12, noteTime, 0.5, 0.025, 3000);
     });
-  }, []);
+  }, [createWarmTone]);
 
-  // Sad descending arpeggio for losing
+  // Melancholic descending tone for losing
   const playLoseSound = useCallback((ctx: AudioContext) => {
     const time = ctx.currentTime;
-    // Descending minor arpeggio
-    const notes = [392.00, 349.23, 311.13, 261.63]; // G, F, Eb, C (C minor feeling)
+    
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    const filter = ctx.createBiquadFilter();
+    
+    // Descending sine wave
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(400, time);
+    osc.frequency.exponentialRampToValueAtTime(200, time + 0.4);
+    
+    // Low-pass filter for warmth
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(800, time);
+    filter.Q.setValueAtTime(0.5, time);
+    
+    // Gentle envelope
+    gain.gain.setValueAtTime(0, time);
+    gain.gain.linearRampToValueAtTime(0.1, time + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.001, time + 0.4);
+    
+    osc.connect(filter);
+    filter.connect(gain);
+    gain.connect(getMasterGain());
+    
+    osc.start(time);
+    osc.stop(time + 0.45);
+  }, [getMasterGain]);
+
+  // Very subtle tick sound
+  const playTickSound = useCallback((ctx: AudioContext, tier: number) => {
+    const time = ctx.currentTime;
+    
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    const filter = ctx.createBiquadFilter();
+    
+    // Subtle tier adjustment
+    const tierMultiplier = 1 + (tier - 1) * 0.03;
+    
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(800 * tierMultiplier, time);
+    
+    // Filter to soften
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(1200, time);
+    
+    // Very quiet and short
+    gain.gain.setValueAtTime(0.05, time);
+    gain.gain.exponentialRampToValueAtTime(0.001, time + 0.03);
+    
+    osc.connect(filter);
+    filter.connect(gain);
+    gain.connect(getMasterGain());
+    
+    osc.start(time);
+    osc.stop(time + 0.04);
+  }, [getMasterGain]);
+
+  // Gentle start sound - ascending pentatonic
+  const playStartSound = useCallback((ctx: AudioContext) => {
+    const time = ctx.currentTime;
+    const notes = [523.25, 587.33, 659.25, 783.99]; // C5, D5, E5, G5
     
     notes.forEach((freq, i) => {
+      createWarmTone(ctx, freq, 0.12, time + i * 0.08, 0.25, 0.02, 2500);
+    });
+  }, [createWarmTone]);
+
+  // Complete sound - triumphant but soft
+  const playCompleteSound = useCallback((ctx: AudioContext) => {
+    const time = ctx.currentTime;
+    
+    // Play milestone chord
+    const chordFreqs = [523.25, 659.25, 783.99, 1046.50];
+    chordFreqs.forEach((freq, i) => {
+      createWarmTone(ctx, freq, 0.1, time + i * 0.08, 0.6, 0.025, 2500);
+    });
+    
+    // Final flourish - high pentatonic note
+    setTimeout(() => {
+      const ctx2 = getAudioContext();
+      createWarmTone(ctx2, 1046.50, 0.12, ctx2.currentTime, 0.4, 0.02, 3000);
+    }, 350);
+  }, [createWarmTone, getAudioContext]);
+
+  // Soft heartbeat for tension
+  const playHeartbeatSound = useCallback((ctx: AudioContext, tier: number) => {
+    const time = ctx.currentTime;
+    
+    // Subtler tier adjustment for heartbeat
+    const tierMultiplier = 1 - (tier - 1) * 0.03; // Lower pitch at higher tiers
+    
+    const createBeat = (startTime: number, freq: number, vol: number) => {
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
+      const filter = ctx.createBiquadFilter();
       
-      osc.type = 'triangle';
-      osc.frequency.setValueAtTime(freq, time);
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq * tierMultiplier, startTime);
       
-      const noteTime = time + i * 0.12;
-      gain.gain.setValueAtTime(0, noteTime);
-      gain.gain.linearRampToValueAtTime(0.15, noteTime + 0.02);
-      gain.gain.exponentialRampToValueAtTime(0.001, noteTime + 0.4);
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(100, startTime);
       
-      osc.connect(gain);
-      gain.connect(ctx.destination);
+      gain.gain.setValueAtTime(0, startTime);
+      gain.gain.linearRampToValueAtTime(vol, startTime + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.08);
       
-      osc.start(noteTime);
-      osc.stop(noteTime + 0.5);
-    });
-  }, []);
+      osc.connect(filter);
+      filter.connect(gain);
+      gain.connect(getMasterGain());
+      
+      osc.start(startTime);
+      osc.stop(startTime + 0.1);
+    };
+    
+    // Two-beat pattern (lub-dub)
+    createBeat(time, 55, 0.08);
+    createBeat(time + 0.1, 50, 0.05);
+  }, [getMasterGain]);
 
   const playSound = useCallback((type: SoundType, tier: number = 1) => {
     if (!enabled) return;
     
     const ctx = getAudioContext();
-    const time = ctx.currentTime;
     
-    // Tier-based pitch multiplier: higher tiers = higher pitch
-    const tierPitchMultiplier = 1 + (tier - 1) * 0.1; // Tier 1: 1x, Tier 5: 1.4x
+    // Resume audio context if suspended (mobile browser policy)
+    if (ctx.state === 'suspended') {
+      ctx.resume();
+    }
 
     switch (type) {
       case 'correct': {
-        // Get note from C major scale based on streak (loops through octave)
-        const noteIndex = streakRef.current % C_MAJOR_SCALE.length;
-        const baseFrequency = C_MAJOR_SCALE[noteIndex];
-        // Apply tier-based pitch adjustment
-        const frequency = baseFrequency * tierPitchMultiplier;
-        const volume = NOTE_VOLUMES[noteIndex];
-        
-        playPianoNote(ctx, frequency, volume, time);
+        playCorrectNote(ctx, tier);
         
         // Milestone chord every 10th correct
         if (streakRef.current > 0 && streakRef.current % 10 === 0) {
-          setTimeout(() => playMilestoneChord(ctx), 80);
+          setTimeout(() => playMilestoneChord(ctx), 100);
         }
         break;
       }
 
       case 'wrong': {
-        // Dissonant piano chord - sounds "off", lower pitch at higher tiers (more dramatic)
-        playDissonantChord(ctx, time);
+        playWrongSound(ctx);
         break;
       }
 
       case 'tick': {
-        // Soft tick with tier-adjusted pitch
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(800 * tierPitchMultiplier, time);
-        gain.gain.setValueAtTime(0.04, time);
-        gain.gain.exponentialRampToValueAtTime(0.001, time + 0.03);
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.start(time);
-        osc.stop(time + 0.05);
+        playTickSound(ctx, tier);
         break;
       }
 
       case 'start': {
-        // Rising arpeggio - Do Re Mi
-        const notes = [261.63, 293.66, 329.63, 392.00];
-        notes.forEach((freq, i) => {
-          playPianoNote(ctx, freq, 0.22, time + i * 0.08);
-        });
+        playStartSound(ctx);
         break;
       }
 
       case 'complete': {
-        // Triumphant chord progression
-        playMilestoneChord(ctx);
-        setTimeout(() => {
-          const ctx2 = getAudioContext();
-          // Final flourish - high C
-          playPianoNote(ctx2, 523.25, 0.2, ctx2.currentTime);
-        }, 300);
+        playCompleteSound(ctx);
         break;
       }
 
       case 'lose': {
-        // Sad descending sound
         playLoseSound(ctx);
         break;
       }
@@ -242,40 +320,11 @@ export const useSounds = (enabled: boolean = true) => {
       }
 
       case 'heartbeat': {
-        // Deep heartbeat for tension - lower at higher tiers (more ominous)
-        const beat1 = ctx.createOscillator();
-        const beat2 = ctx.createOscillator();
-        const gain1 = ctx.createGain();
-        const gain2 = ctx.createGain();
-        
-        // Higher tiers = lower heartbeat (more ominous)
-        const heartbeatPitch = 1 / tierPitchMultiplier;
-        
-        beat1.type = 'sine';
-        beat2.type = 'sine';
-        beat1.frequency.setValueAtTime(55 * heartbeatPitch, time);
-        beat2.frequency.setValueAtTime(50 * heartbeatPitch, time + 0.1);
-        
-        gain1.gain.setValueAtTime(0.1, time);
-        gain1.gain.exponentialRampToValueAtTime(0.001, time + 0.08);
-        
-        gain2.gain.setValueAtTime(0, time);
-        gain2.gain.setValueAtTime(0.06, time + 0.1);
-        gain2.gain.exponentialRampToValueAtTime(0.001, time + 0.18);
-        
-        beat1.connect(gain1);
-        beat2.connect(gain2);
-        gain1.connect(ctx.destination);
-        gain2.connect(ctx.destination);
-        
-        beat1.start(time);
-        beat2.start(time + 0.1);
-        beat1.stop(time + 0.12);
-        beat2.stop(time + 0.25);
+        playHeartbeatSound(ctx, tier);
         break;
       }
     }
-  }, [enabled, getAudioContext, playPianoNote, playDissonantChord, playMilestoneChord, playLoseSound]);
+  }, [enabled, getAudioContext, playCorrectNote, playWrongSound, playTickSound, playStartSound, playCompleteSound, playLoseSound, playMilestoneChord, playHeartbeatSound]);
 
   /**
    * Trigger haptic feedback - uses native Despia haptics when available,
