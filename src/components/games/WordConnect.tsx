@@ -10,10 +10,12 @@ interface WordConnectProps {
   tier?: number;
 }
 
-// Word sets - primary word and bonus words
-// Letters will be generated from the primary word automatically
-const WORD_SETS = [
-  // EASY (4-letter words)
+// Word sets split by difficulty tier
+// Tier 1-2: EASY (4-letter common words)
+// Tier 3: EASY + MEDIUM (4-5 letter words)
+// Tier 4+: ALL words including HARD (6-letter)
+
+const EASY_WORDS = [
   { primary: 'BARK', bonus: ['ARK', 'BAR'] },
   { primary: 'CALM', bonus: ['CLAM', 'LAM'] },
   { primary: 'DAWN', bonus: ['WAD', 'DAN'] },
@@ -28,8 +30,6 @@ const WORD_SETS = [
   { primary: 'NEST', bonus: ['SET', 'NET', 'TEN'] },
   { primary: 'OPAL', bonus: ['PAL', 'LAP'] },
   { primary: 'PINE', bonus: ['PIE', 'PEN', 'NIP'] },
-  { primary: 'QUIZ', bonus: [] },
-  { primary: 'RIFE', bonus: ['IRE', 'FIR'] },
   { primary: 'SILK', bonus: ['ILK', 'SKI'] },
   { primary: 'TIDE', bonus: ['TIE', 'DIE', 'EDIT'] },
   { primary: 'URGE', bonus: ['RUG', 'RUE'] },
@@ -41,11 +41,11 @@ const WORD_SETS = [
   { primary: 'BOLT', bonus: ['LOT', 'BOT'] },
   { primary: 'COVE', bonus: [] },
   { primary: 'DUSK', bonus: [] },
-  { primary: 'FLUX', bonus: [] },
   { primary: 'GRIT', bonus: ['RIG', 'GIT'] },
-  { primary: 'IRIS', bonus: [] }, // Has repeated I
+  { primary: 'IRIS', bonus: [] },
+];
 
-  // MEDIUM (5-letter words)
+const MEDIUM_WORDS = [
   { primary: 'BLAZE', bonus: ['ABLE', 'BALE', 'ZEAL'] },
   { primary: 'CHARM', bonus: ['CHAR', 'ARCH', 'MARC'] },
   { primary: 'DRIFT', bonus: ['RIFT', 'DIRT'] },
@@ -53,50 +53,38 @@ const WORD_SETS = [
   { primary: 'FROST', bonus: ['FORT', 'SORT'] },
   { primary: 'GLEAM', bonus: ['LAME', 'MALE', 'GAME'] },
   { primary: 'HAVEN', bonus: ['HAVE', 'VANE', 'NAVE'] },
-  { primary: 'IVORY', bonus: [] },
-  { primary: 'JEWEL', bonus: [] }, // Has repeated E
-  { primary: 'KNEEL', bonus: [] }, // Has repeated E
   { primary: 'LUNAR', bonus: ['ULNA'] },
   { primary: 'MARSH', bonus: ['MARS', 'SHAM'] },
   { primary: 'NOBLE', bonus: ['BONE', 'LONE', 'LOBE'] },
   { primary: 'ORBIT', bonus: ['TRIO', 'RIOT'] },
   { primary: 'PLUME', bonus: ['LUMP', 'MULE'] },
-  { primary: 'QUILT', bonus: ['QUIT', 'LIT'] },
   { primary: 'RIDGE', bonus: ['RIDE', 'DIRE', 'GRID'] },
   { primary: 'STORM', bonus: ['SORT', 'MOST'] },
   { primary: 'TORCH', bonus: [] },
-  { primary: 'VIVID', bonus: [] }, // Has repeated V and I
-  { primary: 'SPEED', bonus: [] }, // Has repeated E
-  { primary: 'TEETH', bonus: [] }, // Has repeated E and T
+  { primary: 'SPEED', bonus: [] },
+];
 
-  // HARD (6-letter words) - many with repeated letters
-  { primary: 'BREEZE', bonus: [] }, // E repeated 3 times
+const HARD_WORDS = [
   { primary: 'CANYON', bonus: [] },
-  { primary: 'DAZZLE', bonus: ['DAZE', 'ZEAL'] }, // Z repeated
-  { primary: 'EMERGE', bonus: [] }, // E repeated 3 times
   { primary: 'FROZEN', bonus: ['FROZE', 'ZONE'] },
-  { primary: 'GENTLE', bonus: ['TEEN', 'LENT'] }, // E repeated
-  { primary: 'HOLLOW', bonus: ['HOWL', 'LOW', 'OWL'] }, // L and O repeated
-  { primary: 'IGNITE', bonus: ['TINGE'] }, // I repeated
+  { primary: 'GENTLE', bonus: ['TEEN', 'LENT'] },
+  { primary: 'IGNITE', bonus: ['TINGE'] },
   { primary: 'JIGSAW', bonus: ['JAWS', 'WIGS', 'SWIG'] },
   { primary: 'KINDLE', bonus: ['KIND'] },
   { primary: 'LAUNCH', bonus: ['LUNCH', 'CLAN', 'HAUL'] },
   { primary: 'MEADOW', bonus: ['MADE', 'DAME', 'OWED'] },
   { primary: 'NIMBLE', bonus: ['LIMB', 'BILE', 'MILE'] },
   { primary: 'ORCHID', bonus: ['CHOIR', 'CORD', 'RICH'] },
-  { primary: 'PILLOW', bonus: ['WILL', 'PILL', 'ILL'] }, // L repeated 3 times
-  { primary: 'QUARTZ', bonus: ['QUART'] },
-  { primary: 'RIDDLE', bonus: ['IDLE', 'RIDE', 'DIRE'] }, // D repeated
   { primary: 'SHIELD', bonus: ['SLIDE'] },
   { primary: 'THRIVE', bonus: ['HIVE', 'TIRE'] },
-  { primary: 'COFFEE', bonus: [] }, // F and E repeated
-  { primary: 'TOFFEE', bonus: [] }, // F and E repeated
-  { primary: 'BANANA', bonus: [] }, // A and N repeated
-  { primary: 'PEPPER', bonus: [] }, // P and E repeated
-  { primary: 'LETTER', bonus: [] }, // T and E repeated
-  { primary: 'BETTER', bonus: [] }, // T and E repeated
-  { primary: 'BUTTER', bonus: [] }, // T repeated
 ];
+
+// Get word pool based on difficulty tier
+const getWordPool = (tier: number) => {
+  if (tier <= 2) return EASY_WORDS;
+  if (tier <= 3) return [...EASY_WORDS, ...MEDIUM_WORDS];
+  return [...EASY_WORDS, ...MEDIUM_WORDS, ...HARD_WORDS];
+};
 
 // Interface for tracking letter instances
 interface LetterInstance {
@@ -104,9 +92,11 @@ interface LetterInstance {
   id: number; // Unique ID for each instance
 }
 
-export const WordConnect = ({ onAnswer, playSound, triggerHaptic, onScreenShake, difficulty = 1 }: WordConnectProps) => {
-  const [currentSetIndex, setCurrentSetIndex] = useState(() => Math.floor(Math.random() * WORD_SETS.length));
-  const currentSet = WORD_SETS[currentSetIndex];
+export const WordConnect = ({ onAnswer, playSound, triggerHaptic, onScreenShake, difficulty = 1, tier = 1 }: WordConnectProps) => {
+  const effectiveTier = tier || difficulty || 1;
+  const wordPool = useMemo(() => getWordPool(effectiveTier), [effectiveTier]);
+  const [currentSetIndex, setCurrentSetIndex] = useState(() => Math.floor(Math.random() * wordPool.length));
+  const currentSet = wordPool[currentSetIndex % wordPool.length];
   
   const [selectedIndices, setSelectedIndices] = useState<number[]>([]);
   const [foundWords, setFoundWords] = useState<string[]>([]);
@@ -210,8 +200,8 @@ export const WordConnect = ({ onAnswer, playSound, triggerHaptic, onScreenShake,
       
       setTimeout(() => {
         onAnswer(true, word.length * 5);
-        // Load new word set
-        const newIndex = Math.floor(Math.random() * WORD_SETS.length);
+        // Load new word set from tier-appropriate pool
+        const newIndex = Math.floor(Math.random() * wordPool.length);
         setCurrentSetIndex(newIndex);
         setFoundWords([]);
         setIsCorrect(null);

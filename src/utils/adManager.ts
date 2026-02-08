@@ -11,7 +11,8 @@ const AD_UNITS = {
 };
 
 export const AD_CONFIG = {
-  FREQUENCY: 3, // Show ad every N completed games
+  CLASSIC_FREQUENCY: 1, // Show ad after EVERY classic session
+  ENDLESS_FREQUENCY: 3, // Show ad after every 3 endless losses
   SKIP_COST: 2000, // XP cost to skip an interstitial ad
   CONTINUE_COST: 5000, // XP cost to continue in Endless mode (more valuable)
   CONTINUE_COUNTDOWN: 5, // Seconds to decide on continue

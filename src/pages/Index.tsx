@@ -378,9 +378,10 @@ const Index = () => {
     setCurrentScreen('dashboard');
   };
 
-  // Check if ad should be shown before navigating
+  // Check if ad should be shown before navigating (mode-aware frequency)
   const checkAdBeforeNav = useCallback((destination: 'playAgain' | 'home') => {
-    if (adState.gamesPlayedSinceLastAd >= AD_CONFIG.FREQUENCY) {
+    const frequency = wasEndlessMode ? AD_CONFIG.ENDLESS_FREQUENCY : AD_CONFIG.CLASSIC_FREQUENCY;
+    if (adState.gamesPlayedSinceLastAd >= frequency) {
       setPendingNavigation(destination);
       setShowAdSkipModal(true);
     } else {
@@ -391,7 +392,7 @@ const Index = () => {
         setCurrentScreen('dashboard');
       }
     }
-  }, [adState.gamesPlayedSinceLastAd]);
+  }, [adState.gamesPlayedSinceLastAd, wasEndlessMode]);
 
   const handleAdWatched = useCallback(() => {
     setShowAdSkipModal(false);
