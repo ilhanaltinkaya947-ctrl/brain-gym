@@ -167,16 +167,7 @@ export const MixedGameScreen = ({
     }
   }, [isGameOver, score, streak, correct, wrong, onGameEnd, adaptiveState.peakGameSpeed, getSessionDuration, sessionXP]);
 
-  // Handle continue granted from parent (Endless mode second chance)
-  useEffect(() => {
-    if (continueGranted && pendingDeath) {
-      setPendingDeath(false);
-      setHasContinued(true);
-      // Resume: generate next question, keep streak and score
-      setCurrentGame(selectNextGame());
-      questionStartTimeRef.current = Date.now();
-    }
-  }, [continueGranted, pendingDeath, selectNextGame]);
+  // Note: Continue granted effect moved below selectNextGame definition
 
   // Update sound pitch based on streak
   useEffect(() => {
@@ -241,6 +232,17 @@ export const MixedGameScreen = ({
     }
     return currentGame;
   }, [currentGame]);
+
+  // Handle continue granted from parent (Endless mode second chance)
+  useEffect(() => {
+    if (continueGranted && pendingDeath) {
+      setPendingDeath(false);
+      setHasContinued(true);
+      // Resume: generate next question, keep streak and score
+      setCurrentGame(selectNextGame());
+      questionStartTimeRef.current = Date.now();
+    }
+  }, [continueGranted, pendingDeath, selectNextGame]);
 
   const handleAnswer = useCallback((isCorrect: boolean, speedBonus: number = 0, tier: number = 1) => {
     const responseTime = Date.now() - questionStartTimeRef.current;
