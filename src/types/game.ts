@@ -126,10 +126,12 @@ export const DEFAULT_CONFIG: GameConfig = {
 };
 
 // Mixable games - focused on high cognitive load
-// 4 core games: Math, Stroop/Swipes, Cards, Memory
+// 6 core games: Math, Stroop, Swipes, Cards, Memory, Words
 export const MIXABLE_GAMES: MiniGameType[] = [
   'speedMath', 
+  'colorMatch',
   'paradoxFlow', 
   'suitDeception',
   'chimpMemory',
+  'wordConnect',
 ];
