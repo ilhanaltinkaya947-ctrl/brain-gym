@@ -48,13 +48,17 @@ const getTierFromStreak = (streak: number): number => {
 
 // Get time limit based on tier
 const getTimeLimit = (tier: number): number => {
-  if (tier >= 4) return 1800; // 1.8 seconds for tier 4-5
-  return 2500; // 2.5 seconds for tier 1-3
+  switch (tier) {
+    case 5: return 1500;  // 1.5s — inverted mode + time pressure
+    case 4: return 1500;  // 1.5s — shorter decision window
+    case 3: return 2000;  // 2.0s — faster pace than tier 1-2
+    default: return 2500; // 2.5s — comfortable pace
+  }
 };
 
 // Get color palette based on tier
 const getColorPalette = (tier: number) => {
-  return tier >= 2 ? EXTENDED_COLORS : BASE_COLORS;
+  return tier >= 3 ? EXTENDED_COLORS : BASE_COLORS;
 };
 
 interface GameQuestion {

@@ -72,7 +72,9 @@ export const SpatialStack = ({
   triggerHaptic,
   onScreenShake,
   cubeCount = 5,
+  tier = 1,
 }: SpatialStackProps) => {
+  const interQuestionDelay = tier >= 4 ? 150 : tier >= 3 ? 200 : 300;
   const [question, setQuestion] = useState<Question>(() => generateStack(cubeCount));
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
   const [questionKey, setQuestionKey] = useState(0);
@@ -121,7 +123,7 @@ export const SpatialStack = ({
 
     onAnswer(isCorrect, speedBonus);
 
-    // Next question
+    // Next question — faster at higher tiers
     setTimeout(() => {
       setQuestion(generateStack(cubeCount));
       setSelectedAnswer(null);
@@ -129,8 +131,8 @@ export const SpatialStack = ({
       questionStartTime.current = Date.now();
       setLastFeedback(null);
       isProcessing.current = false;
-    }, 300);
-  }, [question.totalCount, cubeCount, onAnswer, playSound, triggerHaptic, onScreenShake]);
+    }, interQuestionDelay);
+  }, [question.totalCount, cubeCount, interQuestionDelay, onAnswer, playSound, triggerHaptic, onScreenShake]);
 
   // Keyboard support (1-9)
   useEffect(() => {
@@ -146,7 +148,12 @@ export const SpatialStack = ({
   }, [handleAnswerSelect]);
 
   const cubeSize = 30;
-  const baseColor = { h: 140, s: 70, l: 45 };
+  // Per-layer colors for better visual contrast between layers
+  const layerColors = [
+    { h: 140, s: 70, l: 40 },  // Layer 0 (bottom): darker green
+    { h: 170, s: 65, l: 48 },  // Layer 1 (middle): teal-green
+    { h: 200, s: 70, l: 55 },  // Layer 2 (top): cyan-blue
+  ];
 
   return (
     <div className="h-full flex flex-col items-center justify-center px-6 py-8">
@@ -186,7 +193,8 @@ export const SpatialStack = ({
             {sortedCubes.map((cube, i) => {
               const { isoX, isoY } = toIsometric(cube.x, cube.y, cube.z, cubeSize);
               const s = cubeSize;
-              
+              const c = layerColors[Math.min(cube.z, layerColors.length - 1)];
+
               // Isometric cube faces
               const topFace = `
                 M ${isoX} ${isoY - s * 0.5}
@@ -195,7 +203,7 @@ export const SpatialStack = ({
                 L ${isoX - s * 0.866} ${isoY}
                 Z
               `;
-              
+
               const leftFace = `
                 M ${isoX - s * 0.866} ${isoY}
                 L ${isoX} ${isoY + s * 0.5}
@@ -203,7 +211,7 @@ export const SpatialStack = ({
                 L ${isoX - s * 0.866} ${isoY + s}
                 Z
               `;
-              
+
               const rightFace = `
                 M ${isoX + s * 0.866} ${isoY}
                 L ${isoX} ${isoY + s * 0.5}
@@ -219,8 +227,8 @@ export const SpatialStack = ({
                     animate={{ opacity: 1 }}
                     transition={{ delay: i * 0.05 }}
                     d={leftFace}
-                    fill={`hsl(${baseColor.h}, ${baseColor.s}%, ${baseColor.l - 15}%)`}
-                    stroke={`hsl(${baseColor.h}, ${baseColor.s}%, ${baseColor.l - 25}%)`}
+                    fill={`hsl(${c.h}, ${c.s}%, ${c.l - 15}%)`}
+                    stroke={`hsl(${c.h}, ${c.s}%, ${c.l - 25}%)`}
                     strokeWidth="1"
                   />
                   <motion.path
@@ -228,8 +236,8 @@ export const SpatialStack = ({
                     animate={{ opacity: 1 }}
                     transition={{ delay: i * 0.05 }}
                     d={rightFace}
-                    fill={`hsl(${baseColor.h}, ${baseColor.s}%, ${baseColor.l - 5}%)`}
-                    stroke={`hsl(${baseColor.h}, ${baseColor.s}%, ${baseColor.l - 20}%)`}
+                    fill={`hsl(${c.h}, ${c.s}%, ${c.l - 5}%)`}
+                    stroke={`hsl(${c.h}, ${c.s}%, ${c.l - 20}%)`}
                     strokeWidth="1"
                   />
                   <motion.path
@@ -237,8 +245,8 @@ export const SpatialStack = ({
                     animate={{ opacity: 1 }}
                     transition={{ delay: i * 0.05 }}
                     d={topFace}
-                    fill={`hsl(${baseColor.h}, ${baseColor.s}%, ${baseColor.l + 10}%)`}
-                    stroke={`hsl(${baseColor.h}, ${baseColor.s}%, ${baseColor.l}%)`}
+                    fill={`hsl(${c.h}, ${c.s}%, ${c.l + 10}%)`}
+                    stroke={`hsl(${c.h}, ${c.s}%, ${c.l}%)`}
                     strokeWidth="1"
                   />
                 </g>

@@ -19,6 +19,7 @@ export const ChimpMemory = memo(({ tier, onAnswer, playSound, triggerHaptic }: C
   const [nextExpected, setNextExpected] = useState(1);
   const [lastTapTime, setLastTapTime] = useState(0);
   const [isRotated, setIsRotated] = useState(false);
+  const [roundKey, setRoundKey] = useState(0);
 
   // Difficulty Config - Minimum 2s display for harder tiers, scaled by count
   const getDifficultyConfig = (t: number) => {
@@ -65,6 +66,7 @@ export const ChimpMemory = memo(({ tier, onAnswer, playSound, triggerHaptic }: C
     setCells(newCells);
     setPhase('showing');
     setNextExpected(1);
+    setRoundKey(prev => prev + 1);
 
     // Timer to hide numbers
     setTimeout(() => {
@@ -132,7 +134,15 @@ export const ChimpMemory = memo(({ tier, onAnswer, playSound, triggerHaptic }: C
   };
 
   return (
-    <div className="flex flex-col items-center justify-center w-full h-full px-4">
+    <div className="flex flex-col items-center justify-center w-full h-full px-4" role="region" aria-label="Chimp Memory Game">
+      {/* Screen reader announcements */}
+      <div aria-live="polite" aria-atomic="true" className="sr-only">
+        {phase === 'showing' && `Memorize ${getDifficultyConfig(tier).count} numbers on the grid`}
+        {phase === 'playing' && `Tap numbers in order, starting from ${nextExpected}`}
+        {phase === 'success' && 'Perfect! All numbers found correctly'}
+        {phase === 'rotating' && 'Grid is rotating 90 degrees'}
+      </div>
+
       {/* Success Indicator Overlay */}
       <AnimatePresence>
         {phase === 'success' && (
@@ -143,7 +153,7 @@ export const ChimpMemory = memo(({ tier, onAnswer, playSound, triggerHaptic }: C
             transition={{ type: 'spring', stiffness: 300, damping: 20 }}
             className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none"
           >
-            <motion.div 
+            <motion.div
               className="w-20 h-20 rounded-full bg-green-500/20 backdrop-blur-sm flex items-center justify-center border-2 border-green-500"
               initial={{ scale: 0 }}
               animate={{ scale: [0, 1.2, 1] }}
@@ -155,55 +165,66 @@ export const ChimpMemory = memo(({ tier, onAnswer, playSound, triggerHaptic }: C
         )}
       </AnimatePresence>
 
-      <motion.div 
-        role="grid"
-        aria-label={`5 by 5 memory grid${shouldRotate && isRotated ? ', rotated 90 degrees' : ''}`}
-        className="grid grid-cols-5 gap-2 w-full max-w-[300px] aspect-square"
-        initial={false}
-        animate={{ 
-          rotate: isRotated ? 90 : 0,
-          scale: phase === 'success' ? 0.95 : 1,
-          opacity: phase === 'success' ? 0.5 : 1
-        }}
-        transition={{ 
-          rotate: { duration: 0.6, ease: [0.4, 0, 0.2, 1] },
-          scale: { duration: 0.2 },
-          opacity: { duration: 0.2 }
-        }}
-      >
-        {cells.map((cell) => (
-          <motion.button
-            key={cell.index}
-            role="gridcell"
-            aria-label={
-              cell.revealed && cell.number 
-                ? `Number ${cell.number}` 
-                : cell.tapped 
-                  ? `Tapped cell ${cell.number}` 
-                  : 'Hidden cell'
-            }
-            onClick={() => handleCellTap(cell.index)}
-            initial={{ scale: 1, opacity: 1 }}
-            animate={{ 
-              scale: cell.tapped ? 0.9 : 1,
-              opacity: cell.tapped ? 0.4 : 1 
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={roundKey}
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.95 }}
+          transition={{ duration: 0.25, ease: 'easeOut' }}
+        >
+          <motion.div
+            role="grid"
+            aria-label={`5 by 5 memory grid, ${getDifficultyConfig(tier).count} numbers to memorize${shouldRotate && isRotated ? ', rotated 90 degrees' : ''}`}
+            className="grid grid-cols-5 gap-2 w-full max-w-[300px] aspect-square"
+            initial={false}
+            animate={{
+              rotate: isRotated ? 90 : 0,
+              scale: phase === 'success' ? 0.95 : 1,
+              opacity: phase === 'success' ? 0.5 : 1
             }}
-            whileTap={phase === 'playing' && !cell.tapped ? { scale: 0.95 } : undefined}
-            transition={{ type: 'spring', stiffness: 400, damping: 25 }}
-            className={`relative rounded-lg flex items-center justify-center text-lg font-bold aspect-square transition-colors touch-manipulation
-              min-w-[44px] min-h-[44px]
-              ${cell.revealed && cell.number ? 'bg-primary text-primary-foreground' : 'bg-muted/30 active:bg-muted/50'}
-              ${cell.isError ? 'bg-destructive animate-shake' : ''}
-              ${cell.tapped ? 'pointer-events-none' : ''}
-            `}
-            disabled={cell.tapped || phase !== 'playing'}
+            transition={{
+              rotate: { duration: 0.6, ease: [0.4, 0, 0.2, 1] },
+              scale: { duration: 0.2 },
+              opacity: { duration: 0.2 }
+            }}
           >
-            <span className="select-none">
-              {(cell.revealed || cell.tapped) && cell.number}
-            </span>
-          </motion.button>
-        ))}
-      </motion.div>
+            {cells.map((cell) => (
+              <motion.button
+                key={cell.index}
+                role="gridcell"
+                aria-label={
+                  cell.revealed && cell.number
+                    ? `Number ${cell.number}${cell.tapped ? ', already tapped' : ''}`
+                    : cell.tapped
+                      ? `Cell ${cell.number}, tapped`
+                      : phase === 'playing' ? 'Hidden cell, tap to reveal' : 'Hidden cell'
+                }
+                aria-disabled={cell.tapped || phase !== 'playing'}
+                onClick={() => handleCellTap(cell.index)}
+                initial={{ scale: 1, opacity: 1 }}
+                animate={{
+                  scale: cell.tapped ? 0.9 : 1,
+                  opacity: cell.tapped ? 0.4 : 1
+                }}
+                whileTap={phase === 'playing' && !cell.tapped ? { scale: 0.95 } : undefined}
+                transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+                className={`relative rounded-lg flex items-center justify-center text-lg font-bold aspect-square transition-colors touch-manipulation
+                  min-w-[44px] min-h-[44px]
+                  ${cell.revealed && cell.number ? 'bg-primary text-primary-foreground' : 'bg-muted/30 active:bg-muted/50'}
+                  ${cell.isError ? 'bg-destructive animate-shake' : ''}
+                  ${cell.tapped ? 'pointer-events-none' : ''}
+                `}
+                disabled={cell.tapped || phase !== 'playing'}
+              >
+                <span className="select-none">
+                  {(cell.revealed || cell.tapped) && cell.number}
+                </span>
+              </motion.button>
+            ))}
+          </motion.div>
+        </motion.div>
+      </AnimatePresence>
 
       {/* Rotation indicator for tier 4+ */}
       <AnimatePresence>

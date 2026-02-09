@@ -62,7 +62,7 @@ export const MixedGameScreen = ({
   const [score, setScore] = useState(0);
   const [streak, setStreakState] = useState(() => {
     // Initialize streak based on starting tier
-    const tierStreakMap: Record<number, number> = { 1: 0, 2: 6, 3: 13, 4: 21, 5: 31 };
+    const tierStreakMap: Record<number, number> = { 1: 0, 2: 9, 3: 19, 4: 31, 5: 46 };
     return tierStreakMap[startTier] || 0;
   });
   const [correct, setCorrect] = useState(0);
