@@ -225,199 +225,262 @@ export const useGameEngine = (initialMode: 'classic' | 'endless' = 'classic') =>
     let answer: number;
 
     if (tier === 1) {
-      // TIER 1: Basics - Addition and subtraction
-      // Early (streak 0-4): Addition only, small numbers
-      // Late (streak 5-8): Add subtraction, slightly larger numbers
+      // TIER 1: Addition and subtraction with meaningful numbers
       const isEarly = effectiveStreak <= 4;
-      
       if (isEarly) {
-        // Addition only with numbers 1-20
-        const a = Math.floor(Math.random() * 18) + 2;
-        const b = Math.floor(Math.random() * 15) + 1;
+        // 15-50 + 10-40, requires carrying for most combos
+        const a = Math.floor(Math.random() * 36) + 15;
+        const b = Math.floor(Math.random() * 31) + 10;
         answer = a + b;
         question = `${a} + ${b}`;
       } else {
-        // Addition AND subtraction with numbers 1-30
-        const useAddition = Math.random() < 0.6; // Still favor addition
-        if (useAddition) {
-          const a = Math.floor(Math.random() * 25) + 5;
-          const b = Math.floor(Math.random() * 20) + 5;
+        const roll = Math.random();
+        if (roll < 0.4) {
+          // Addition: 25-65 + 20-55
+          const a = Math.floor(Math.random() * 41) + 25;
+          const b = Math.floor(Math.random() * 36) + 20;
           answer = a + b;
           question = `${a} + ${b}`;
-        } else {
-          const a = Math.floor(Math.random() * 25) + 15;
-          const b = Math.floor(Math.random() * 15) + 5;
+        } else if (roll < 0.75) {
+          // Subtraction: 50-99 - 15-45
+          const a = Math.floor(Math.random() * 50) + 50;
+          const b = Math.floor(Math.random() * 31) + 15;
           answer = a - b;
           question = `${a} - ${b}`;
-        }
-      }
-    } else if (tier === 2) {
-      // TIER 2: Focus - Multiplication and three-number addition
-      // Early (streak 9-13): Simple multiplication up to 6×6
-      // Late (streak 14-18): Full multiplication up to 12×12, three-number add
-      const effectiveStreakForTier = effectiveMode === 'endless' 
-        ? Math.floor(effectiveStreak * 1.5) 
-        : effectiveStreak;
-      const isEarly = effectiveStreakForTier <= 13;
-      
-      if (isEarly) {
-        // Simple multiplication (2-6 × 2-6)
-        const a = Math.floor(Math.random() * 5) + 2;
-        const b = Math.floor(Math.random() * 5) + 2;
-        answer = a * b;
-        question = `${a} × ${b}`;
-      } else {
-        const questionType = Math.random();
-        if (questionType < 0.6) {
-          // Full multiplication (up to 12×12)
-          const a = Math.floor(Math.random() * 11) + 2;
-          const b = Math.floor(Math.random() * 11) + 2;
-          answer = a * b;
-          question = `${a} × ${b}`;
         } else {
-          // Three-number addition
-          const a = Math.floor(Math.random() * 25) + 10;
-          const b = Math.floor(Math.random() * 20) + 10;
-          const c = Math.floor(Math.random() * 15) + 5;
+          // Three-number addition with small numbers: 8-20 each
+          const a = Math.floor(Math.random() * 13) + 8;
+          const b = Math.floor(Math.random() * 13) + 8;
+          const c = Math.floor(Math.random() * 13) + 8;
           answer = a + b + c;
           question = `${a} + ${b} + ${c}`;
         }
       }
-    } else if (tier === 3) {
-      // TIER 3: Flow - Division and mixed operations
-      // Early (streak 19-24): Division with small, clean numbers
-      // Late (streak 25-30): Mixed operations, larger numbers
-      const effectiveStreakForTier = effectiveMode === 'endless' 
-        ? Math.floor(effectiveStreak * 1.5) 
-        : effectiveStreak;
-      const isEarly = effectiveStreakForTier <= 24;
-      
-      if (isEarly) {
-        // Division with small, clean numbers
-        const divisor = Math.floor(Math.random() * 6) + 2; // 2-7
-        const quotient = Math.floor(Math.random() * 10) + 2; // 2-11
-        const dividend = divisor * quotient;
-        answer = quotient;
-        question = `${dividend} ÷ ${divisor}`;
-      } else {
-        const questionType = Math.random();
-        if (questionType < 0.4) {
-          // Division with larger numbers
-          const divisor = Math.floor(Math.random() * 10) + 2;
-          const quotient = Math.floor(Math.random() * 15) + 5;
-          const dividend = divisor * quotient;
-          answer = quotient;
-          question = `${dividend} ÷ ${divisor}`;
-        } else if (questionType < 0.7) {
-          // Large subtraction (100-400 range)
-          const a = Math.floor(Math.random() * 250) + 150;
-          const b = Math.floor(Math.random() * 100) + 50;
-          answer = a - b;
-          question = `${a} - ${b}`;
+    } else if (tier === 2) {
+      // TIER 2: Multiplication-heavy, simple division, mixed ops — NO pure addition
+      const questionType = Math.random();
+      if (questionType < 0.4) {
+        // Multiplication up to 15×12, occasionally 2-digit × 1-digit
+        const roll = Math.random();
+        if (roll < 0.5) {
+          // Standard: 2-15 × 2-12
+          const a = Math.floor(Math.random() * 14) + 2;
+          const b = Math.floor(Math.random() * 11) + 2;
+          answer = a * b;
+          question = `${a} × ${b}`;
         } else {
-          // Two-digit multiplication
-          const a = Math.floor(Math.random() * 8) + 12; // 12-19
-          const b = Math.floor(Math.random() * 6) + 2;  // 2-7
+          // 2-digit × 1-digit: 13-19 × 3-7
+          const a = Math.floor(Math.random() * 7) + 13;
+          const b = Math.floor(Math.random() * 5) + 3;
           answer = a * b;
           question = `${a} × ${b}`;
         }
+      } else if (questionType < 0.65) {
+        // Mixed: multiply then add/subtract
+        const a = Math.floor(Math.random() * 8) + 5;
+        const b = Math.floor(Math.random() * 7) + 3;
+        const c = Math.floor(Math.random() * 21) + 10;
+        const useAdd = Math.random() < 0.5;
+        answer = useAdd ? a * b + c : a * b - c;
+        if (answer < 0) {
+          answer = a * b + c;
+          question = `${a} × ${b} + ${c}`;
+        } else {
+          question = useAdd ? `${a} × ${b} + ${c}` : `${a} × ${b} - ${c}`;
+        }
+      } else if (questionType < 0.85) {
+        // Two-digit subtraction (bigger range)
+        const a = Math.floor(Math.random() * 60) + 50;
+        const b = Math.floor(Math.random() * 40) + 15;
+        answer = a - b;
+        question = `${a} - ${b}`;
+      } else {
+        // Simple division: divisor 2-8, quotient 2-12
+        const divisor = Math.floor(Math.random() * 7) + 2;
+        const quotient = Math.floor(Math.random() * 11) + 2;
+        const dividend = divisor * quotient;
+        answer = quotient;
+        question = `${dividend} ÷ ${divisor}`;
+      }
+    } else if (tier === 3) {
+      // TIER 3: Division, two-digit multiplication, order of operations
+      const questionType = Math.random();
+      if (questionType < 0.3) {
+        // Division with bigger dividends (up to ~200)
+        const divisor = Math.floor(Math.random() * 11) + 3;
+        const quotient = Math.floor(Math.random() * 15) + 5;
+        const dividend = divisor * quotient;
+        answer = quotient;
+        question = `${dividend} ÷ ${divisor}`;
+      } else if (questionType < 0.55) {
+        // Two-digit multiplication (15-35 × 3-12)
+        const a = Math.floor(Math.random() * 21) + 15;
+        const b = Math.floor(Math.random() * 10) + 3;
+        answer = a * b;
+        question = `${a} × ${b}`;
+      } else if (questionType < 0.8) {
+        // Order of operations: a + b × c or a - b × c
+        const a = Math.floor(Math.random() * 50) + 20;
+        const b = Math.floor(Math.random() * 10) + 3;
+        const c = Math.floor(Math.random() * 10) + 3;
+        const useSub = Math.random() < 0.4;
+        if (useSub && a > b * c) {
+          answer = a - b * c;
+          question = `${a} - ${b} × ${c}`;
+        } else {
+          answer = a + b * c;
+          question = `${a} + ${b} × ${c}`;
+        }
+      } else {
+        // Large subtraction (300-700 range)
+        const a = Math.floor(Math.random() * 400) + 300;
+        const b = Math.floor(Math.random() * 250) + 50;
+        answer = a - b;
+        question = `${a} - ${b}`;
       }
     } else if (tier === 4) {
-      // TIER 4 "Elite": Percentages, squares, cubes, simple algebra
+      // TIER 4 "Elite": Percentages, squares, cubes, algebra, hard multiplication
       const questionType = Math.random();
-      if (questionType < 0.25) {
-        // Percentages: x% of y
+      if (questionType < 0.2) {
+        // Percentages: x% of y (harder bases)
         const percent = PERCENTAGES[Math.floor(Math.random() * PERCENTAGES.length)];
-        const base = Math.floor(Math.random() * 8 + 2) * 20; // 40, 60, 80, ..., 180
+        const base = Math.floor(Math.random() * 12 + 3) * 20; // 60 to 300
         answer = (percent / 100) * base;
         question = `${percent}% of ${base}`;
-      } else if (questionType < 0.45) {
-        // Squares (common ones: 11-15)
-        const base = Math.floor(Math.random() * 5) + 11;
+      } else if (questionType < 0.35) {
+        // Squares (11-25)
+        const base = Math.floor(Math.random() * 15) + 11;
         answer = base * base;
         question = `${base}²`;
-      } else if (questionType < 0.6) {
+      } else if (questionType < 0.45) {
         // Cubes of small numbers
         const cube = PERFECT_CUBES[Math.floor(Math.random() * PERFECT_CUBES.length)];
         answer = cube.result;
         question = `${cube.base}³`;
-      } else if (questionType < 0.8) {
-        // Simple algebra: ax + b = c
-        const x = Math.floor(Math.random() * 10) + 2;
-        const a = Math.floor(Math.random() * 5) + 2;
-        const b = Math.floor(Math.random() * 20) + 5;
+      } else if (questionType < 0.6) {
+        // Algebra: ax + b = c (bigger coefficients)
+        const x = Math.floor(Math.random() * 15) + 2;
+        const a = Math.floor(Math.random() * 10) + 3;
+        const b = Math.floor(Math.random() * 40) + 5;
         const c = a * x + b;
         answer = x;
         question = `${a}x + ${b} = ${c}`;
+      } else if (questionType < 0.75) {
+        // Missing number: _ × b = c (solve for missing factor)
+        const missing = Math.floor(Math.random() * 10) + 3;
+        const b = Math.floor(Math.random() * 10) + 3;
+        const c = missing * b;
+        answer = missing;
+        question = `? × ${b} = ${c}`;
       } else {
-        // Larger multiplication
-        const a = Math.floor(Math.random() * 10) + 12;
-        const b = Math.floor(Math.random() * 8) + 4;
-        answer = a * b;
-        question = `${a} × ${b}`;
+        // Multi-step: (a × b) + (c × d) with bigger values
+        const a = Math.floor(Math.random() * 10) + 5;
+        const b = Math.floor(Math.random() * 8) + 3;
+        const c = Math.floor(Math.random() * 8) + 3;
+        const d = Math.floor(Math.random() * 8) + 3;
+        answer = a * b + c * d;
+        question = `(${a} × ${b}) + (${c} × ${d})`;
       }
     } else {
-      // TIER 5 "God Mode": Logarithms, factorials, modular arithmetic, power combos
+      // TIER 5 "God Mode": Multi-step, algebra, powers, modular, factorials
       const questionType = Math.random();
-      if (questionType < 0.2) {
-        // Square root of perfect squares
-        const square = PERFECT_SQUARES[Math.floor(Math.random() * PERFECT_SQUARES.length)];
+      if (questionType < 0.15) {
+        // Square root of perfect squares (bigger ones)
+        const bigSquares = [64, 81, 100, 121, 144, 169, 196, 225, 256, 289, 324];
+        const square = bigSquares[Math.floor(Math.random() * bigSquares.length)];
         answer = Math.sqrt(square);
         question = `√${square}`;
-      } else if (questionType < 0.4) {
-        // Simple logarithms (base 10)
-        const log = LOG_VALUES[Math.floor(Math.random() * LOG_VALUES.length)];
-        answer = log.result;
-        question = `log₁₀(${log.value})`;
-      } else if (questionType < 0.55) {
+      } else if (questionType < 0.25) {
         // Factorials
         const fact = FACTORIALS[Math.floor(Math.random() * FACTORIALS.length)];
         answer = fact.result;
         question = `${fact.n}!`;
-      } else if (questionType < 0.7) {
-        // Modular arithmetic
-        const divisors = [3, 5, 7];
+      } else if (questionType < 0.4) {
+        // Hard algebra: ax² + b = c (solve for x)
+        const x = Math.floor(Math.random() * 6) + 2;
+        const a = Math.floor(Math.random() * 4) + 1;
+        const b = Math.floor(Math.random() * 20) + 5;
+        const c = a * x * x + b;
+        answer = x;
+        question = `${a}x² + ${b} = ${c}`;
+      } else if (questionType < 0.55) {
+        // Modular arithmetic (bigger numbers)
+        const divisors = [3, 5, 7, 9, 11];
         const divisor = divisors[Math.floor(Math.random() * divisors.length)];
-        const num = Math.floor(Math.random() * 30) + 10;
+        const num = Math.floor(Math.random() * 80) + 20;
         answer = num % divisor;
         question = `${num} mod ${divisor}`;
-      } else if (questionType < 0.85) {
-        // Power combinations: 2^a + 2^b
+      } else if (questionType < 0.7) {
+        // Power combinations: 2^a + 2^b or 3^a + b
         const powers = [
-          { exp1: 3, exp2: 2, result: 12 },  // 8 + 4
-          { exp1: 4, exp2: 3, result: 24 },  // 16 + 8
-          { exp1: 4, exp2: 2, result: 20 },  // 16 + 4
-          { exp1: 5, exp2: 3, result: 40 },  // 32 + 8
-          { exp1: 5, exp2: 4, result: 48 },  // 32 + 16
+          { exp1: 4, exp2: 3, result: 24 },
+          { exp1: 5, exp2: 3, result: 40 },
+          { exp1: 5, exp2: 4, result: 48 },
+          { exp1: 6, exp2: 4, result: 80 },
+          { exp1: 6, exp2: 5, result: 96 },
+          { exp1: 7, exp2: 5, result: 160 },
+          { exp1: 7, exp2: 6, result: 192 },
+          { exp1: 8, exp2: 6, result: 320 },
         ];
         const combo = powers[Math.floor(Math.random() * powers.length)];
         answer = combo.result;
         question = `2${superscript(combo.exp1)} + 2${superscript(combo.exp2)}`;
+      } else if (questionType < 0.85) {
+        // Multi-step: (a × b) - (c × d) or (a + b) × c or a² - b²
+        const variant = Math.random();
+        if (variant < 0.35) {
+          const a = Math.floor(Math.random() * 12) + 8;
+          const b = Math.floor(Math.random() * 8) + 4;
+          const c = Math.floor(Math.random() * 8) + 3;
+          const d = Math.floor(Math.random() * 8) + 3;
+          const result = a * b - c * d;
+          if (result >= 0) {
+            answer = result;
+            question = `(${a} × ${b}) - (${c} × ${d})`;
+          } else {
+            answer = c * d - a * b;
+            question = `(${c} × ${d}) - (${a} × ${b})`;
+          }
+        } else if (variant < 0.65) {
+          const a = Math.floor(Math.random() * 20) + 10;
+          const b = Math.floor(Math.random() * 20) + 10;
+          const c = Math.floor(Math.random() * 7) + 2;
+          answer = (a + b) * c;
+          question = `(${a} + ${b}) × ${c}`;
+        } else {
+          // a² - b² where a > b
+          const a = Math.floor(Math.random() * 10) + 8;
+          const b = Math.floor(Math.random() * (a - 2)) + 2;
+          answer = a * a - b * b;
+          question = `${a}² - ${b}²`;
+        }
       } else {
-        // Multi-step: (a × b) - c or negative operations
-        const useNegative = Math.random() < 0.5;
-        if (useNegative) {
-          const a = Math.floor(Math.random() * 8) + 2;
-          const b = Math.floor(Math.random() * 6) + 2;
+        // Negative operations + hard division
+        const variant = Math.random();
+        if (variant < 0.5) {
+          const a = Math.floor(Math.random() * 10) + 3;
+          const b = Math.floor(Math.random() * 8) + 3;
           answer = -a * b;
           question = `(-${a}) × ${b}`;
         } else {
-          const a = Math.floor(Math.random() * 10) + 3;
-          const b = Math.floor(Math.random() * 8) + 3;
-          const c = Math.floor(Math.random() * 20) + 5;
-          answer = (a * b) - c;
-          question = `(${a} × ${b}) - ${c}`;
+          // Divide then multiply: (a ÷ b) × c
+          const b = Math.floor(Math.random() * 8) + 2;
+          const quotient = Math.floor(Math.random() * 10) + 2;
+          const a = b * quotient;
+          const c = Math.floor(Math.random() * 6) + 2;
+          answer = quotient * c;
+          question = `(${a} ÷ ${b}) × ${c}`;
         }
       }
     }
 
     // Generate wrong options based on tier and question type
     const options = new Set<number>([answer]);
-    
+
     // Special variance handling for different question types
     let variance: number;
     let minValue = 1; // Default minimum for wrong answers
-    
+
     if (question.includes('mod')) {
       // Modular: answers are 0 to divisor-1
       variance = 3;
@@ -432,8 +495,15 @@ export const useGameEngine = (initialMode: 'classic' | 'endless' = 'classic') =>
       // Standard variance by tier
       variance = tier <= 2 ? 10 : tier === 3 ? 15 : tier === 4 ? 25 : 30;
     }
-    
-    while (options.size < 4) {
+
+    // Allow negative wrong answers when the correct answer is negative
+    if (answer < 0) {
+      minValue = answer - variance * 2;
+    }
+
+    let safetyCounter = 0;
+    while (options.size < 4 && safetyCounter < 100) {
+      safetyCounter++;
       const offset = Math.floor(Math.random() * variance * 2) - variance;
       const wrongAnswer = answer + offset;
       if (wrongAnswer !== answer && wrongAnswer >= minValue) {
@@ -472,8 +542,8 @@ export const useGameEngine = (initialMode: 'classic' | 'endless' = 'classic') =>
     const tierStreakMap: Record<number, number> = { 1: 0, 2: 9, 3: 19, 4: 31, 5: 46 };
     const initialStreak = tierStreakMap[startTier] || 0;
     
-    // God Tier (tier 4+) starts with 2.0x speed multiplier (reduced from 2.5)
-    const initialSpeedMultiplier = startTier >= 4 ? 2.0 : startTier === 3 ? 1.4 : 1.0;
+    // Speed multiplier — moderate, difficulty comes from harder content not speed
+    const initialSpeedMultiplier = startTier >= 4 ? 1.4 : startTier === 3 ? 1.2 : 1.0;
     
     setGameState({
       score: 0,
@@ -529,14 +599,12 @@ export const useGameEngine = (initialMode: 'classic' | 'endless' = 'classic') =>
       const basePoints = isCorrect ? (10 + speedBonus * 20 + difficultyBonus) * tierMultiplier : -25;
       const points = Math.floor(basePoints * (isCorrect ? streakMultiplier : 1));
       
-      // Adaptive difficulty and speed - SLOWER RAMP
+      // Adaptive difficulty and speed — content difficulty matters more than speed
       let newSpeed = prev.speedMultiplier;
       if (isCorrect) {
-        // Reduced from +0.04 to +0.025 for slower progression
-        newSpeed = Math.min(3.0, prev.speedMultiplier + 0.025);
+        newSpeed = Math.min(1.8, prev.speedMultiplier + 0.015);
       } else {
-        // Reduced penalty from x0.85 to x0.9 (less punishing)
-        newSpeed = Math.max(0.8, prev.speedMultiplier * 0.9);
+        newSpeed = Math.max(0.8, prev.speedMultiplier * 0.92);
       }
       
       const newDifficulty = Math.floor(newSpeed * 1.5);

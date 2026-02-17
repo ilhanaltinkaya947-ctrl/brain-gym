@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { useEffect } from "react";
+import { NeuralCore } from "./NeuralCore";
 
 interface SplashScreenProps {
   onComplete: () => void;
@@ -7,7 +8,7 @@ interface SplashScreenProps {
 
 export const SplashScreen = ({ onComplete }: SplashScreenProps) => {
   useEffect(() => {
-    const timer = setTimeout(onComplete, 2800);
+    const timer = setTimeout(onComplete, 3200);
     return () => clearTimeout(timer);
   }, [onComplete]);
 
@@ -25,22 +26,32 @@ export const SplashScreen = ({ onComplete }: SplashScreenProps) => {
         animate={{ opacity: 1 }}
         transition={{ duration: 2 }}
         style={{
-          background: 'radial-gradient(circle at 50% 50%, hsl(var(--neon-cyan) / 0.05) 0%, transparent 50%)',
+          background: 'radial-gradient(circle at 50% 50%, hsl(var(--neon-cyan) / 0.08) 0%, transparent 50%)',
         }}
       />
 
-      <div className="relative flex flex-col items-center">
+      {/* NeuralCore — fades in behind the title */}
+      <motion.div
+        className="absolute"
+        initial={{ opacity: 0, scale: 0.6 }}
+        animate={{ opacity: 0.5, scale: 1 }}
+        transition={{ duration: 2.5, ease: [0.22, 1, 0.36, 1] }}
+      >
+        <NeuralCore size={280} brainCharge={60} />
+      </motion.div>
+
+      <div className="relative flex flex-col items-center z-10">
         {/* Main Title - Cinematic Blur Reveal */}
         <motion.h1
-          initial={{ 
-            letterSpacing: "0.8em", 
-            opacity: 0, 
+          initial={{
+            letterSpacing: "0.8em",
+            opacity: 0,
             filter: "blur(30px)",
             scale: 1.2
           }}
-          animate={{ 
-            letterSpacing: "0.15em", 
-            opacity: 1, 
+          animate={{
+            letterSpacing: "0.15em",
+            opacity: 1,
             filter: "blur(0px)",
             scale: 1
           }}
@@ -50,10 +61,10 @@ export const SplashScreen = ({ onComplete }: SplashScreenProps) => {
             textShadow: '0 0 60px hsl(var(--foreground) / 0.3)',
           }}
         >
-          AXON
+          axon
         </motion.h1>
 
-        {/* Slogan - Extreme Letter Spacing Fade */}
+        {/* Slogan */}
         <motion.p
           initial={{ opacity: 0, y: 10, letterSpacing: "0.8em" }}
           animate={{ opacity: 0.4, y: 0, letterSpacing: "0.35em" }}

@@ -73,7 +73,7 @@ export const FlashMemoryResult = ({
   }, [isNewHighLevel]);
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-between px-6 py-12 safe-top safe-bottom">
+    <div className="min-h-screen-dynamic flex flex-col items-center justify-between px-6 py-12 safe-top safe-bottom">
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}

@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
 import { ColorQuestion } from '../hooks/useGameEngine';
 
@@ -11,9 +10,9 @@ interface ColorMatchProps {
   streak: number;
   onScreenShake: () => void;
   tier?: number;
+  overclockFactor?: number;
 }
 
-// Extended color palette
 const BASE_COLORS = [
   { name: 'RED', hsl: 'hsl(0, 85%, 55%)' },
   { name: 'BLUE', hsl: 'hsl(210, 85%, 55%)' },
@@ -21,13 +20,21 @@ const BASE_COLORS = [
   { name: 'YELLOW', hsl: 'hsl(45, 90%, 55%)' },
 ];
 
-const EXTENDED_COLORS = [
+const TIER2_COLORS = [
   ...BASE_COLORS,
   { name: 'PURPLE', hsl: 'hsl(270, 70%, 55%)' },
+];
+
+const TIER3_COLORS = [
+  ...TIER2_COLORS,
   { name: 'ORANGE', hsl: 'hsl(25, 90%, 55%)' },
 ];
 
-// Fisher-Yates shuffle
+const FULL_COLORS = [
+  ...TIER3_COLORS,
+  { name: 'PINK', hsl: 'hsl(330, 80%, 60%)' },
+];
+
 const shuffleArray = <T,>(array: T[]): T[] => {
   const result = [...array];
   for (let i = result.length - 1; i > 0; i--) {
@@ -37,28 +44,22 @@ const shuffleArray = <T,>(array: T[]): T[] => {
   return result;
 };
 
-// Determine tier based on streak
-const getTierFromStreak = (streak: number): number => {
-  if (streak >= 20) return 5;
-  if (streak >= 15) return 4;
-  if (streak >= 10) return 3;
-  if (streak >= 5) return 2;
-  return 1;
-};
-
-// Get time limit based on tier
 const getTimeLimit = (tier: number): number => {
   switch (tier) {
-    case 5: return 1500;  // 1.5s — inverted mode + time pressure
-    case 4: return 1500;  // 1.5s — shorter decision window
-    case 3: return 2000;  // 2.0s — faster pace than tier 1-2
-    default: return 2500; // 2.5s — comfortable pace
+    case 1: return 3000;
+    case 2: return 3500;
+    case 3: return 4000;
+    case 4: return 5000;
+    case 5: return 4500;
+    default: return 3000;
   }
 };
 
-// Get color palette based on tier
 const getColorPalette = (tier: number) => {
-  return tier >= 3 ? EXTENDED_COLORS : BASE_COLORS;
+  if (tier >= 5) return FULL_COLORS;
+  if (tier >= 3) return TIER3_COLORS;
+  if (tier >= 2) return TIER2_COLORS;
+  return BASE_COLORS;
 };
 
 interface GameQuestion {
@@ -68,36 +69,70 @@ interface GameQuestion {
   bottomWordColor?: string;
   options: { label: string; color: string }[];
   correctAnswer: string;
+  secondCorrectAnswer?: string;  // T4 dual-answer mode
   isInverted: boolean;
+  isWordMode?: boolean;           // T2 alternating "tap the WORD"
+  bgInterference?: string;        // T3/T5 background color tint
 }
 
-export const ColorMatch = ({ 
-  generateQuestion, 
-  onAnswer, 
-  playSound, 
-  triggerHaptic, 
+export const ColorMatch = ({
+  generateQuestion,
+  onAnswer,
+  playSound,
+  triggerHaptic,
   streak,
   onScreenShake,
-  tier: propTier
+  tier: propTier,
+  overclockFactor = 1
 }: ColorMatchProps) => {
-  const currentTier = propTier ?? getTierFromStreak(streak);
+  const currentTier = propTier ?? 1;
   const questionTime = getTimeLimit(currentTier);
   const colorPalette = useMemo(() => getColorPalette(currentTier), [currentTier]);
-  
+
   const generateTieredQuestion = useCallback((): GameQuestion => {
     const shuffledColors = shuffleArray([...colorPalette]);
+
+    if (currentTier >= 4 && currentTier < 5) {
+      // T4: Dual-answer — two words, answer both sequentially
+      const topWordColor = shuffledColors[0];
+      const topInkColor = shuffledColors[1];
+      const bottomWordColor = shuffledColors[2] || shuffledColors[0];
+      const bottomInkColor = shuffledColors[3] || shuffledColors[1];
+
+      const optionsSet = new Set<string>([topInkColor.name, bottomInkColor.name]);
+      for (const color of shuffledColors) {
+        if (optionsSet.size >= 6) break;
+        optionsSet.add(color.name);
+      }
+
+      return {
+        topWord: topWordColor.name,
+        topWordColor: topInkColor.hsl,
+        bottomWord: bottomWordColor.name,
+        bottomWordColor: bottomInkColor.hsl,
+        options: shuffleArray(
+          Array.from(optionsSet).map(name => ({
+            label: name,
+            color: colorPalette.find(c => c.name === name)?.hsl || 'hsl(0, 0%, 50%)',
+          }))
+        ),
+        correctAnswer: topInkColor.name,
+        secondCorrectAnswer: bottomInkColor.name,
+        isInverted: false,
+      };
+    }
+
     const isInverted = currentTier === 5;
-    const hasDistractor = currentTier >= 3 && currentTier <= 4;
-    
-    // Top word setup
+    const isWordMode = currentTier === 2 && Math.random() < 0.5;
+    const hasDistractor = currentTier === 3 || currentTier === 5;
+    const hasBgInterference = currentTier >= 3;
+
     const topWordColor = shuffledColors[0];
     const topInkColor = shuffledColors[1];
-    
-    // For inverted mode (tier 5): answer is the WORD TEXT, not the ink color
-    // For normal mode: answer is the INK COLOR
-    const correctAnswer = isInverted ? topWordColor.name : topInkColor.name;
-    
-    // Distractor word for tier 3-4
+
+    // For word mode: correct answer is the WORD text, not the ink color
+    const correctAnswer = isInverted || isWordMode ? topWordColor.name : topInkColor.name;
+
     let bottomWord: string | undefined;
     let bottomWordColor: string | undefined;
     if (hasDistractor) {
@@ -106,77 +141,122 @@ export const ColorMatch = ({
       bottomWord = distractorWordColor.name;
       bottomWordColor = distractorInkColor.hsl;
     }
-    
-    // Build options - ensure correct answer is included
-    const optionCount = colorPalette.length >= 6 ? 6 : 4;
+
+    let bgInterference: string | undefined;
+    if (hasBgInterference) {
+      const bgColor = shuffledColors[Math.min(4, shuffledColors.length - 1)];
+      bgInterference = bgColor.hsl;
+    }
+
+    const optionCount = colorPalette.length >= 6 ? 6 : colorPalette.length;
     const optionsSet = new Set<string>([correctAnswer]);
-    
-    // Add other colors as options
     for (const color of shuffledColors) {
       if (optionsSet.size >= optionCount) break;
       optionsSet.add(color.name);
     }
-    
-    const options = shuffleArray(
-      Array.from(optionsSet).map(name => {
-        const color = colorPalette.find(c => c.name === name);
-        return { label: name, color: color?.hsl || 'hsl(0, 0%, 50%)' };
-      })
-    );
-    
+
     return {
       topWord: topWordColor.name,
       topWordColor: topInkColor.hsl,
       bottomWord,
       bottomWordColor,
-      options,
+      options: shuffleArray(
+        Array.from(optionsSet).map(name => ({
+          label: name,
+          color: colorPalette.find(c => c.name === name)?.hsl || 'hsl(0, 0%, 50%)',
+        }))
+      ),
       correctAnswer,
       isInverted,
+      isWordMode,
+      bgInterference,
     };
   }, [currentTier, colorPalette]);
 
   const [question, setQuestion] = useState<GameQuestion>(() => generateTieredQuestion());
-  const [timeLeft, setTimeLeft] = useState(questionTime);
+  const questionStartRef = useRef(Date.now());
   const [isShaking, setIsShaking] = useState(false);
   const [pressedButton, setPressedButton] = useState<string | null>(null);
   const [correctButton, setCorrectButton] = useState<string | null>(null);
+  const [questionKey, setQuestionKey] = useState(0);
+  const [dualStep, setDualStep] = useState(0); // 0 = first answer, 1 = second answer (T4)
   const containerRef = useRef<HTMLDivElement>(null);
+  const shakeTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
+  const nextQuestionTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
+  const answerCooldownRef = useRef(false);
+  const questionAnsweredRef = useRef(false); // Blocks ALL input until next question loads
+
+  const onAnswerRef = useRef(onAnswer);
+  const playSoundRef = useRef(playSound);
+  const triggerHapticRef = useRef(triggerHaptic);
+  useEffect(() => { onAnswerRef.current = onAnswer; }, [onAnswer]);
+  useEffect(() => { playSoundRef.current = playSound; }, [playSound]);
+  useEffect(() => { triggerHapticRef.current = triggerHaptic; }, [triggerHaptic]);
 
   const nextQuestion = useCallback(() => {
+    questionAnsweredRef.current = false; // Unlock input for new question
     setQuestion(generateTieredQuestion());
-    setTimeLeft(getTimeLimit(currentTier));
+    questionStartRef.current = Date.now();
     setPressedButton(null);
     setCorrectButton(null);
+    setQuestionKey(k => k + 1);
+    setDualStep(0);
   }, [generateTieredQuestion, currentTier]);
 
-  // Reset question when tier changes
-  useEffect(() => {
-    nextQuestion();
-  }, [currentTier]);
+  // NOTE: No useEffect on [currentTier] — tier changes take effect on NEXT question
+  // to prevent swapping the question while the user is mid-tap
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      setTimeLeft(prev => {
-        if (prev <= 100) {
-          onAnswer(false, 0, currentTier);
-          playSound('wrong');
-          triggerHaptic('heavy');
-          setIsShaking(true);
-          setTimeout(() => {
-            setIsShaking(false);
-            nextQuestion();
-          }, 300);
-          return questionTime;
-        }
-        if (prev <= 800) {
-          playSound('tick');
-        }
-        return prev - 100;
-      });
-    }, 100);
+    return () => {
+      if (shakeTimeoutRef.current) clearTimeout(shakeTimeoutRef.current);
+      if (nextQuestionTimeoutRef.current) clearTimeout(nextQuestionTimeoutRef.current);
+    };
+  }, []);
 
-    return () => clearInterval(interval);
-  }, [question, onAnswer, playSound, triggerHaptic, nextQuestion, currentTier, questionTime]);
+  // Timer: single timeout for expiry, CSS handles visual bar
+  const expiryRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const tickRef2 = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const [timerActive, setTimerActive] = useState(false);
+
+  useEffect(() => {
+    // Clear previous timers
+    if (expiryRef.current) clearTimeout(expiryRef.current);
+    tickRef2.current.forEach(t => clearTimeout(t));
+    tickRef2.current = [];
+
+    const duration = questionTime / overclockFactor; // ms
+
+    // Start CSS animation on next frame
+    setTimerActive(false);
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => setTimerActive(true));
+    });
+
+    // Schedule tick sounds at 20% and 60% remaining
+    const tickAt80 = duration * 0.8;
+    const tickAt60 = duration * 0.6;
+    tickRef2.current.push(setTimeout(() => playSoundRef.current('tick'), tickAt60));
+    tickRef2.current.push(setTimeout(() => playSoundRef.current('tick'), tickAt80));
+
+    // Schedule expiry
+    expiryRef.current = setTimeout(() => {
+      if (questionAnsweredRef.current) return; // Already answered
+      questionAnsweredRef.current = true; // Lock input during shake
+      onAnswerRef.current(false, 0, currentTier);
+      playSoundRef.current('wrong');
+      triggerHapticRef.current('heavy');
+      setIsShaking(true);
+      shakeTimeoutRef.current = setTimeout(() => {
+        setIsShaking(false);
+        nextQuestion();
+      }, 300);
+    }, duration);
+
+    return () => {
+      if (expiryRef.current) clearTimeout(expiryRef.current);
+      tickRef2.current.forEach(t => clearTimeout(t));
+    };
+  }, [question, nextQuestion, currentTier, questionTime, overclockFactor]);
 
   const triggerConfetti = (event: React.MouseEvent) => {
     const rect = (event.target as HTMLElement).getBoundingClientRect();
@@ -184,7 +264,7 @@ export const ColorMatch = ({
     const y = (rect.top + rect.height / 2) / window.innerHeight;
 
     confetti({
-      particleCount: 40 + streak * 8,
+      particleCount: Math.min(60, 30 + streak * 4),
       spread: 70,
       origin: { x, y },
       colors: ['#00D4FF', '#FF00FF', '#FFD700', '#00FF88'],
@@ -196,8 +276,44 @@ export const ColorMatch = ({
   };
 
   const handleAnswer = (selectedColor: string, event: React.MouseEvent) => {
-    const isCorrect = selectedColor === question.correctAnswer;
-    const speedBonus = Math.floor((timeLeft / questionTime) * 10);
+    if (answerCooldownRef.current || questionAnsweredRef.current) return;
+    answerCooldownRef.current = true;
+    questionAnsweredRef.current = true; // Lock — one answer per question
+    setTimeout(() => { answerCooldownRef.current = false; }, 200);
+
+    // Cancel timer immediately to prevent race condition
+    if (expiryRef.current) clearTimeout(expiryRef.current);
+
+    // T4 dual-answer mode
+    if (question.secondCorrectAnswer && dualStep === 0) {
+      const isCorrect = selectedColor === question.correctAnswer;
+      setPressedButton(selectedColor);
+      if (isCorrect) {
+        setCorrectButton(selectedColor);
+        playSound('correct');
+        triggerHaptic('light');
+        questionAnsweredRef.current = false; // Unlock for second answer
+        setDualStep(1);
+        setPressedButton(null);
+        setCorrectButton(null);
+      } else {
+        playSound('wrong');
+        triggerHaptic('heavy');
+        setIsShaking(true);
+        shakeTimeoutRef.current = setTimeout(() => setIsShaking(false), 500);
+        onAnswer(false, 0, currentTier);
+        nextQuestionTimeoutRef.current = setTimeout(() => nextQuestion(), 100);
+      }
+      return;
+    }
+
+    const target = question.secondCorrectAnswer && dualStep === 1
+      ? question.secondCorrectAnswer
+      : question.correctAnswer;
+
+    const isCorrect = selectedColor === target;
+    const elapsed = Date.now() - questionStartRef.current;
+    const speedBonus = Math.floor(Math.max(0, 1 - elapsed / (questionTime / overclockFactor)) * 10);
 
     setPressedButton(selectedColor);
 
@@ -211,32 +327,39 @@ export const ColorMatch = ({
       playSound('wrong');
       triggerHaptic('heavy');
       setIsShaking(true);
-      setTimeout(() => setIsShaking(false), 500);
+      shakeTimeoutRef.current = setTimeout(() => setIsShaking(false), 500);
     }
 
     onAnswer(isCorrect, speedBonus, currentTier);
-    setTimeout(() => nextQuestion(), 100);
+    nextQuestionTimeoutRef.current = setTimeout(() => nextQuestion(), 100);
   };
 
-  const progress = (timeLeft / questionTime) * 100;
+  const timerDurationSec = questionTime / 1000 / overclockFactor;
 
-  // Get tier display info
-  const getTierInfo = (tier: number) => {
-    switch (tier) {
-      case 1: return { label: 'T1', color: 'text-muted-foreground' };
-      case 2: return { label: 'T2', color: 'text-blue-400' };
-      case 3: return { label: 'T3', color: 'text-purple-400' };
-      case 4: return { label: 'T4', color: 'text-orange-400' };
-      case 5: return { label: 'T5', color: 'text-red-400' };
-      default: return { label: 'T1', color: 'text-muted-foreground' };
-    }
-  };
-
-  const tierInfo = getTierInfo(currentTier);
-
-  // Instructions based on tier
   const getInstruction = () => {
+    if (question.secondCorrectAnswer) {
+      // T4 dual-answer
+      if (dualStep === 0) {
+        return (
+          <>
+            Tap the <span className="text-secondary font-bold text-glow-magenta">INK COLOR</span> of the <span className="text-primary font-bold">TOP</span> word
+          </>
+        );
+      }
+      return (
+        <>
+          Now tap the <span className="text-secondary font-bold text-glow-magenta">INK COLOR</span> of the <span className="text-primary font-bold">BOTTOM</span> word
+        </>
+      );
+    }
     if (question.isInverted) {
+      return (
+        <>
+          Tap what the <span className="text-destructive font-bold">WORD SAYS</span>
+        </>
+      );
+    }
+    if (question.isWordMode) {
       return (
         <>
           Tap what the <span className="text-destructive font-bold">WORD SAYS</span>
@@ -252,146 +375,149 @@ export const ColorMatch = ({
     }
     return (
       <>
-        Tap the <span className="text-secondary font-bold text-glow-magenta">COLOR</span> of the text
+        Tap the <span className="text-secondary font-bold text-glow-magenta">INK COLOR</span>, not the word
       </>
     );
   };
 
+  const getModeLabel = () => {
+    if (question.secondCorrectAnswer) return 'DUAL';
+    if (question.isInverted) return 'INVERTED';
+    if (question.isWordMode) return 'WORD MODE';
+    if (question.bgInterference) return 'INTERFERENCE';
+    return null;
+  };
+
+  const modeLabel = getModeLabel();
+
   return (
-    <motion.div
+    <div
       ref={containerRef}
-      animate={isShaking ? { x: [-8, 8, -8, 8, 0] } : {}}
-      transition={{ duration: 0.4 }}
-      className="flex flex-col items-center justify-center h-full px-4 relative"
+      className={`flex flex-col items-center justify-center h-full px-4 relative ${isShaking ? 'cm-shake' : ''}`}
     >
-      {/* Tier Badge */}
-      <motion.div
-        initial={{ opacity: 0, scale: 0.8 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className={`absolute top-4 right-4 px-2 py-1 rounded-md bg-muted/30 border border-border/50 text-xs font-mono ${tierInfo.color}`}
-      >
-        {tierInfo.label}
-      </motion.div>
+      <style>{`
+        @keyframes cm-shake {
+          0%, 100% { transform: translateX(0); }
+          20% { transform: translateX(-8px); }
+          40% { transform: translateX(8px); }
+          60% { transform: translateX(-8px); }
+          80% { transform: translateX(8px); }
+        }
+        .cm-shake { animation: cm-shake 0.4s ease; }
+        @keyframes cm-fade-in {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        .cm-fade-in { animation: cm-fade-in 0.3s ease forwards; }
+        @keyframes cm-word-in {
+          from { opacity: 0; transform: scale(0.85); }
+          to { opacity: 1; transform: scale(1); }
+        }
+        .cm-word-in { animation: cm-word-in 0.2s ease-out forwards; }
+        @keyframes cm-distractor-in {
+          from { opacity: 0; transform: translateY(-6px); }
+          to { opacity: 0.6; transform: translateY(0); }
+        }
+        .cm-distractor-in { animation: cm-distractor-in 0.2s ease-out 0.08s forwards; opacity: 0; }
+        @keyframes cm-btn-in {
+          from { opacity: 0; transform: scale(0.95); }
+          to { opacity: 1; transform: scale(1); }
+        }
+        .cm-btn-in { animation: cm-btn-in 0.15s ease-out forwards; }
+      `}</style>
 
-      {/* Inverted Mode Warning */}
-      <AnimatePresence>
-        {question.isInverted && (
-          <motion.div
-            initial={{ opacity: 0, y: -20, scale: 0.9 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -20, scale: 0.9 }}
-            transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-            className="absolute top-4 left-4 px-3 py-1.5 rounded-lg bg-destructive/20 border border-destructive/50"
-          >
-            <span className="text-destructive font-bold text-sm tracking-wider">⚠️ INVERTED!</span>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Timer bar */}
+      {/* Timer bar — CSS-driven animation, no JS ticks */}
       <div className="w-full max-w-sm h-2 bg-muted/30 rounded-full overflow-hidden mb-6 border border-border/50">
-        <motion.div
+        <div
+          key={questionKey}
           className="h-full rounded-full"
           style={{
-            background: progress > 30 
-              ? 'linear-gradient(90deg, hsl(var(--neon-magenta)), hsl(var(--neon-cyan)))' 
-              : 'hsl(var(--destructive))',
-            boxShadow: progress > 30 
-              ? '0 0 10px hsl(var(--neon-magenta) / 0.5)' 
-              : '0 0 10px hsl(var(--destructive) / 0.5)'
+            width: timerActive ? '0%' : '100%',
+            transition: timerActive ? `width ${timerDurationSec}s linear` : 'none',
+            background: 'linear-gradient(90deg, hsl(var(--neon-magenta)), hsl(var(--neon-cyan)))',
+            boxShadow: '0 0 10px hsl(var(--neon-magenta) / 0.5)',
           }}
-          animate={{ width: `${progress}%` }}
-          transition={{ duration: 0.1 }}
         />
       </div>
 
       {/* Instructions */}
-      <motion.p 
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        className="text-xs text-muted-foreground mb-4 uppercase tracking-widest text-center px-4"
-      >
+      <p className="text-xs text-muted-foreground mb-4 uppercase tracking-widest text-center px-4 cm-fade-in h-5">
         {getInstruction()}
-      </motion.p>
+      </p>
 
       {/* Word Display */}
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={question.topWord + question.topWordColor + currentTier}
-          initial={{ opacity: 0, scale: 0.8, rotateX: 90 }}
-          animate={{ opacity: 1, scale: 1, rotateX: 0 }}
-          exit={{ opacity: 0, scale: 0.8, rotateX: -90 }}
-          transition={{ duration: 0.25, type: "spring" }}
-          className="mb-8 flex flex-col items-center gap-2"
+      <div
+        key={`word-${questionKey}`}
+        className="mb-8 flex flex-col items-center gap-2 cm-word-in relative"
+      >
+        {/* Background interference (T3/T5) */}
+        {question.bgInterference && (
+          <div
+            className="absolute inset-0 -inset-x-8 -inset-y-4 rounded-2xl"
+            style={{
+              background: question.bgInterference,
+              opacity: 0.12,
+              filter: 'blur(20px)',
+            }}
+          />
+        )}
+
+        {/* Top Word */}
+        <h2
+          className="text-6xl sm:text-7xl font-black uppercase tracking-wider relative z-10"
+          style={{
+            color: question.topWordColor,
+            textShadow: `0 0 40px ${question.topWordColor}, 0 0 80px ${question.topWordColor}40`,
+            opacity: question.secondCorrectAnswer && dualStep === 1 ? 0.4 : 1,
+          }}
         >
-          {/* Top Word (always the target) */}
-          <h2 
-            className="text-6xl sm:text-7xl font-black uppercase tracking-wider"
-            style={{ 
-              color: question.topWordColor,
-              textShadow: `0 0 40px ${question.topWordColor}, 0 0 80px ${question.topWordColor}40`,
+          {question.topWord}
+        </h2>
+
+        {/* Distractor / Second Word */}
+        {question.bottomWord && question.bottomWordColor && (
+          <h3
+            key={`dist-${questionKey}`}
+            className="text-4xl sm:text-5xl font-bold uppercase tracking-wider cm-distractor-in relative z-10"
+            style={{
+              color: question.bottomWordColor,
+              textShadow: `0 0 20px ${question.bottomWordColor}40`,
+              opacity: question.secondCorrectAnswer && dualStep === 1 ? 1 : undefined,
             }}
           >
-            {question.topWord}
-          </h2>
+            {question.bottomWord}
+          </h3>
+        )}
+      </div>
 
-          {/* Distractor Word (tier 3-4) */}
-          <AnimatePresence>
-            {question.bottomWord && question.bottomWordColor && (
-              <motion.h3
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 0.6, y: 0 }}
-                exit={{ opacity: 0, y: 10 }}
-                transition={{ delay: 0.1 }}
-                className="text-4xl sm:text-5xl font-bold uppercase tracking-wider opacity-60"
-                style={{ 
-                  color: question.bottomWordColor,
-                  textShadow: `0 0 20px ${question.bottomWordColor}40`,
-                }}
-              >
-                {question.bottomWord}
-              </motion.h3>
-            )}
-          </AnimatePresence>
-        </motion.div>
-      </AnimatePresence>
-
-      {/* Color Buttons - Responsive grid */}
+      {/* Color Buttons */}
       <div className={`grid gap-3 w-full max-w-sm ${question.options.length > 4 ? 'grid-cols-3' : 'grid-cols-2'}`}>
         {question.options.map((option, index) => {
           const isCorrect = correctButton === option.label;
           return (
-            <motion.button
-              key={`${question.topWord}-${option.label}-${index}`}
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ 
-                opacity: 1, 
-                scale: pressedButton === option.label ? 1.15 : 1,
-              }}
-              transition={{ 
-                delay: index * 0.03,
-                scale: { type: "spring", stiffness: 500, damping: 15 }
-              }}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 1.15 }}
+            <button
+              key={`${questionKey}-${option.label}-${index}`}
               onClick={(e) => handleAnswer(option.label, e)}
-              className="p-4 sm:p-5 rounded-2xl text-base sm:text-lg font-black uppercase tracking-wide transition-all duration-150 backdrop-blur-sm touch-manipulation min-h-[52px]"
+              className="p-4 sm:p-5 rounded-2xl text-base sm:text-lg font-black uppercase tracking-wide touch-manipulation min-h-[52px] cm-btn-in"
               style={{
-                background: isCorrect 
+                background: isCorrect
                   ? `linear-gradient(145deg, ${option.color}40, ${option.color}20)`
                   : `linear-gradient(145deg, hsl(260 30% 14% / 0.8), hsl(260 30% 8% / 0.6))`,
                 border: `2px solid ${isCorrect ? 'hsl(var(--neon-gold))' : option.color}80`,
                 color: isCorrect ? 'hsl(var(--neon-gold))' : option.color,
-                boxShadow: isCorrect 
+                boxShadow: isCorrect
                   ? `0 0 50px hsl(var(--neon-gold) / 0.7), inset 0 0 30px hsl(var(--neon-gold) / 0.2)`
                   : `0 0 20px ${option.color}30`,
+                transform: pressedButton === option.label ? 'scale(1.15)' : undefined,
+                transition: 'transform 0.15s ease, background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease',
+                animationDelay: `${index * 30}ms`,
               }}
             >
               {option.label}
-            </motion.button>
+            </button>
           );
         })}
       </div>
-    </motion.div>
+    </div>
   );
 };

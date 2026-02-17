@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import confetti from 'canvas-confetti';
 import { Check } from 'lucide-react';
 
 interface ChimpMemoryProps {
@@ -7,43 +8,46 @@ interface ChimpMemoryProps {
   onAnswer: (correct: boolean, speedBonus: number, tier: number) => void;
   playSound: (type: 'correct' | 'wrong' | 'tick') => void;
   triggerHaptic: (type: 'light' | 'medium' | 'heavy') => void;
+  overclockFactor?: number;
 }
 
 interface Cell { index: number; number: number | null; revealed: boolean; tapped: boolean; isError?: boolean; }
 
-const GRID_SIZE = 25; // 5x5 grid
+// Adaptive grid: 4x4 for T1-T3 (bigger cells), 5x5 for T4-T5
+const getGridConfig = (tier: number) => {
+  if (tier >= 4) return { size: 25, cols: 5 };
+  return { size: 16, cols: 4 };
+};
 
-export const ChimpMemory = memo(({ tier, onAnswer, playSound, triggerHaptic }: ChimpMemoryProps) => {
+export const ChimpMemory = memo(({ tier, onAnswer, playSound, triggerHaptic, overclockFactor = 1 }: ChimpMemoryProps) => {
+  const gridConfig = getGridConfig(tier);
   const [cells, setCells] = useState<Cell[]>([]);
-  const [phase, setPhase] = useState<'showing' | 'hiding' | 'rotating' | 'playing' | 'success'>('showing');
+  const [phase, setPhase] = useState<'showing' | 'hiding' | 'playing' | 'success'>('showing');
   const [nextExpected, setNextExpected] = useState(1);
   const [lastTapTime, setLastTapTime] = useState(0);
-  const [isRotated, setIsRotated] = useState(false);
   const [roundKey, setRoundKey] = useState(0);
 
   // Difficulty Config - Minimum 2s display for harder tiers, scaled by count
   const getDifficultyConfig = (t: number) => {
-    // Base time increases with number count for fairness
     switch (t) {
-      case 1: return { count: 4, showTime: 2500 }; // Easy - plenty of time
-      case 2: return { count: 5, showTime: 2500 }; // Still comfortable
-      case 3: return { count: 6, showTime: 2200 }; // Slightly faster
-      case 4: return { count: 7, showTime: 2000 }; // Minimum 2s + rotation
-      case 5: return { count: 8, showTime: 2000 }; // God Mode - 2s minimum + rotation
-      default: return { count: 4, showTime: 2500 };
+      case 1: return { count: 4, showTime: 2000 };
+      case 2: return { count: 5, showTime: 2200 };
+      case 3: return { count: 6, showTime: 2400 };
+      case 4: return { count: 7, showTime: 2600 };
+      case 5: return { count: 9, showTime: 3000 };
+      default: return { count: 4, showTime: 2000 };
     }
   };
 
-  const shouldRotate = tier >= 4;
-
   const initializeRound = useCallback(() => {
-    const config = getDifficultyConfig(tier);
-    
-    // Reset rotation state
-    setIsRotated(false);
-    
+    const baseConfig = getDifficultyConfig(tier);
+    const config = {
+      count: baseConfig.count + (overclockFactor > 1.5 ? 1 : 0),
+      showTime: Math.floor(baseConfig.showTime / overclockFactor),
+    };
+
     // Create empty grid
-    const newCells: Cell[] = Array.from({ length: GRID_SIZE }, (_, index) => ({
+    const newCells: Cell[] = Array.from({ length: gridConfig.size }, (_, index) => ({
       index,
       number: null,
       revealed: false,
@@ -51,15 +55,49 @@ export const ChimpMemory = memo(({ tier, onAnswer, playSound, triggerHaptic }: C
     }));
 
     // Randomize positions (Fisher-Yates shuffle)
-    const availableIndices = Array.from({ length: GRID_SIZE }, (_, i) => i);
+    const availableIndices = Array.from({ length: gridConfig.size }, (_, i) => i);
     for (let i = availableIndices.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [availableIndices[i], availableIndices[j]] = [availableIndices[j], availableIndices[i]];
     }
 
-    // Place numbers
+    // Place numbers with T5 consecutive-number spacing enforcement
+    const placeNumbers = (indices: number[], count: number, cols: number, enforceTier: number): number[] => {
+      const getManhattanDist = (a: number, b: number) => {
+        const ax = a % cols, ay = Math.floor(a / cols);
+        const bx = b % cols, by = Math.floor(b / cols);
+        return Math.abs(ax - bx) + Math.abs(ay - by);
+      };
+
+      const checkSpacing = (positions: number[]) => {
+        for (let n = 0; n < positions.length - 1; n++) {
+          if (getManhattanDist(positions[n], positions[n + 1]) < 2) return false;
+        }
+        return true;
+      };
+
+      let chosen = indices.slice(0, count);
+
+      // For tier >= 5, enforce minimum manhattan distance 2 between consecutive numbers
+      if (enforceTier >= 5) {
+        for (let attempt = 0; attempt < 10; attempt++) {
+          if (checkSpacing(chosen)) break;
+          // Re-shuffle positions
+          const pool = [...indices];
+          for (let i = pool.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [pool[i], pool[j]] = [pool[j], pool[i]];
+          }
+          chosen = pool.slice(0, count);
+        }
+      }
+
+      return chosen;
+    };
+
+    const chosenPositions = placeNumbers(availableIndices, config.count, gridConfig.cols, tier);
     for (let i = 0; i < config.count; i++) {
-      const pos = availableIndices[i];
+      const pos = chosenPositions[i];
       newCells[pos] = { ...newCells[pos], number: i + 1, revealed: true };
     }
 
@@ -72,20 +110,9 @@ export const ChimpMemory = memo(({ tier, onAnswer, playSound, triggerHaptic }: C
     setTimeout(() => {
       setPhase('hiding');
       setCells(prev => prev.map(cell => ({ ...cell, revealed: false })));
-      
-      // If tier 4+, rotate the grid after hiding
-      if (tier >= 4) {
-        setTimeout(() => {
-          setPhase('rotating');
-          setIsRotated(true);
-          // Wait for rotation animation to complete before playing
-          setTimeout(() => setPhase('playing'), 600);
-        }, 200);
-      } else {
-        setTimeout(() => setPhase('playing'), 200);
-      }
+      setTimeout(() => setPhase('playing'), 200);
     }, config.showTime);
-  }, [tier]);
+  }, [tier, overclockFactor]);
 
   useEffect(() => { initializeRound(); }, [initializeRound]);
 
@@ -113,10 +140,20 @@ export const ChimpMemory = memo(({ tier, onAnswer, playSound, triggerHaptic }: C
     const updatedCells = cells.map(c => c.index === index ? { ...c, tapped: true, revealed: true } : c);
     setCells(updatedCells);
 
-    const config = getDifficultyConfig(tier);
-    if (nextExpected === config.count) {
+    // Use overclock-adjusted count (same as initializeRound) to avoid unreachable last number
+    const baseConfig = getDifficultyConfig(tier);
+    const totalCount = baseConfig.count + (overclockFactor > 1.5 ? 1 : 0);
+    if (nextExpected === totalCount) {
       // Show success indicator before completing
       setPhase('success');
+      confetti({
+        particleCount: 40,
+        spread: 60,
+        origin: { x: 0.5, y: 0.5 },
+        colors: ['#00D4FF', '#FF00FF', '#FFD700', '#00FF88'],
+        gravity: 1.2,
+        ticks: 100,
+      });
       setTimeout(() => onAnswer(true, 1.0, tier), 400);
     } else {
       setNextExpected(prev => prev + 1);
@@ -127,7 +164,6 @@ export const ChimpMemory = memo(({ tier, onAnswer, playSound, triggerHaptic }: C
     switch (phase) {
       case 'showing': return 'Memorize';
       case 'hiding': return 'Get ready...';
-      case 'rotating': return 'Rotating...';
       case 'success': return 'Perfect!';
       default: return 'Tap in order';
     }
@@ -140,7 +176,6 @@ export const ChimpMemory = memo(({ tier, onAnswer, playSound, triggerHaptic }: C
         {phase === 'showing' && `Memorize ${getDifficultyConfig(tier).count} numbers on the grid`}
         {phase === 'playing' && `Tap numbers in order, starting from ${nextExpected}`}
         {phase === 'success' && 'Perfect! All numbers found correctly'}
-        {phase === 'rotating' && 'Grid is rotating 90 degrees'}
       </div>
 
       {/* Success Indicator Overlay */}
@@ -165,32 +200,26 @@ export const ChimpMemory = memo(({ tier, onAnswer, playSound, triggerHaptic }: C
         )}
       </AnimatePresence>
 
-      <AnimatePresence mode="wait">
-        <motion.div
+        <div
           key={roundKey}
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 0.95 }}
-          transition={{ duration: 0.25, ease: 'easeOut' }}
+          style={{
+            transition: 'opacity 250ms ease-out, transform 250ms ease-out',
+            opacity: 1,
+            transform: 'scale(1)',
+          }}
         >
-          <motion.div
+          <div
             role="grid"
-            aria-label={`5 by 5 memory grid, ${getDifficultyConfig(tier).count} numbers to memorize${shouldRotate && isRotated ? ', rotated 90 degrees' : ''}`}
-            className="grid grid-cols-5 gap-2 w-full max-w-[300px] aspect-square"
-            initial={false}
-            animate={{
-              rotate: isRotated ? 90 : 0,
-              scale: phase === 'success' ? 0.95 : 1,
-              opacity: phase === 'success' ? 0.5 : 1
-            }}
-            transition={{
-              rotate: { duration: 0.6, ease: [0.4, 0, 0.2, 1] },
-              scale: { duration: 0.2 },
-              opacity: { duration: 0.2 }
+            aria-label={`${gridConfig.cols} by ${gridConfig.cols} memory grid, ${getDifficultyConfig(tier).count} numbers to memorize`}
+            className={`grid gap-3 w-full aspect-square ${gridConfig.cols === 4 ? 'grid-cols-4 max-w-[340px]' : 'grid-cols-5 max-w-[360px]'}`}
+            style={{
+              transition: 'transform 200ms ease-out, opacity 200ms ease-out',
+              transform: phase === 'success' ? 'scale(0.95)' : 'scale(1)',
+              opacity: phase === 'success' ? 0.5 : 1,
             }}
           >
             {cells.map((cell) => (
-              <motion.button
+              <button
                 key={cell.index}
                 role="gridcell"
                 aria-label={
@@ -202,53 +231,39 @@ export const ChimpMemory = memo(({ tier, onAnswer, playSound, triggerHaptic }: C
                 }
                 aria-disabled={cell.tapped || phase !== 'playing'}
                 onClick={() => handleCellTap(cell.index)}
-                initial={{ scale: 1, opacity: 1 }}
-                animate={{
-                  scale: cell.tapped ? 0.9 : 1,
-                  opacity: cell.tapped ? 0.4 : 1
+                style={{
+                  transition: 'transform 150ms ease-out, opacity 150ms ease-out',
+                  transform: cell.tapped ? 'scale(0.9)' : 'scale(1)',
+                  opacity: cell.tapped ? 0.4 : 1,
                 }}
-                whileTap={phase === 'playing' && !cell.tapped ? { scale: 0.95 } : undefined}
-                transition={{ type: 'spring', stiffness: 400, damping: 25 }}
-                className={`relative rounded-lg flex items-center justify-center text-lg font-bold aspect-square transition-colors touch-manipulation
-                  min-w-[44px] min-h-[44px]
+                className={`relative rounded-xl flex items-center justify-center text-xl font-bold aspect-square transition-colors touch-manipulation
+                  min-w-[52px] min-h-[52px]
                   ${cell.revealed && cell.number ? 'bg-primary text-primary-foreground' : 'bg-muted/30 active:bg-muted/50'}
                   ${cell.isError ? 'bg-destructive animate-shake' : ''}
                   ${cell.tapped ? 'pointer-events-none' : ''}
+                  ${phase === 'playing' && !cell.tapped ? 'active:scale-95' : ''}
                 `}
                 disabled={cell.tapped || phase !== 'playing'}
               >
                 <span className="select-none">
                   {(cell.revealed || cell.tapped) && cell.number}
                 </span>
-              </motion.button>
+              </button>
             ))}
-          </motion.div>
-        </motion.div>
-      </AnimatePresence>
+          </div>
+        </div>
 
-      {/* Rotation indicator for tier 4+ */}
-      <AnimatePresence>
-        {phase === 'rotating' && (
-          <motion.p
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            className="mt-4 text-sm text-amber-500 font-medium"
-          >
-            🔄 Grid rotating...
-          </motion.p>
-        )}
-      </AnimatePresence>
-
-      <motion.p 
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
+      <p
+        style={{
+          transition: 'opacity 200ms ease-out',
+          opacity: phase === 'success' ? 1 : 0.6,
+        }}
         className={`mt-6 text-xs font-mono tracking-widest uppercase ${
-          phase === 'success' ? 'text-green-500 opacity-100' : 'text-muted-foreground opacity-60'
+          phase === 'success' ? 'text-green-500' : 'text-muted-foreground'
         }`}
       >
         {getPhaseLabel()}
-      </motion.p>
+      </p>
     </div>
   );
 });

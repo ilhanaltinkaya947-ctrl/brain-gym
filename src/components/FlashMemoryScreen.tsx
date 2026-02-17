@@ -16,7 +16,7 @@ export const FlashMemoryScreen = ({
   triggerHaptic,
 }: FlashMemoryScreenProps) => {
   return (
-    <div className="min-h-screen flex flex-col safe-top safe-bottom">
+    <div className="min-h-screen-dynamic flex flex-col safe-top safe-bottom">
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}

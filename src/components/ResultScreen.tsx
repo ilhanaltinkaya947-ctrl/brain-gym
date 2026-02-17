@@ -115,17 +115,37 @@ export const ResultScreen = ({
   };
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col items-center justify-center p-6 relative overflow-hidden">
-      {/* Background Glow */}
-      <motion.div
+    <div className="min-h-screen-dynamic bg-background text-foreground flex flex-col items-center justify-center p-6 safe-all relative overflow-hidden">
+      <style>{`
+        @keyframes rs-glow-breathe {
+          0%, 100% { opacity: 0.5; transform: scale(1); }
+          50% { opacity: 1; transform: scale(1.05); }
+        }
+        @keyframes rs-edge-breathe {
+          0%, 100% { opacity: 0.3; }
+          50% { opacity: 0.7; }
+        }
+      `}</style>
+
+      {/* Background Glow — breathing radial */}
+      <div
         className="absolute inset-0 pointer-events-none"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 1 }}
         style={{
           background: isEndless
-            ? 'radial-gradient(circle at 50% 40%, hsl(25 90% 55% / 0.08) 0%, transparent 60%)'
-            : 'radial-gradient(circle at 50% 40%, hsl(173 80% 40% / 0.08) 0%, transparent 60%)',
+            ? 'radial-gradient(ellipse 80% 60% at 50% 35%, hsl(25 90% 55% / 0.2) 0%, hsl(25 80% 45% / 0.08) 40%, transparent 70%)'
+            : 'radial-gradient(ellipse 80% 60% at 50% 35%, hsl(173 80% 50% / 0.2) 0%, hsl(173 70% 40% / 0.08) 40%, transparent 70%)',
+          animation: 'rs-glow-breathe 3s ease-in-out infinite',
+        }}
+      />
+
+      {/* Edge glow — breathing inset box-shadow */}
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          boxShadow: isEndless
+            ? 'inset 0 0 80px hsl(25 90% 55% / 0.12), inset 0 0 160px hsl(25 80% 45% / 0.06)'
+            : 'inset 0 0 80px hsl(173 80% 50% / 0.12), inset 0 0 160px hsl(173 70% 40% / 0.06)',
+          animation: 'rs-edge-breathe 3s ease-in-out infinite',
         }}
       />
 

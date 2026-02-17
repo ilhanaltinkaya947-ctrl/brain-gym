@@ -1,7 +1,6 @@
 import { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronRight, Plus, Minus, X, Divide, Spade, Heart, ArrowLeftRight, Brain } from 'lucide-react';
-import { NeuralCore } from '../NeuralCore';
 
 interface OnboardingFlowProps {
   onComplete: () => void;
@@ -50,8 +49,8 @@ const SLIDES: Slide[] = [
 // Spring transition config for native feel
 const springTransition = {
   type: 'spring' as const,
-  stiffness: 120,
-  damping: 20,
+  stiffness: 80,
+  damping: 22,
 };
 
 // Color palette
@@ -91,7 +90,7 @@ const MathVisual = () => {
               scale: [0.9, 1.1, 0.9],
             }}
             transition={{
-              duration: 3,
+              duration: 4.5,
               delay: op.delay,
               repeat: Infinity,
               ease: 'easeInOut',
@@ -126,7 +125,7 @@ const ParadoxVisual = () => {
           rotate: [-3, -10, -3],
           opacity: [0.7, 1, 0.7],
         }}
-        transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+        transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }}
       >
         <ArrowLeftRight className="w-5 h-5" style={{ color: COLORS.nebulaViolet }} />
       </motion.div>
@@ -144,7 +143,7 @@ const ParadoxVisual = () => {
           rotate: [3, 10, 3],
           opacity: [0.7, 1, 0.7],
         }}
-        transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut', delay: 0.3 }}
+        transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut', delay: 0.3 }}
       >
         <ArrowLeftRight className="w-5 h-5" style={{ color: COLORS.arcticAzure }} />
       </motion.div>
@@ -162,7 +161,7 @@ const SuitVisual = () => {
           scale: [1, 1.15, 1],
           opacity: [0.5, 1, 0.5],
         }}
-        transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
+        transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
       >
         <Spade 
           className="w-14 h-14" 
@@ -180,7 +179,7 @@ const SuitVisual = () => {
           scale: [1.1, 0.9, 1.1],
           opacity: [0.3, 0.7, 0.3],
         }}
-        transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut', delay: 0.8 }}
+        transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut', delay: 0.8 }}
       >
         <Heart 
           className="w-8 h-8" 
@@ -223,7 +222,7 @@ const ChimpVisual = () => {
               scale: [0.95, 1.02, 0.95],
             } : {}}
             transition={{
-              duration: 2.5,
+              duration: 4.5,
               delay: i * 0.08,
               repeat: Infinity,
               ease: 'easeInOut',
@@ -233,7 +232,7 @@ const ChimpVisual = () => {
               <motion.span
                 style={{ color: COLORS.arcticAzure }}
                 animate={{ opacity: [0.3, 1, 0.3] }}
-                transition={{ duration: 2.5, delay: i * 0.08, repeat: Infinity }}
+                transition={{ duration: 4.5, delay: i * 0.08, repeat: Infinity }}
               >
                 {displayNum}
               </motion.span>
@@ -307,19 +306,16 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 flex flex-col overflow-hidden"
+      className="fixed inset-0 z-50 flex flex-col overflow-hidden safe-all"
       style={{ backgroundColor: COLORS.midnight }}
     >
-      {/* Persistent NeuralCore background - stays while content changes */}
-      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 0.35, scale: 1 }}
-          transition={{ duration: 1.5, ease: 'easeOut' }}
-        >
-          <NeuralCore size={380} />
-        </motion.div>
-      </div>
+      {/* Subtle ambient glow background */}
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background: 'radial-gradient(circle at 50% 40%, hsl(180 100% 70% / 0.06) 0%, transparent 50%)',
+        }}
+      />
 
       {/* Gradient overlay for depth */}
       <div 
@@ -329,26 +325,28 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
         }}
       />
 
-      {/* Skip button - top right */}
-      <motion.button
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.5, ...springTransition }}
-        whileTap={{ scale: 0.98 }}
-        onClick={handleSkip}
-        className="absolute top-6 right-6 px-4 py-2 text-sm font-medium transition-colors z-20 rounded-full"
-        style={{ 
-          color: COLORS.silver,
-          background: 'rgba(255,255,255,0.05)',
-          backdropFilter: 'blur(8px)',
-          border: '1px solid rgba(255,255,255,0.08)',
-        }}
-      >
-        Skip
-      </motion.button>
+      {/* Skip button - top right, in flow so it respects safe area padding */}
+      <div className="flex justify-end px-2 pt-2 z-20">
+        <motion.button
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5, ...springTransition }}
+          whileTap={{ scale: 0.98 }}
+          onClick={handleSkip}
+          className="px-4 py-2 text-sm font-medium transition-colors rounded-full"
+          style={{
+            color: COLORS.silver,
+            background: 'rgba(255,255,255,0.05)',
+            backdropFilter: 'blur(8px)',
+            border: '1px solid rgba(255,255,255,0.08)',
+          }}
+        >
+          Skip
+        </motion.button>
+      </div>
 
       {/* Main content area */}
-      <div className="flex-1 flex flex-col items-center justify-center px-6 relative z-10 pt-16">
+      <div className="flex-1 flex flex-col items-center justify-center px-6 relative z-10">
         <AnimatePresence mode="wait">
           <motion.div
             key={slide.id}
@@ -412,7 +410,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
       </div>
 
       {/* Bottom navigation */}
-      <div className="pb-10 px-6 relative z-10">
+      <div className="pb-4 px-6 relative z-10">
         {/* Progress indicators */}
         <div className="flex justify-center gap-2 mb-6">
           {SLIDES.map((_, i) => (

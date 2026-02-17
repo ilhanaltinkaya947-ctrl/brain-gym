@@ -1,14 +1,18 @@
 /**
  * Despia Native Bridge
- * 
- * This module provides a unified API to interact with Despia native features
- * when running inside a Despia-wrapped native app. Falls back gracefully
- * to web APIs or no-ops when running in a browser.
- * 
- * Despia injects native capabilities via a global `despia` object at runtime.
+ *
+ * This module provides a unified API to interact with native features.
+ * When running inside a Capacitor-wrapped native app, it delegates to
+ * Capacitor plugins. Falls back to the legacy Despia bridge or web APIs.
+ *
+ * Priority: Capacitor → Despia → Web fallback
  */
 
-// Type definitions for Despia global object (injected at runtime)
+import { Capacitor } from '@capacitor/core';
+import { Haptics, ImpactStyle, NotificationType } from '@capacitor/haptics';
+import { StatusBar as CapStatusBar, Style } from '@capacitor/status-bar';
+
+// Type definitions for legacy Despia global object (injected at runtime)
 interface DespiaHaptics {
   impact: (style: 'light' | 'medium' | 'heavy') => void;
   notification: (type: 'success' | 'warning' | 'error') => void;
@@ -46,16 +50,32 @@ declare global {
 }
 
 /**
- * Check if running inside a Despia native app
+ * Check if running inside Capacitor native app
+ */
+const isCapacitor = (): boolean => {
+  try {
+    return Capacitor.isNativePlatform();
+  } catch {
+    return false;
+  }
+};
+
+/**
+ * Check if running inside a native app (Capacitor or legacy Despia)
  */
 export const isNative = (): boolean => {
-  return typeof window !== 'undefined' && !!window.despia?.platform?.isNative;
+  return isCapacitor() || (typeof window !== 'undefined' && !!window.despia?.platform?.isNative);
 };
 
 /**
  * Get current platform
  */
 export const getPlatform = (): 'ios' | 'android' | 'web' => {
+  if (isCapacitor()) {
+    const platform = Capacitor.getPlatform();
+    if (platform === 'ios' || platform === 'android') return platform;
+    return 'web';
+  }
   if (typeof window !== 'undefined' && window.despia?.platform?.os) {
     return window.despia.platform.os;
   }
@@ -73,13 +93,18 @@ export const isIOS = (): boolean => getPlatform() === 'ios';
 export const isAndroid = (): boolean => getPlatform() === 'android';
 
 /**
- * Haptic Feedback - with web fallback using Vibration API
+ * Haptic Feedback
+ * Capacitor → legacy Despia → Vibration API fallback
  */
 export const haptics = {
   /**
    * Light tap feedback - for selections, toggles
    */
   light: (): void => {
+    if (isCapacitor()) {
+      Haptics.impact({ style: ImpactStyle.Light });
+      return;
+    }
     if (window.despia?.haptics) {
       window.despia.haptics.impact('light');
     } else if ('vibrate' in navigator) {
@@ -91,6 +116,10 @@ export const haptics = {
    * Medium impact - for correct answers, confirmations
    */
   medium: (): void => {
+    if (isCapacitor()) {
+      Haptics.impact({ style: ImpactStyle.Medium });
+      return;
+    }
     if (window.despia?.haptics) {
       window.despia.haptics.impact('medium');
     } else if ('vibrate' in navigator) {
@@ -102,6 +131,10 @@ export const haptics = {
    * Heavy impact - for errors, wrong answers, important alerts
    */
   heavy: (): void => {
+    if (isCapacitor()) {
+      Haptics.impact({ style: ImpactStyle.Heavy });
+      return;
+    }
     if (window.despia?.haptics) {
       window.despia.haptics.impact('heavy');
     } else if ('vibrate' in navigator) {
@@ -113,6 +146,10 @@ export const haptics = {
    * Success pattern - for achievements, milestones, level completion
    */
   success: (): void => {
+    if (isCapacitor()) {
+      Haptics.notification({ type: NotificationType.Success });
+      return;
+    }
     if (window.despia?.haptics) {
       window.despia.haptics.notification('success');
     } else if ('vibrate' in navigator) {
@@ -124,6 +161,10 @@ export const haptics = {
    * Warning pattern - for time running out, approaching limits
    */
   warning: (): void => {
+    if (isCapacitor()) {
+      Haptics.notification({ type: NotificationType.Warning });
+      return;
+    }
     if (window.despia?.haptics) {
       window.despia.haptics.notification('warning');
     } else if ('vibrate' in navigator) {
@@ -135,6 +176,10 @@ export const haptics = {
    * Error pattern - for game over, failures
    */
   error: (): void => {
+    if (isCapacitor()) {
+      Haptics.notification({ type: NotificationType.Error });
+      return;
+    }
     if (window.despia?.haptics) {
       window.despia.haptics.notification('error');
     } else if ('vibrate' in navigator) {
@@ -146,6 +191,10 @@ export const haptics = {
    * Selection click - subtle feedback for UI interactions
    */
   selection: (): void => {
+    if (isCapacitor()) {
+      Haptics.selectionStart();
+      return;
+    }
     if (window.despia?.haptics) {
       window.despia.haptics.selection();
     } else if ('vibrate' in navigator) {
@@ -166,13 +215,13 @@ export const notifications = {
     if (window.despia?.notifications) {
       return window.despia.notifications.requestPermission();
     }
-    
+
     // Web fallback - use Notification API
     if ('Notification' in window) {
       const result = await Notification.requestPermission();
       return result === 'granted';
     }
-    
+
     return false;
   },
 
@@ -183,35 +232,43 @@ export const notifications = {
     if (window.despia?.notifications) {
       return window.despia.notifications.schedule(options);
     }
-    
+
     // Web fallback - show notification immediately if in past, otherwise ignore
     if ('Notification' in window && Notification.permission === 'granted') {
       if (options.at <= new Date()) {
         new Notification(options.title, { body: options.body });
       }
-      // Note: Web doesn't support scheduled notifications natively
     }
   },
 };
 
 /**
- * Status Bar Control (native only)
+ * Status Bar Control
+ * Capacitor → legacy Despia → no-op
  */
 export const statusBar = {
   /**
    * Set status bar style (light text on dark bg, or dark text on light bg)
    */
   setStyle: (style: 'dark' | 'light'): void => {
+    if (isCapacitor()) {
+      // Capacitor's Style.Dark = light text (dark bg), Style.Light = dark text (light bg)
+      CapStatusBar.setStyle({ style: style === 'light' ? Style.Dark : Style.Light });
+      return;
+    }
     if (window.despia?.statusBar) {
       window.despia.statusBar.setStyle(style);
     }
-    // No web fallback - status bar doesn't exist in browsers
   },
 
   /**
    * Hide status bar for fullscreen experience
    */
   hide: (): void => {
+    if (isCapacitor()) {
+      CapStatusBar.hide();
+      return;
+    }
     if (window.despia?.statusBar) {
       window.despia.statusBar.hide();
     }
@@ -221,6 +278,10 @@ export const statusBar = {
    * Show status bar
    */
   show: (): void => {
+    if (isCapacitor()) {
+      CapStatusBar.show();
+      return;
+    }
     if (window.despia?.statusBar) {
       window.despia.statusBar.show();
     }
@@ -228,15 +289,15 @@ export const statusBar = {
 };
 
 /**
- * Initialize Despia for optimal native experience
+ * Initialize for optimal native experience
  * Call this in your App component on mount
  */
 export const initialize = (): void => {
   if (isNative()) {
     // Set status bar style for dark theme
     statusBar.setStyle('light'); // Light text on dark background
-    
-    console.log(`[Despia] Running on ${getPlatform()} native app`);
+
+    console.log(`[Despia] Running on ${getPlatform()} native app (Capacitor: ${isCapacitor()})`);
   } else {
     console.log('[Despia] Running in web browser mode');
   }

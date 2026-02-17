@@ -1,6 +1,6 @@
 // Game type definitions for the AXON Brain Platform
 
-export type GameMode = 'classic' | 'endless';
+export type GameMode = 'classic' | 'endless' | 'assessment';
 
 export type MiniGameType = 
   | 'speedMath' 
@@ -8,7 +8,6 @@ export type MiniGameType =
   | 'flashMemory' 
   | 'paradoxFlow' 
   | 'patternHunter'
-  | 'nBackGhost'
   | 'operatorChaos'
   | 'spatialStack'
   | 'wordConnect'
@@ -48,8 +47,8 @@ export const GAME_THEMES: Record<MiniGameType, GameTheme> = {
   },
   flashMemory: {
     name: 'flashMemory',
-    label: 'Flash Memory',
-    icon: '🧠',
+    label: 'Flash Sequence',
+    icon: '\u26A1',
     primaryColor: 'hsl(var(--game-memory))',
     accentColor: 'hsl(var(--game-memory-accent))',
     bgGradient: 'linear-gradient(135deg, hsl(var(--game-memory) / 0.15), transparent)',
@@ -69,14 +68,6 @@ export const GAME_THEMES: Record<MiniGameType, GameTheme> = {
     primaryColor: 'hsl(var(--game-pattern))',
     accentColor: 'hsl(var(--game-pattern-accent))',
     bgGradient: 'linear-gradient(135deg, hsl(var(--game-pattern) / 0.15), transparent)',
-  },
-  nBackGhost: {
-    name: 'nBackGhost',
-    label: 'N-Back Ghost',
-    icon: '👻',
-    primaryColor: 'hsl(175, 60%, 50%)',
-    accentColor: 'hsl(180, 70%, 45%)',
-    bgGradient: 'linear-gradient(135deg, hsl(175, 60%, 50% / 0.15), transparent)',
   },
   operatorChaos: {
     name: 'operatorChaos',
@@ -122,16 +113,42 @@ export const GAME_THEMES: Record<MiniGameType, GameTheme> = {
 
 export const DEFAULT_CONFIG: GameConfig = {
   mode: 'endless',
-  enabledGames: ['speedMath', 'paradoxFlow', 'suitDeception', 'chimpMemory'],
+  enabledGames: [
+    'speedMath', 'colorMatch', 'paradoxFlow', 'suitDeception',
+    'chimpMemory', 'wordConnect', 'patternHunter', 'flashMemory',
+    'operatorChaos', 'spatialStack',
+  ],
 };
 
-// Mixable games - focused on high cognitive load
-// 6 core games: Math, Stroop, Swipes, Cards, Memory, Words
+// All 10 games in active rotation — Tension Coefficient system
+// ensures cross-domain switching for progressive cognitive overload
 export const MIXABLE_GAMES: MiniGameType[] = [
-  'speedMath', 
+  'speedMath',
   'colorMatch',
-  'paradoxFlow', 
+  'paradoxFlow',
   'suitDeception',
   'chimpMemory',
   'wordConnect',
+  'patternHunter',
+  'flashMemory',
+  'operatorChaos',
+  'spatialStack',
 ];
+
+export interface AppSettings {
+  soundEnabled: boolean;
+  hapticsEnabled: boolean;
+  language: 'en' | 'es' | 'fr' | 'de' | 'ja' | 'zh';
+  theme: 'dark' | 'auto';
+}
+
+export interface UserStats {
+  classicHighScore: number;
+  endlessBestStreak: number;
+  totalXP: number;
+  totalGamesPlayed: number;
+  totalCorrectAnswers: number;
+  gameLevels: Record<string, number>;
+  lastPlayedDate: string | null;
+  dayStreak: number;
+}

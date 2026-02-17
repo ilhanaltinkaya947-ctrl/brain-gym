@@ -12,7 +12,6 @@ export interface AdaptiveState {
 }
 
 interface AdaptiveConfig {
-  baseTime: number; // Base time allowed per question (ms)
   minSpeed: number;
   maxSpeed: number;
   speedUpThreshold: number; // Answer faster than this % of allowed time = speed up
@@ -22,20 +21,35 @@ interface AdaptiveConfig {
   errorPenalty: number; // Multiply speed by this on error
 }
 
+// Per-game base times (ms) — each game gets its own thinking time budget
+const GAME_BASE_TIMES: Record<string, number> = {
+  speedMath: 10000,      // Mental math needs thinking time
+  colorMatch: 5000,      // Reaction-based, should be snappy
+  flashMemory: 12000,    // Memorization phase included
+  paradoxFlow: 7000,     // Logic processing
+  patternHunter: 8000,   // Visual scanning
+  operatorChaos: 10000,  // Multi-step math
+  spatialStack: 9000,    // Spatial reasoning
+  wordConnect: 8000,     // Word association
+  suitDeception: 5000,   // Quick recognition
+  chimpMemory: 10000,    // Memory recall
+};
+
+const DEFAULT_FALLBACK_BASE_TIME = 8000;
+
 const DEFAULT_CONFIG: AdaptiveConfig = {
-  baseTime: 5000, // 5 seconds base
-  minSpeed: 0.5,
-  maxSpeed: 2.5,
-  speedUpThreshold: 0.3, // 30% of allowed time
-  slowDownThreshold: 0.8, // 80% of allowed time
-  speedIncrement: 0.05,
-  speedDecrement: 0.05,
-  errorPenalty: 0.9, // 10% drop
+  minSpeed: 0.4,
+  maxSpeed: 2.2,
+  speedUpThreshold: 0.25, // 25% of allowed time
+  slowDownThreshold: 0.75, // 75% of allowed time
+  speedIncrement: 0.06,
+  speedDecrement: 0.06,
+  errorPenalty: 0.92, // Gentler penalty
 };
 
 export const useAdaptiveEngine = (config: Partial<AdaptiveConfig> = {}) => {
   const settings = { ...DEFAULT_CONFIG, ...config };
-  
+
   const [state, setState] = useState<AdaptiveState>({
     gameSpeed: 1.0,
     phase: 'warmup',
@@ -47,11 +61,23 @@ export const useAdaptiveEngine = (config: Partial<AdaptiveConfig> = {}) => {
 
   const responseTimesRef = useRef<number[]>([]);
   const answerCountRef = useRef(0);
+  const currentGameTypeRef = useRef<string>('speedMath');
 
-  // Calculate allowed time based on current speed
+  // Get base time for current game type
+  const getBaseTime = useCallback(() => {
+    return GAME_BASE_TIMES[currentGameTypeRef.current] ?? DEFAULT_FALLBACK_BASE_TIME;
+  }, []);
+
+  // Set current game type (called by MixedGameScreen on game switch)
+  const setCurrentGameType = useCallback((gameType: string) => {
+    currentGameTypeRef.current = gameType;
+  }, []);
+
+  // Calculate allowed time based on current speed and game type
   const allowedTime = useMemo(() => {
-    return Math.floor(settings.baseTime / state.gameSpeed);
-  }, [state.gameSpeed, settings.baseTime]);
+    const baseTime = GAME_BASE_TIMES[currentGameTypeRef.current] ?? DEFAULT_FALLBACK_BASE_TIME;
+    return Math.floor(baseTime / state.gameSpeed);
+  }, [state.gameSpeed]);
 
   // Determine phase based on game speed
   const getPhase = useCallback((speed: number): AdaptivePhase => {
@@ -70,10 +96,11 @@ export const useAdaptiveEngine = (config: Partial<AdaptiveConfig> = {}) => {
   // Process answer and adjust speed
   const processAnswer = useCallback((isCorrect: boolean, responseTimeMs: number) => {
     answerCountRef.current += 1;
-    
+
     setState(prev => {
       let newSpeed = prev.gameSpeed;
-      const currentAllowedTime = settings.baseTime / prev.gameSpeed;
+      const currentBaseTime = getBaseTime();
+      const currentAllowedTime = currentBaseTime / prev.gameSpeed;
 
       if (!isCorrect) {
         // Wrong answer: penalize speed and drop back
@@ -98,28 +125,25 @@ export const useAdaptiveEngine = (config: Partial<AdaptiveConfig> = {}) => {
         // If in middle range, maintain current speed
       }
 
-      // Only update speed every 3 answers to avoid jitter
-      const shouldUpdateSpeed = answerCountRef.current % 3 === 0 || !isCorrect;
-      const finalSpeed = shouldUpdateSpeed ? newSpeed : prev.gameSpeed;
-
-      const newPhase = getPhase(finalSpeed);
-      const newDifficulty = getDifficulty(finalSpeed, newPhase);
+      const newPhase = getPhase(newSpeed);
+      const newDifficulty = getDifficulty(newSpeed, newPhase);
 
       return {
         ...prev,
-        gameSpeed: finalSpeed,
+        gameSpeed: newSpeed,
         phase: newPhase,
         difficulty: newDifficulty,
         questionsAnswered: prev.questionsAnswered + 1,
-        peakGameSpeed: Math.max(prev.peakGameSpeed, finalSpeed),
+        peakGameSpeed: Math.max(prev.peakGameSpeed, newSpeed),
       };
     });
-  }, [settings, getPhase, getDifficulty]);
+  }, [settings, getPhase, getDifficulty, getBaseTime]);
 
   // Reset engine for new game
   const reset = useCallback(() => {
     responseTimesRef.current = [];
     answerCountRef.current = 0;
+    currentGameTypeRef.current = 'speedMath';
     setState({
       gameSpeed: 1.0,
       phase: 'warmup',
@@ -138,40 +162,34 @@ export const useAdaptiveEngine = (config: Partial<AdaptiveConfig> = {}) => {
   // Get difficulty parameters for specific games
   const getGameParams = useCallback((gameType: string) => {
     const { phase, difficulty } = state;
-    
+
     switch (gameType) {
       case 'flashMemory':
         return {
-          numberCount: phase === 'overdrive' ? 6 + Math.floor(difficulty / 3) : 
+          numberCount: phase === 'overdrive' ? 6 + Math.floor(difficulty / 3) :
                        phase === 'ramping' ? 4 + Math.floor(difficulty / 4) : 3,
           showTime: phase === 'overdrive' ? 400 : phase === 'ramping' ? 600 : 800,
           gridSize: phase === 'overdrive' ? 16 : 9, // 4x4 or 3x3
         };
-      
-      case 'nBackGhost':
-        return {
-          nBack: phase === 'overdrive' && difficulty > 7 ? 3 : 2,
-          runeCount: phase === 'overdrive' ? 8 : phase === 'ramping' ? 6 : 5,
-        };
-      
+
       case 'operatorChaos':
         return {
-          operatorCount: phase === 'overdrive' ? 2 : phase === 'ramping' && difficulty > 5 ? 2 : 1,
-          maxNumber: phase === 'overdrive' ? 20 : phase === 'ramping' ? 15 : 10,
+          operatorCount: phase === 'overdrive' ? 2 : phase === 'ramping' && difficulty > 4 ? 2 : 1,
+          maxNumber: phase === 'overdrive' ? 40 : phase === 'ramping' ? 25 : 12,
         };
-      
+
       case 'spatialStack':
         return {
-          cubeCount: phase === 'overdrive' ? 7 + Math.floor(difficulty / 3) : 
-                     phase === 'ramping' ? 5 + Math.floor(difficulty / 4) : 3 + Math.floor(difficulty / 3),
+          cubeCount: phase === 'overdrive' ? 12 + Math.floor(difficulty / 2) :
+                     phase === 'ramping' ? 8 + Math.floor(difficulty / 3) : 4 + Math.floor(difficulty / 2),
           complexity: difficulty,
         };
-      
+
       case 'paradoxFlow':
         return {
           followChance: phase === 'overdrive' ? 0.3 : phase === 'ramping' ? 0.5 : 0.7,
         };
-      
+
       default:
         return { difficulty };
     }
@@ -184,5 +202,6 @@ export const useAdaptiveEngine = (config: Partial<AdaptiveConfig> = {}) => {
     reset,
     getSessionDuration,
     getGameParams,
+    setCurrentGameType,
   };
 };

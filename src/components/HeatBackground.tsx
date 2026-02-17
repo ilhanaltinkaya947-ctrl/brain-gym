@@ -45,18 +45,78 @@ const TIER_COLORS = {
   },
 };
 
-// Simple CSS-only background for mobile
+// Animated mobile background with floating glow orbs
 function MobileHeatBackground({ tier = 1 }: { tier: number }) {
   const colors = TIER_COLORS[tier as keyof typeof TIER_COLORS] || TIER_COLORS[1];
-  
+  const { primary, secondary } = colors;
+
+  // Generate stable orb configs — 6 floating glow orbs
+  const orbs = useMemo(() => [
+    { x: '20%', y: '15%', size: 180, delay: 0, dur: 8, dx: 30, dy: 20 },
+    { x: '75%', y: '25%', size: 140, delay: 1.5, dur: 10, dx: -25, dy: 30 },
+    { x: '50%', y: '60%', size: 220, delay: 0.8, dur: 12, dx: 20, dy: -25 },
+    { x: '15%', y: '80%', size: 160, delay: 2.5, dur: 9, dx: 35, dy: -15 },
+    { x: '85%', y: '70%', size: 130, delay: 3.2, dur: 11, dx: -20, dy: 20 },
+    { x: '45%', y: '30%', size: 200, delay: 1.2, dur: 7, dx: -15, dy: -30 },
+  ], []);
+
   return (
     <div
-      className="fixed inset-0 pointer-events-none z-0"
+      className="fixed inset-0 pointer-events-none z-0 overflow-hidden"
       style={{
         background: `radial-gradient(ellipse at center, ${colors.background[1]} 0%, ${colors.background[2]} 50%, ${colors.background[0]} 100%)`,
-        transition: 'background 0.5s ease-out',
+        transition: 'background 0.8s ease-out',
       }}
-    />
+    >
+      {/* Floating glow orbs */}
+      {orbs.map((orb, i) => (
+        <div
+          key={i}
+          className="absolute rounded-full"
+          style={{
+            left: orb.x,
+            top: orb.y,
+            width: orb.size,
+            height: orb.size,
+            transform: 'translate(-50%, -50%)',
+            background: `radial-gradient(circle, hsla(${i % 2 === 0 ? primary.h : secondary.h}, ${primary.s}%, ${primary.l}%, 0.12) 0%, transparent 70%)`,
+            animation: `floatOrb${i % 3} ${orb.dur}s ease-in-out ${orb.delay}s infinite alternate`,
+            transition: 'background 0.8s ease-out',
+          }}
+        />
+      ))}
+
+      {/* Central breathing pulse */}
+      <div
+        className="absolute left-1/2 top-[45%] -translate-x-1/2 -translate-y-1/2 rounded-full"
+        style={{
+          width: 300,
+          height: 300,
+          background: `radial-gradient(circle, hsla(${primary.h}, ${primary.s}%, ${primary.l}%, 0.08) 0%, transparent 60%)`,
+          animation: 'breathePulse 4s ease-in-out infinite',
+          transition: 'background 0.8s ease-out',
+        }}
+      />
+
+      <style>{`
+        @keyframes floatOrb0 {
+          0% { transform: translate(-50%, -50%) translate(0px, 0px); opacity: 0.6; }
+          100% { transform: translate(-50%, -50%) translate(30px, 20px); opacity: 1; }
+        }
+        @keyframes floatOrb1 {
+          0% { transform: translate(-50%, -50%) translate(0px, 0px); opacity: 0.5; }
+          100% { transform: translate(-50%, -50%) translate(-25px, 30px); opacity: 0.9; }
+        }
+        @keyframes floatOrb2 {
+          0% { transform: translate(-50%, -50%) translate(0px, 0px); opacity: 0.7; }
+          100% { transform: translate(-50%, -50%) translate(20px, -25px); opacity: 1; }
+        }
+        @keyframes breathePulse {
+          0%, 100% { transform: translate(-50%, -50%) scale(0.9); opacity: 0.5; }
+          50% { transform: translate(-50%, -50%) scale(1.15); opacity: 1; }
+        }
+      `}</style>
+    </div>
   );
 }
 

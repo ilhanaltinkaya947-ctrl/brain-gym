@@ -161,7 +161,7 @@ export const AdSkipModal = ({ isOpen, currentXP, onWatchAd, onSkipWithXP }: AdSk
               animate="visible"
               className="text-[10px] text-muted-foreground/50 uppercase tracking-wider"
             >
-              Ads help keep AXON free
+              Ads help keep axon free
             </motion.p>
           </motion.div>
         </motion.div>

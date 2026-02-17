@@ -3,6 +3,7 @@ import type { Config } from "tailwindcss";
 export default {
   darkMode: ["class"],
   content: ["./pages/**/*.{ts,tsx}", "./components/**/*.{ts,tsx}", "./app/**/*.{ts,tsx}", "./src/**/*.{ts,tsx}"],
+  safelist: ["grid-cols-3", "grid-cols-4", "grid-cols-5", "grid-cols-6"],
   prefix: "",
   theme: {
     container: {

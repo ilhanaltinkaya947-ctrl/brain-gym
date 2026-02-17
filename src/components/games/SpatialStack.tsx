@@ -1,5 +1,4 @@
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
 
 interface SpatialStackProps {
@@ -9,6 +8,7 @@ interface SpatialStackProps {
   onScreenShake: () => void;
   cubeCount?: number;
   tier?: number;
+  overclockFactor?: number;
 }
 
 interface Cube {
@@ -20,50 +20,382 @@ interface Cube {
 interface Question {
   visibleCubes: Cube[];
   totalCount: number;
+  viewAngle: number;
 }
 
-// Generate isometric cube stack
-const generateStack = (targetCount: number): Question => {
+type StructureType = 'pyramid' | 'tower' | 'bridge' | 'l-shape';
+
+// Tier-based configuration
+const TIER_CONFIG: Record<number, { min: number; max: number; speedBonusWindow: number }> = {
+  1: { min: 4, max: 6, speedBonusWindow: 6000 },
+  2: { min: 6, max: 9, speedBonusWindow: 5500 },
+  3: { min: 8, max: 12, speedBonusWindow: 5000 },
+  4: { min: 10, max: 15, speedBonusWindow: 4500 },
+  5: { min: 12, max: 18, speedBonusWindow: 4000 },
+};
+
+const getTierConfig = (tier: number) => {
+  return TIER_CONFIG[Math.min(Math.max(tier, 1), 5)] ?? TIER_CONFIG[1];
+};
+
+// Clamp cube count hint to tier range
+const clampToTierRange = (hint: number, tier: number): number => {
+  const config = getTierConfig(tier);
+  return Math.min(config.max, Math.max(config.min, hint));
+};
+
+// Generate a random view angle for tier 4+
+const generateViewAngle = (tier: number): number => {
+  if (tier <= 3) return 0;
+  const range = tier >= 5 ? 15 : 10;
+  return (Math.random() * 2 - 1) * range;
+};
+
+// Structured shape generators
+const generatePyramid = (targetCount: number): Cube[] => {
   const cubes: Cube[] = [];
-  
-  // Generate a random stack configuration
-  // Start with base layer, then add upper layers
-  const maxWidth = Math.min(3, Math.ceil(Math.sqrt(targetCount)));
-  const maxDepth = Math.min(3, Math.ceil(Math.sqrt(targetCount)));
-  
-  // Fill bottom layer first
-  for (let x = 0; x < maxWidth && cubes.length < targetCount; x++) {
-    for (let y = 0; y < maxDepth && cubes.length < targetCount; y++) {
-      if (Math.random() > 0.2 || cubes.length === 0) { // Some randomness
-        cubes.push({ x, y, z: 0 });
+
+  // Bottom layer: up to 3x3
+  const baseSize = Math.min(3, Math.max(2, Math.ceil(Math.sqrt(targetCount))));
+  for (let x = 0; x < baseSize && cubes.length < targetCount; x++) {
+    for (let y = 0; y < baseSize && cubes.length < targetCount; y++) {
+      cubes.push({ x, y, z: 0 });
+    }
+  }
+
+  // Middle layer: smaller footprint (offset inward)
+  if (cubes.length < targetCount && baseSize >= 2) {
+    const midSize = baseSize - 1;
+    for (let x = 0; x < midSize && cubes.length < targetCount; x++) {
+      for (let y = 0; y < midSize && cubes.length < targetCount; y++) {
+        cubes.push({ x, y, z: 1 });
       }
     }
   }
-  
-  // Add upper layers (must have support)
-  for (let z = 1; z <= 2 && cubes.length < targetCount; z++) {
-    for (let x = 0; x < maxWidth && cubes.length < targetCount; x++) {
-      for (let y = 0; y < maxDepth && cubes.length < targetCount; y++) {
-        // Check if there's support below
-        const hasSupport = cubes.some(c => c.x === x && c.y === y && c.z === z - 1);
-        if (hasSupport && Math.random() > 0.4) {
-          cubes.push({ x, y, z });
+
+  // Top layer: single cube or 1x1
+  if (cubes.length < targetCount && baseSize >= 3) {
+    cubes.push({ x: 0, y: 0, z: 2 });
+  }
+
+  // If we still need more cubes, extend the base or add more supported cubes
+  let z = 0;
+  while (cubes.length < targetCount) {
+    const existing = cubes.filter(c => c.z === z);
+    let added = false;
+    for (const ec of existing) {
+      for (const [dx, dy] of [[1, 0], [0, 1], [-1, 0], [0, -1]]) {
+        const nx = ec.x + dx;
+        const ny = ec.y + dy;
+        if (nx >= 0 && ny >= 0 && nx <= 4 && ny <= 4) {
+          if (!cubes.some(c => c.x === nx && c.y === ny && c.z === z)) {
+            if (z === 0 || cubes.some(c => c.x === nx && c.y === ny && c.z === z - 1)) {
+              cubes.push({ x: nx, y: ny, z });
+              added = true;
+              if (cubes.length >= targetCount) break;
+            }
+          }
+        }
+      }
+      if (cubes.length >= targetCount) break;
+    }
+    if (!added) z = (z + 1 <= 3) ? z + 1 : 0;
+    // Safety valve
+    if (cubes.length >= targetCount) break;
+    if (z > 3) break;
+  }
+
+  return cubes.slice(0, targetCount);
+};
+
+const generateTower = (targetCount: number): Cube[] => {
+  const cubes: Cube[] = [];
+  const baseWidth = Math.random() > 0.5 ? 2 : 1;
+  const baseDepth = baseWidth === 1 ? (Math.random() > 0.5 ? 2 : 1) : 1;
+
+  let z = 0;
+  while (cubes.length < targetCount) {
+    for (let x = 0; x < baseWidth && cubes.length < targetCount; x++) {
+      for (let y = 0; y < baseDepth && cubes.length < targetCount; y++) {
+        cubes.push({ x, y, z });
+      }
+    }
+    z++;
+    if (z > 10) break; // safety
+  }
+
+  // If tower is too tall and we still need cubes, widen a layer
+  if (cubes.length < targetCount) {
+    for (let layer = 0; cubes.length < targetCount && layer <= z; layer++) {
+      for (const [dx, dy] of [[1, 0], [0, 1]]) {
+        const nx = baseWidth - 1 + dx;
+        const ny = baseDepth - 1 + dy;
+        if (!cubes.some(c => c.x === nx && c.y === ny && c.z === layer)) {
+          if (layer === 0 || cubes.some(c => c.x === nx && c.y === ny && c.z === layer - 1)) {
+            cubes.push({ x: nx, y: ny, z: layer });
+          }
+        }
+        if (cubes.length >= targetCount) break;
+      }
+      if (cubes.length >= targetCount) break;
+    }
+  }
+
+  return cubes.slice(0, targetCount);
+};
+
+const generateBridge = (targetCount: number): Cube[] => {
+  const cubes: Cube[] = [];
+
+  // Two columns separated by a gap
+  const colHeight = Math.max(2, Math.ceil(targetCount / 5));
+  const gap = 2; // gap between columns
+
+  // Left column
+  for (let z = 0; z < colHeight && cubes.length < targetCount; z++) {
+    cubes.push({ x: 0, y: 0, z });
+  }
+
+  // Right column
+  for (let z = 0; z < colHeight && cubes.length < targetCount; z++) {
+    cubes.push({ x: gap, y: 0, z });
+  }
+
+  // Bridge top connecting them
+  const bridgeZ = colHeight - 1;
+  for (let x = 1; x < gap && cubes.length < targetCount; x++) {
+    cubes.push({ x, y: 0, z: bridgeZ });
+  }
+
+  // Add depth to columns and bridge for more cubes
+  for (let y = 1; cubes.length < targetCount && y <= 2; y++) {
+    for (let z = 0; z < colHeight && cubes.length < targetCount; z++) {
+      cubes.push({ x: 0, y, z });
+    }
+    for (let z = 0; z < colHeight && cubes.length < targetCount; z++) {
+      cubes.push({ x: gap, y, z });
+    }
+    for (let x = 1; x < gap && cubes.length < targetCount; x++) {
+      cubes.push({ x, y, z: bridgeZ });
+    }
+  }
+
+  // Fill remaining cubes with supported positions
+  let attempts = 0;
+  while (cubes.length < targetCount && attempts < 100) {
+    attempts++;
+    const base = cubes[Math.floor(Math.random() * cubes.length)];
+    const dirs = [[1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [0, 0, 1]];
+    const [dx, dy, dz] = dirs[Math.floor(Math.random() * dirs.length)];
+    const nx = base.x + dx;
+    const ny = base.y + dy;
+    const nz = base.z + dz;
+    if (nx >= 0 && ny >= 0 && nz >= 0 && nx <= 4 && ny <= 4 && nz <= 6) {
+      if (!cubes.some(c => c.x === nx && c.y === ny && c.z === nz)) {
+        if (nz === 0 || cubes.some(c => c.x === nx && c.y === ny && c.z === nz - 1)) {
+          cubes.push({ x: nx, y: ny, z: nz });
         }
       }
     }
   }
-  
+
+  return cubes.slice(0, targetCount);
+};
+
+const generateLShape = (targetCount: number): Cube[] => {
+  const cubes: Cube[] = [];
+
+  // Bottom layer: L-shape pattern
+  const armLength = Math.max(2, Math.ceil(targetCount / 4));
+
+  // Horizontal arm of L
+  for (let x = 0; x < armLength && cubes.length < targetCount; x++) {
+    cubes.push({ x, y: 0, z: 0 });
+  }
+
+  // Vertical arm of L (from corner going up in y)
+  for (let y = 1; y < armLength && cubes.length < targetCount; y++) {
+    cubes.push({ x: 0, y, z: 0 });
+  }
+
+  // Stack cubes on the corner (x=0, y=0) going up
+  for (let z = 1; cubes.length < targetCount && z <= 4; z++) {
+    cubes.push({ x: 0, y: 0, z });
+    // Optionally extend upper layers along arms
+    if (cubes.length < targetCount && z <= 2) {
+      cubes.push({ x: 1, y: 0, z });
+    }
+    if (cubes.length < targetCount && z <= 2) {
+      cubes.push({ x: 0, y: 1, z });
+    }
+  }
+
+  // Add depth if still need more cubes
+  for (let y = 0; cubes.length < targetCount && y < armLength; y++) {
+    for (let x = 0; x < armLength && cubes.length < targetCount; x++) {
+      if (!cubes.some(c => c.x === x && c.y === y && c.z === 0)) {
+        // Only add adjacent to existing cubes
+        const adjacent = cubes.some(c =>
+          c.z === 0 && ((c.x === x + 1 && c.y === y) || (c.x === x - 1 && c.y === y) ||
+          (c.x === x && c.y === y + 1) || (c.x === x && c.y === y - 1))
+        );
+        if (adjacent) {
+          cubes.push({ x, y, z: 0 });
+        }
+      }
+    }
+  }
+
+  // Fill remaining with supported upper cubes
+  let attempts = 0;
+  while (cubes.length < targetCount && attempts < 100) {
+    attempts++;
+    const base = cubes[Math.floor(Math.random() * cubes.length)];
+    const nz = base.z + 1;
+    if (nz <= 5 && !cubes.some(c => c.x === base.x && c.y === base.y && c.z === nz)) {
+      cubes.push({ x: base.x, y: base.y, z: nz });
+    }
+  }
+
+  return cubes.slice(0, targetCount);
+};
+
+// Main stack generation using structured shapes
+const generateStack = (targetCount: number, tier: number): Question => {
+  const structures: StructureType[] = ['pyramid', 'tower', 'bridge', 'l-shape'];
+  const structure = structures[Math.floor(Math.random() * structures.length)];
+
+  let cubes: Cube[];
+  switch (structure) {
+    case 'pyramid':
+      cubes = generatePyramid(targetCount);
+      break;
+    case 'tower':
+      cubes = generateTower(targetCount);
+      break;
+    case 'bridge':
+      cubes = generateBridge(targetCount);
+      break;
+    case 'l-shape':
+      cubes = generateLShape(targetCount);
+      break;
+  }
+
+  // Ensure answer is within tier range
+  const config = getTierConfig(tier);
+  const finalCount = Math.min(config.max, Math.max(config.min, cubes.length));
+  cubes = cubes.slice(0, finalCount);
+
+  // If we have fewer than needed, pad with supported cubes
+  let attempts = 0;
+  while (cubes.length < finalCount && attempts < 200) {
+    attempts++;
+    const base = cubes[Math.floor(Math.random() * cubes.length)];
+    const dirs = [[1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [0, 0, 1]];
+    const [dx, dy, dz] = dirs[Math.floor(Math.random() * dirs.length)];
+    const nx = base.x + dx;
+    const ny = base.y + dy;
+    const nz = base.z + dz;
+    if (nx >= 0 && ny >= 0 && nz >= 0 && nx <= 5 && ny <= 5 && nz <= 6) {
+      if (!cubes.some(c => c.x === nx && c.y === ny && c.z === nz)) {
+        if (nz === 0 || cubes.some(c => c.x === nx && c.y === ny && c.z === nz - 1)) {
+          cubes.push({ x: nx, y: ny, z: nz });
+        }
+      }
+    }
+  }
+
+  cubes = cubes.slice(0, finalCount);
+
+  const viewAngle = generateViewAngle(tier);
+
   return {
     visibleCubes: cubes,
     totalCount: cubes.length,
+    viewAngle,
   };
 };
 
-// Convert 3D position to 2D isometric position
-const toIsometric = (x: number, y: number, z: number, size: number) => {
-  const isoX = (x - y) * size * 0.866;
-  const isoY = (x + y) * size * 0.5 - z * size;
-  return { isoX, isoY };
+// Convert 3D position to 2D isometric position with optional view angle rotation
+// Uses Math.round to snap to half-pixels — eliminates sub-pixel gaps between cubes
+const R2 = (n: number) => Math.round(n * 100) / 100;
+const SQRT3_2 = 0.8660254; // sqrt(3)/2 — exact constant avoids repeated computation
+
+const toIsometric = (x: number, y: number, z: number, size: number, viewAngleDeg: number) => {
+  let isoX = (x - y) * size * SQRT3_2;
+  let isoY = (x + y) * size * 0.5 - z * size;
+
+  if (viewAngleDeg !== 0) {
+    const rad = (viewAngleDeg * Math.PI) / 180;
+    const cosA = Math.cos(rad);
+    const sinA = Math.sin(rad);
+    const rotatedX = isoX * cosA - isoY * sinA;
+    const rotatedY = isoX * sinA + isoY * cosA;
+    isoX = rotatedX;
+    isoY = rotatedY;
+  }
+
+  return { isoX: R2(isoX), isoY: R2(isoY) };
+};
+
+// Generate grid floor diamond points at z=0
+const generateGridFloor = (cubes: Cube[], size: number, viewAngleDeg: number): string => {
+  if (cubes.length === 0) return '';
+
+  const minX = Math.min(...cubes.map(c => c.x));
+  const maxX = Math.max(...cubes.map(c => c.x));
+  const minY = Math.min(...cubes.map(c => c.y));
+  const maxY = Math.max(...cubes.map(c => c.y));
+
+  // Extend floor by 0.5 beyond the base area
+  const floorMinX = minX - 0.5;
+  const floorMaxX = maxX + 1.5;
+  const floorMinY = minY - 0.5;
+  const floorMaxY = maxY + 1.5;
+
+  // Diamond corners in isometric space
+  const topCorner = toIsometric(floorMinX, floorMinY, 0, size, viewAngleDeg);
+  const rightCorner = toIsometric(floorMaxX, floorMinY, 0, size, viewAngleDeg);
+  const bottomCorner = toIsometric(floorMaxX, floorMaxY, 0, size, viewAngleDeg);
+  const leftCorner = toIsometric(floorMinX, floorMaxY, 0, size, viewAngleDeg);
+
+  // Shift down to sit at the base of cubes (z=0 bottom face)
+  const offset = size * 0.5;
+
+  return `M ${topCorner.isoX} ${topCorner.isoY + offset}
+          L ${rightCorner.isoX} ${rightCorner.isoY + offset}
+          L ${bottomCorner.isoX} ${bottomCorner.isoY + offset}
+          L ${leftCorner.isoX} ${leftCorner.isoY + offset}
+          Z`;
+};
+
+// Generate grid lines for the floor
+const generateGridLines = (cubes: Cube[], size: number, viewAngleDeg: number): string[] => {
+  if (cubes.length === 0) return [];
+
+  const minX = Math.min(...cubes.map(c => c.x));
+  const maxX = Math.max(...cubes.map(c => c.x));
+  const minY = Math.min(...cubes.map(c => c.y));
+  const maxY = Math.max(...cubes.map(c => c.y));
+
+  const lines: string[] = [];
+  const offset = size * 0.5;
+
+  // Lines along X axis
+  for (let x = minX; x <= maxX + 1; x++) {
+    const start = toIsometric(x, minY - 0.5, 0, size, viewAngleDeg);
+    const end = toIsometric(x, maxY + 1.5, 0, size, viewAngleDeg);
+    lines.push(`M ${start.isoX} ${start.isoY + offset} L ${end.isoX} ${end.isoY + offset}`);
+  }
+
+  // Lines along Y axis
+  for (let y = minY; y <= maxY + 1; y++) {
+    const start = toIsometric(minX - 0.5, y, 0, size, viewAngleDeg);
+    const end = toIsometric(maxX + 1.5, y, 0, size, viewAngleDeg);
+    lines.push(`M ${start.isoX} ${start.isoY + offset} L ${end.isoX} ${end.isoY + offset}`);
+  }
+
+  return lines;
 };
 
 export const SpatialStack = ({
@@ -73,15 +405,43 @@ export const SpatialStack = ({
   onScreenShake,
   cubeCount = 5,
   tier = 1,
+  overclockFactor = 1,
 }: SpatialStackProps) => {
-  const interQuestionDelay = tier >= 4 ? 150 : tier >= 3 ? 200 : 300;
-  const [question, setQuestion] = useState<Question>(() => generateStack(cubeCount));
+  const effectiveTier = Math.min(Math.max(tier, 1), 5);
+  const effectiveCubeCount = clampToTierRange(
+    cubeCount + (overclockFactor > 1.3 ? 2 : 0),
+    effectiveTier
+  );
+  const interQuestionDelay = effectiveTier >= 3 ? 150 : 200;
+  const tierConfig = getTierConfig(effectiveTier);
+
+  const [question, setQuestion] = useState<Question>(() => generateStack(effectiveCubeCount, effectiveTier));
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
   const [questionKey, setQuestionKey] = useState(0);
   const [lastFeedback, setLastFeedback] = useState<'correct' | 'wrong' | null>(null);
 
   const questionStartTime = useRef(Date.now());
   const isProcessing = useRef(false);
+
+  // Generate 6 multiple-choice options (correct + 5 distractors)
+  const answerOptions = useMemo(() => {
+    const correct = question.totalCount;
+    const options = new Set<number>([correct]);
+    // Add nearby numbers as distractors
+    const candidates = [correct - 1, correct + 1, correct - 2, correct + 2, correct - 3, correct + 3, correct - 4, correct + 4];
+    for (const c of candidates) {
+      if (options.size >= 6) break;
+      if (c >= 1) options.add(c);
+    }
+    // Fill to 6 if needed
+    let offset = 5;
+    while (options.size < 6) {
+      if (correct + offset >= 1) options.add(correct + offset);
+      if (correct - offset >= 1) options.add(correct - offset);
+      offset++;
+    }
+    return Array.from(options).sort((a, b) => a - b).slice(0, 6);
+  }, [question.totalCount]);
 
   // Sort cubes for proper rendering order (back to front, bottom to top)
   const sortedCubes = useMemo(() => {
@@ -96,17 +456,17 @@ export const SpatialStack = ({
     isProcessing.current = true;
 
     setSelectedAnswer(answer);
-    
+
     const responseTime = Date.now() - questionStartTime.current;
-    const speedBonus = Math.max(0, Math.floor((8000 - responseTime) / 100));
-    
+    const speedBonus = Math.max(0, Math.floor((tierConfig.speedBonusWindow - responseTime) / 100));
+
     const isCorrect = answer === question.totalCount;
 
     if (isCorrect) {
       playSound('correct');
       triggerHaptic('light');
       setLastFeedback('correct');
-      
+
       confetti({
         particleCount: 30,
         spread: 50,
@@ -121,151 +481,215 @@ export const SpatialStack = ({
       setLastFeedback('wrong');
     }
 
-    onAnswer(isCorrect, speedBonus);
+    onAnswer(isCorrect, speedBonus, effectiveTier);
 
-    // Next question — faster at higher tiers
+    // Next question
     setTimeout(() => {
-      setQuestion(generateStack(cubeCount));
+      setQuestion(generateStack(effectiveCubeCount, effectiveTier));
       setSelectedAnswer(null);
       setQuestionKey(k => k + 1);
       questionStartTime.current = Date.now();
       setLastFeedback(null);
       isProcessing.current = false;
     }, interQuestionDelay);
-  }, [question.totalCount, cubeCount, interQuestionDelay, onAnswer, playSound, triggerHaptic, onScreenShake]);
+  }, [question.totalCount, effectiveCubeCount, effectiveTier, interQuestionDelay, tierConfig.speedBonusWindow, onAnswer, playSound, triggerHaptic, onScreenShake]);
 
-  // Keyboard support (1-9)
+  // Keyboard support (answer options only)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const num = parseInt(e.key);
-      if (num >= 1 && num <= 9) {
+      if (!isNaN(num) && answerOptions.includes(num)) {
         handleAnswerSelect(num);
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [handleAnswerSelect]);
+  }, [handleAnswerSelect, answerOptions]);
 
   const cubeSize = 30;
-  // Per-layer colors for better visual contrast between layers
-  const layerColors = [
-    { h: 140, s: 70, l: 40 },  // Layer 0 (bottom): darker green
-    { h: 170, s: 65, l: 48 },  // Layer 1 (middle): teal-green
-    { h: 200, s: 70, l: 55 },  // Layer 2 (top): cyan-blue
-  ];
+
+  // Per-layer colors; tier 5 reduces contrast between layers
+  const layerColors = useMemo(() => {
+    if (effectiveTier >= 5) {
+      // Reduced contrast: all layers similar hue/lightness
+      return [
+        { h: 160, s: 50, l: 44 },
+        { h: 165, s: 48, l: 46 },
+        { h: 170, s: 46, l: 48 },
+        { h: 175, s: 44, l: 50 },
+        { h: 178, s: 42, l: 51 },
+        { h: 180, s: 40, l: 52 },
+        { h: 182, s: 38, l: 53 },
+      ];
+    }
+    return [
+      { h: 140, s: 70, l: 40 },  // Layer 0 (bottom): darker green
+      { h: 170, s: 65, l: 48 },  // Layer 1: teal-green
+      { h: 200, s: 70, l: 55 },  // Layer 2: cyan-blue
+      { h: 230, s: 65, l: 58 },  // Layer 3: blue
+      { h: 260, s: 60, l: 60 },  // Layer 4: purple-blue
+      { h: 280, s: 55, l: 62 },  // Layer 5: purple
+      { h: 300, s: 50, l: 64 },  // Layer 6: magenta
+    ];
+  }, [effectiveTier]);
+
+  // Grid floor data
+  const gridFloorPath = useMemo(() =>
+    generateGridFloor(question.visibleCubes, cubeSize, question.viewAngle),
+    [question.visibleCubes, question.viewAngle]
+  );
+
+  const gridLines = useMemo(() =>
+    generateGridLines(question.visibleCubes, cubeSize, question.viewAngle),
+    [question.visibleCubes, question.viewAngle]
+  );
+
+  // Dynamic viewBox — auto-fits any structure (towers, pyramids, bridges, etc.)
+  const viewBox = useMemo(() => {
+    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+
+    for (const cube of question.visibleCubes) {
+      const { isoX, isoY } = toIsometric(cube.x, cube.y, cube.z, cubeSize, question.viewAngle);
+      minX = Math.min(minX, isoX - cubeSize * 0.866);
+      maxX = Math.max(maxX, isoX + cubeSize * 0.866);
+      minY = Math.min(minY, isoY - cubeSize * 0.5);
+      maxY = Math.max(maxY, isoY + cubeSize * 1.5);
+    }
+
+    // Include grid floor extent
+    const floorPad = cubeSize * 0.6;
+    minX -= floorPad;
+    maxX += floorPad;
+    maxY += floorPad;
+
+    const pad = 12;
+    const w = maxX - minX + pad * 2;
+    const h = maxY - minY + pad * 2;
+
+    return `${minX - pad} ${minY - pad} ${w} ${h}`;
+  }, [question.visibleCubes, question.viewAngle]);
 
   return (
     <div className="h-full flex flex-col items-center justify-center px-6 py-8">
       {/* Instructions */}
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="text-center mb-6"
-      >
+      <div className="text-center mb-6 ss-fade-in">
         <div className="text-xs uppercase tracking-[0.3em] text-game-pattern/70 mb-2">
           Spatial Stack
         </div>
         <div className="text-sm text-muted-foreground">
           Count ALL cubes (including hidden ones)
         </div>
-      </motion.div>
+      </div>
 
       {/* Isometric Cube Display */}
-      <AnimatePresence mode="wait">
-        <motion.div
+        <div
           key={questionKey}
-          initial={{ opacity: 0, scale: 0.9, rotateY: -30 }}
-          animate={{ 
-            opacity: 1, 
-            scale: 1, 
-            rotateY: 0,
-            boxShadow: lastFeedback === 'correct' 
-              ? '0 0 50px hsl(140, 70%, 45% / 0.5)' 
+          className="relative w-72 h-64 mb-6 rounded-2xl border border-border/30 bg-card/30 flex items-center justify-center ss-fade-in"
+          style={{
+            boxShadow: lastFeedback === 'correct'
+              ? '0 0 50px hsl(140, 70%, 45% / 0.5)'
               : lastFeedback === 'wrong'
               ? '0 0 50px hsl(0, 70%, 50% / 0.5)'
               : '0 0 25px hsl(140, 70%, 45% / 0.2)',
+            transition: 'box-shadow 0.3s ease',
           }}
-          exit={{ opacity: 0, scale: 0.9 }}
-          className="relative w-64 h-56 mb-8 rounded-2xl border border-border/30 bg-card/30 flex items-center justify-center"
         >
-          <svg width="200" height="180" viewBox="-80 -60 160 140">
+          <svg width="240" height="220" viewBox={viewBox} preserveAspectRatio="xMidYMid meet">
+            {/* Grid floor */}
+            {gridFloorPath && (
+              <path
+                className="grid-floor"
+                d={gridFloorPath}
+                fill="hsl(140, 50%, 50%)"
+                stroke="none"
+              />
+            )}
+            {gridLines.map((line, i) => (
+              <path
+                key={`grid-${i}`}
+                className="grid-line"
+                d={line}
+                fill="none"
+                stroke="hsl(140, 50%, 50%)"
+                strokeWidth="0.5"
+              />
+            ))}
+
+            {/* Cubes — shared vertex constants for pixel-perfect alignment */}
             {sortedCubes.map((cube, i) => {
-              const { isoX, isoY } = toIsometric(cube.x, cube.y, cube.z, cubeSize);
+              const { isoX, isoY } = toIsometric(cube.x, cube.y, cube.z, cubeSize, question.viewAngle);
               const s = cubeSize;
+              const w = R2(s * SQRT3_2); // half-width
+              const h = R2(s * 0.5);     // half-height
               const c = layerColors[Math.min(cube.z, layerColors.length - 1)];
 
-              // Isometric cube faces
-              const topFace = `
-                M ${isoX} ${isoY - s * 0.5}
-                L ${isoX + s * 0.866} ${isoY}
-                L ${isoX} ${isoY + s * 0.5}
-                L ${isoX - s * 0.866} ${isoY}
-                Z
-              `;
+              // 6 vertices of isometric cube (shared between faces)
+              const top = `${isoX},${R2(isoY - h)}`;
+              const right = `${R2(isoX + w)},${isoY}`;
+              const mid = `${isoX},${R2(isoY + h)}`;
+              const left = `${R2(isoX - w)},${isoY}`;
+              const botRight = `${R2(isoX + w)},${R2(isoY + s)}`;
+              const botMid = `${isoX},${R2(isoY + h + s)}`;
+              const botLeft = `${R2(isoX - w)},${R2(isoY + s)}`;
 
-              const leftFace = `
-                M ${isoX - s * 0.866} ${isoY}
-                L ${isoX} ${isoY + s * 0.5}
-                L ${isoX} ${isoY + s * 1.5}
-                L ${isoX - s * 0.866} ${isoY + s}
-                Z
-              `;
-
-              const rightFace = `
-                M ${isoX + s * 0.866} ${isoY}
-                L ${isoX} ${isoY + s * 0.5}
-                L ${isoX} ${isoY + s * 1.5}
-                L ${isoX + s * 0.866} ${isoY + s}
-                Z
-              `;
+              const topFace = `M${top} L${right} L${mid} L${left}Z`;
+              const leftFace = `M${left} L${mid} L${botMid} L${botLeft}Z`;
+              const rightFace = `M${right} L${mid} L${botMid} L${botRight}Z`;
 
               return (
-                <g key={`cube-${i}`}>
-                  <motion.path
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: i * 0.05 }}
+                <g key={`cube-${i}`} style={{ animationDelay: `${i * 0.04}s` }}>
+                  <path
+                    className="cube-face"
+                    style={{ animationDelay: `${i * 0.04}s` }}
                     d={leftFace}
                     fill={`hsl(${c.h}, ${c.s}%, ${c.l - 15}%)`}
-                    stroke={`hsl(${c.h}, ${c.s}%, ${c.l - 25}%)`}
-                    strokeWidth="1"
+                    stroke={`hsl(${c.h}, ${c.s}%, ${c.l - 15}%)`}
+                    strokeWidth="0.5"
+                    strokeLinejoin="round"
                   />
-                  <motion.path
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: i * 0.05 }}
+                  <path
+                    className="cube-face"
+                    style={{ animationDelay: `${i * 0.04}s` }}
                     d={rightFace}
                     fill={`hsl(${c.h}, ${c.s}%, ${c.l - 5}%)`}
-                    stroke={`hsl(${c.h}, ${c.s}%, ${c.l - 20}%)`}
-                    strokeWidth="1"
+                    stroke={`hsl(${c.h}, ${c.s}%, ${c.l - 5}%)`}
+                    strokeWidth="0.5"
+                    strokeLinejoin="round"
                   />
-                  <motion.path
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: i * 0.05 }}
+                  <path
+                    className="cube-face"
+                    style={{ animationDelay: `${i * 0.04}s` }}
                     d={topFace}
                     fill={`hsl(${c.h}, ${c.s}%, ${c.l + 10}%)`}
-                    stroke={`hsl(${c.h}, ${c.s}%, ${c.l}%)`}
-                    strokeWidth="1"
+                    stroke={`hsl(${c.h}, ${c.s}%, ${c.l + 10}%)`}
+                    strokeWidth="0.5"
+                    strokeLinejoin="round"
+                  />
+                  {/* Edge outlines for depth definition */}
+                  <path
+                    className="cube-edge"
+                    style={{ animationDelay: `${i * 0.04}s` }}
+                    d={`M${top} L${right} L${botRight} M${right} L${mid} M${left} L${mid} L${botMid}`}
+                    fill="none"
+                    stroke={`hsl(${c.h}, ${c.s}%, ${c.l - 25}%)`}
+                    strokeWidth="0.5"
+                    strokeLinejoin="round"
                   />
                 </g>
               );
             })}
           </svg>
-        </motion.div>
-      </AnimatePresence>
+        </div>
 
-      {/* Number Pad */}
-      <div className="grid grid-cols-5 gap-2 w-full max-w-xs">
-        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => (
-          <motion.button
+      {/* Answer Options - 6 choices */}
+      <div className="grid grid-cols-3 gap-2 w-full max-w-xs">
+        {answerOptions.map((num) => (
+          <button
             key={num}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
             onClick={() => handleAnswerSelect(num)}
             disabled={isProcessing.current}
-            className={`h-12 rounded-xl text-lg font-bold border-2 transition-all ${
+            className={`h-14 rounded-xl text-xl font-bold border-2 transition-all duration-150 ease-in-out hover:scale-105 active:scale-[0.92] ${
               selectedAnswer === num
                 ? num === question.totalCount
                   ? 'border-success bg-success/20 text-success'
@@ -279,19 +703,54 @@ export const SpatialStack = ({
             } : {}}
           >
             {num}
-          </motion.button>
+          </button>
         ))}
       </div>
 
       {/* Hint */}
-      <motion.p
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 0.5 }}
-        transition={{ delay: 1 }}
-        className="mt-6 text-xs text-muted-foreground text-center uppercase tracking-wider"
-      >
-        Press number keys 1-9
-      </motion.p>
+      <p className="mt-4 text-xs text-muted-foreground text-center uppercase tracking-wider ss-fade-in" style={{ opacity: 0.5 }}>
+        Tap the total cube count
+      </p>
+
+      <style>{`
+        @keyframes ss-fade-in {
+          from { opacity: 0; transform: scale(0.95); }
+          to { opacity: 1; transform: scale(1); }
+        }
+        .ss-fade-in { animation: ss-fade-in 0.3s ease-out forwards; }
+        @keyframes fade-in {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        @keyframes fade-in-grid-floor {
+          from { opacity: 0; }
+          to { opacity: 0.08; }
+        }
+        @keyframes fade-in-grid-line {
+          from { opacity: 0; }
+          to { opacity: 0.1; }
+        }
+        @keyframes fade-in-edge {
+          from { opacity: 0; }
+          to { opacity: 0.3; }
+        }
+        .grid-floor {
+          opacity: 0;
+          animation: fade-in-grid-floor 0.3s ease forwards;
+        }
+        .grid-line {
+          opacity: 0;
+          animation: fade-in-grid-line 0.3s ease forwards;
+        }
+        .cube-face {
+          opacity: 0;
+          animation: fade-in 0.4s ease forwards;
+        }
+        .cube-edge {
+          opacity: 0;
+          animation: fade-in-edge 0.4s ease forwards;
+        }
+      `}</style>
     </div>
   );
 };

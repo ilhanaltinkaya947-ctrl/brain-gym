@@ -9,49 +9,15 @@ import { OnboardingFlow } from '../components/Onboarding/OnboardingFlow';
 import { ModeSelectionOverlay } from '../components/ModeSelectionOverlay';
 import { useGameEngine } from '../hooks/useGameEngine';
 import { useSounds } from '../hooks/useSounds';
-import { GameConfig, DEFAULT_CONFIG, MiniGameType, MIXABLE_GAMES } from '@/types/game';
+import { GameConfig, DEFAULT_CONFIG, MiniGameType, MIXABLE_GAMES, UserStats } from '@/types/game';
+import { useApp } from '@/contexts/AppContext';
 import { AdSkipModal } from '../components/AdSkipModal';
 import { ContinueModal } from '../components/ContinueModal';
 import { AD_CONFIG } from '@/utils/adManager';
 
 type Screen = 'dashboard' | 'game' | 'result';
 
-// Unified UserStats interface for scalable state management
-export interface UserStats {
-  classicHighScore: number;
-  endlessBestStreak: number;
-  totalXP: number;
-  totalGamesPlayed: number;
-  totalCorrectAnswers: number;
-  gameLevels: Record<string, number>;
-  lastPlayedDate: string | null;
-  dayStreak: number;
-}
 
-const DEFAULT_STATS: UserStats = {
-  classicHighScore: 0,
-  endlessBestStreak: 0,
-  totalXP: 0,
-  totalGamesPlayed: 0,
-  totalCorrectAnswers: 0,
-  gameLevels: {
-    flashMemory: 1,
-    nBackGhost: 1,
-    operatorChaos: 1,
-    spatialStack: 1,
-    paradoxFlow: 1,
-    wordConnect: 1,
-  },
-  lastPlayedDate: null,
-  dayStreak: 0,
-};
-
-const DEFAULT_SETTINGS: AppSettings = {
-  soundEnabled: true,
-  hapticsEnabled: true,
-  language: 'en',
-  theme: 'dark',
-};
 
 const Index = () => {
   // Check if first-time user (FTUE)
@@ -61,67 +27,15 @@ const Index = () => {
   const [currentScreen, setCurrentScreen] = useState<Screen>('dashboard');
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [modeSelectionOpen, setModeSelectionOpen] = useState(false);
-  
-  // App settings
-  const [appSettings, setAppSettings] = useState<AppSettings>(() => {
-    const saved = localStorage.getItem('axon-settings');
-    if (saved) {
-      try {
-        return { ...DEFAULT_SETTINGS, ...JSON.parse(saved) };
-      } catch {
-        return DEFAULT_SETTINGS;
-      }
-    }
-    return DEFAULT_SETTINGS;
-  });
-  
-  // Unified user stats (replaces individual high score states)
-  const [userStats, setUserStats] = useState<UserStats>(() => {
-    const saved = localStorage.getItem('axon-user-stats');
-    if (saved) {
-      try {
-        return { ...DEFAULT_STATS, ...JSON.parse(saved) };
-      } catch {
-        return DEFAULT_STATS;
-      }
-    }
-    // Migrate from old localStorage keys if they exist
-    const oldClassic = localStorage.getItem('neuroflow-highscore-classic');
-    const oldEndless = localStorage.getItem('neuroflow-highscore-endless');
-    const oldStreak = localStorage.getItem('neuroflow-streak');
-    const oldFlashLevel = localStorage.getItem('neuroflow-flash-highlevel');
-    
-    return {
-      ...DEFAULT_STATS,
-      classicHighScore: oldClassic ? parseInt(oldClassic, 10) : 0,
-      endlessBestStreak: oldEndless ? parseInt(oldEndless, 10) : 0,
-      dayStreak: oldStreak ? parseInt(oldStreak, 10) : 0,
-      gameLevels: {
-        ...DEFAULT_STATS.gameLevels,
-        flashMemory: oldFlashLevel ? parseInt(oldFlashLevel, 10) : 1,
-      },
-    };
-  });
 
-  // Game configuration - always merge with defaults to ensure new games are included
-  const [gameConfig, setGameConfig] = useState<GameConfig>(() => {
-    const saved = localStorage.getItem('neuroflow-config');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        // Merge saved enabled games with ALL mixable games to ensure new games appear
-        const mergedGames = [...new Set([...MIXABLE_GAMES, ...(parsed.enabledGames || [])])];
-        return {
-          ...DEFAULT_CONFIG,
-          ...parsed,
-          enabledGames: mergedGames.filter(g => MIXABLE_GAMES.includes(g)) as MiniGameType[],
-        };
-      } catch {
-        return DEFAULT_CONFIG;
-      }
-    }
-    return DEFAULT_CONFIG;
-  });
+  // Use App Context for global state
+  const {
+    userStats, setUserStats,
+    appSettings, setAppSettings,
+    gameConfig, setGameConfig,
+    adState, setAdState,
+    brainCharge
+  } = useApp();
 
   // Last game results
   const [lastScore, setLastScore] = useState(0);
@@ -137,13 +51,6 @@ const Index = () => {
   const [selectedStartTier, setSelectedStartTier] = useState(1);
 
   // Ad system state
-  const [adState, setAdState] = useState(() => {
-    const saved = localStorage.getItem('axon-ad-state');
-    if (saved) {
-      try { return JSON.parse(saved); } catch { /* ignore */ }
-    }
-    return { gamesPlayedSinceLastAd: 0, totalAdsWatched: 0, totalAdsSkipped: 0, xpSpentOnSkips: 0 };
-  });
   const [showAdSkipModal, setShowAdSkipModal] = useState(false);
   const [pendingNavigation, setPendingNavigation] = useState<'playAgain' | 'home' | null>(null);
 
@@ -153,12 +60,6 @@ const Index = () => {
   const [pendingDeathData, setPendingDeathData] = useState<{
     score: number; streak: number; correct: number; wrong: number; sessionXP: number;
   } | null>(null);
-
-  // Derived state: brain charge based on today's play
-  const brainCharge = useMemo(() => {
-    const today = new Date().toDateString();
-    return userStats.lastPlayedDate === today ? 100 : 0;
-  }, [userStats.lastPlayedDate]);
 
   const { playSound, triggerHaptic: triggerHapticBase, setStreak } = useSounds(appSettings.soundEnabled);
   const { generateMathQuestion, generateColorQuestion } = useGameEngine();
@@ -170,20 +71,7 @@ const Index = () => {
     }
   }, [appSettings.hapticsEnabled, triggerHapticBase]);
 
-  // Save settings changes
-  useEffect(() => {
-    localStorage.setItem('axon-settings', JSON.stringify(appSettings));
-  }, [appSettings]);
 
-  // Persist user stats
-  useEffect(() => {
-    localStorage.setItem('axon-user-stats', JSON.stringify(userStats));
-  }, [userStats]);
-
-  // Persist ad state
-  useEffect(() => {
-    localStorage.setItem('axon-ad-state', JSON.stringify(adState));
-  }, [adState]);
 
   const handleOpenSettings = () => {
     playSound('tick');
@@ -200,79 +88,79 @@ const Index = () => {
     playSound('start');
     triggerHaptic('medium');
     setModeSelectionOpen(false);
-    
+
     // Update game config with selected mode
     setGameConfig(prev => ({ ...prev, mode }));
-    
+
     // Record game start time for duration tracking
     setGameStartTime(Date.now());
-    
+
     // Store previous best for comparison
     setLastPreviousBest(mode === 'classic' ? userStats.classicHighScore : userStats.endlessBestStreak);
-    
+
     // Store starting tier for game initialization
     setSelectedStartTier(startTier);
-    
+
     setCurrentScreen('game');
   };
 
   const handleGameEnd = useCallback((score: number, streak: number, correct: number, wrong: number, peakSpeed?: number, duration?: number, sessionXP?: number) => {
     const isEndlessLoss = gameConfig.mode === 'endless' && wrong > 0;
     setWasEndlessMode(gameConfig.mode === 'endless');
-    
+
     // Calculate session duration
     const sessionDuration = Math.floor((Date.now() - gameStartTime) / 1000);
     setLastSessionDuration(sessionDuration);
-    
+
     if (isEndlessLoss) {
       playSound('lose');
     } else {
       playSound('complete');
     }
     triggerHaptic('medium');
-    
+
     // Use passed sessionXP if available, otherwise calculate fallback
     const xpGained = sessionXP !== undefined ? sessionXP : (correct * 10 + Math.floor(streak / 5) * 25);
-    
+
     setLastScore(score);
     setLastStreak(streak);
     setLastCorrect(correct);
     setLastWrong(wrong);
     setLastXPGained(xpGained);
-    
+
     // Update unified user stats
     const today = new Date().toDateString();
-    
+
     setUserStats(prev => {
       const isNewDay = prev.lastPlayedDate !== today;
       let newDayStreak = prev.dayStreak;
-      
+
       if (isNewDay) {
         const yesterday = new Date();
         yesterday.setDate(yesterday.getDate() - 1);
-        
+
         if (prev.lastPlayedDate === yesterday.toDateString()) {
           newDayStreak = prev.dayStreak + 1;
         } else {
           newDayStreak = 1;
         }
       }
-      
-      const newClassicHigh = gameConfig.mode === 'classic' 
+
+      const newClassicHigh = gameConfig.mode === 'classic'
         ? Math.max(prev.classicHighScore, score)
         : prev.classicHighScore;
-      
+
       const newEndlessHigh = gameConfig.mode === 'endless'
         ? Math.max(prev.endlessBestStreak, streak)
         : prev.endlessBestStreak;
-      
+
       // Check if new high score
       const isNewHigh = gameConfig.mode === 'classic'
         ? score > prev.classicHighScore
         : streak > prev.endlessBestStreak;
-      
+
       setIsNewHighScore(isNewHigh);
-      
+
       return {
         ...prev,
         classicHighScore: newClassicHigh,
@@ -438,25 +326,25 @@ const Index = () => {
   };
 
   // Derived: display high score based on mode
-  const displayHighScore = gameConfig.mode === 'classic' 
-    ? userStats.classicHighScore 
+  const displayHighScore = gameConfig.mode === 'classic'
+    ? userStats.classicHighScore
     : userStats.endlessBestStreak;
 
-   // Onboarding - early return for first-time users
-   if (showOnboarding) {
-     return (
-       <AnimatePresence>
-         <OnboardingFlow onComplete={() => setShowOnboarding(false)} />
-       </AnimatePresence>
-     );
-   }
+  // Onboarding - early return for first-time users
+  if (showOnboarding) {
+    return (
+      <AnimatePresence>
+        <OnboardingFlow onComplete={() => setShowOnboarding(false)} />
+      </AnimatePresence>
+    );
+  }
 
-   return (
-     <div className="min-h-screen overflow-hidden relative">
-       <NeuralBackground />
-       
-       <AnimatePresence mode="wait">
-         {currentScreen === 'dashboard' && (
+  return (
+    <div className="min-h-screen-dynamic overflow-x-hidden relative">
+      <NeuralBackground />
+
+      <AnimatePresence mode="wait">
+        {currentScreen === 'dashboard' && (
           <motion.div
             key="dashboard"
             initial={{ opacity: 0, scale: 0.96 }}
@@ -464,46 +352,46 @@ const Index = () => {
             exit={{ opacity: 0, x: -60, scale: 0.97 }}
             transition={{ type: 'spring', stiffness: 260, damping: 25 }}
           >
-           <Dashboard
-             onStartGame={handleStartGame}
-             onOpenSettings={handleOpenSettings}
-             brainCharge={brainCharge}
-             totalXP={userStats.totalXP}
-             classicHighScore={userStats.classicHighScore}
-             endlessBestStreak={userStats.endlessBestStreak}
-           />
+            <Dashboard
+              onStartGame={handleStartGame}
+              onOpenSettings={handleOpenSettings}
+              brainCharge={brainCharge}
+              totalXP={userStats.totalXP}
+              classicHighScore={userStats.classicHighScore}
+              endlessBestStreak={userStats.endlessBestStreak}
+            />
           </motion.div>
         )}
 
-         {currentScreen === 'game' && (
+        {currentScreen === 'game' && (
           <motion.div
             key="game"
             initial={{ opacity: 0, x: 80 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, scale: 0.95 }}
             transition={{ type: 'spring', stiffness: 300, damping: 28 }}
-            className="h-screen"
+            className="h-screen-dynamic"
           >
-             <MixedGameScreen
-               mode={gameConfig.mode}
-               enabledGames={gameConfig.enabledGames.filter(g => MIXABLE_GAMES.includes(g)) as MiniGameType[]}
-               generateMathQuestion={generateMathQuestion}
-               generateColorQuestion={generateColorQuestion}
-               onGameEnd={handleGameEnd}
-               onQuit={handleQuit}
-               playSound={playSound}
-               triggerHaptic={triggerHaptic}
-               setStreak={setStreak}
-               bestScore={userStats.classicHighScore}
-               bestStreak={userStats.endlessBestStreak}
-               startTier={selectedStartTier}
-               onRequestContinue={handleRequestContinue}
-               continueGranted={continueGranted}
-             />
+            <MixedGameScreen
+              mode={gameConfig.mode}
+              enabledGames={gameConfig.enabledGames.filter(g => MIXABLE_GAMES.includes(g)) as MiniGameType[]}
+              generateMathQuestion={generateMathQuestion}
+              generateColorQuestion={generateColorQuestion}
+              onGameEnd={handleGameEnd}
+              onQuit={handleQuit}
+              playSound={playSound}
+              triggerHaptic={triggerHaptic}
+              setStreak={setStreak}
+              bestScore={userStats.classicHighScore}
+              bestStreak={userStats.endlessBestStreak}
+              startTier={selectedStartTier}
+              onRequestContinue={handleRequestContinue}
+              continueGranted={continueGranted}
+            />
           </motion.div>
         )}
 
-         {currentScreen === 'result' && (
+        {currentScreen === 'result' && (
           <motion.div
             key="result"
             initial={{ opacity: 0, y: 40, scale: 0.95 }}

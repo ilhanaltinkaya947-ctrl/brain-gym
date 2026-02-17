@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef, memo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+// framer-motion removed — using CSS animations for performance
 import confetti from 'canvas-confetti';
 import { MathQuestion } from '../hooks/useGameEngine';
 
@@ -11,56 +11,95 @@ interface SpeedMathProps {
   streak: number;
   onScreenShake: () => void;
   tier?: number;
+  overclockFactor?: number;
 }
 
-const QUESTION_TIME = 3000; // 3 seconds
+const getQuestionTime = (tier: number): number => {
+  switch (tier) {
+    case 1: return 6000;
+    case 2: return 8000;
+    case 3: return 10000;
+    case 4: return 14000;
+    case 5: return 18000;
+    default: return 6000;
+  }
+};
 
-export const SpeedMath = memo(({ 
-  generateQuestion, 
-  onAnswer, 
-  playSound, 
-  triggerHaptic, 
+export const SpeedMath = memo(({
+  generateQuestion,
+  onAnswer,
+  playSound,
+  triggerHaptic,
   streak,
   onScreenShake,
-  tier = 1
+  tier = 1,
+  overclockFactor = 1
 }: SpeedMathProps) => {
+  const QUESTION_TIME = getQuestionTime(tier);
   const [question, setQuestion] = useState<MathQuestion>(generateQuestion);
-  const [timeLeft, setTimeLeft] = useState(QUESTION_TIME);
   const [isShaking, setIsShaking] = useState(false);
   const [pressedButton, setPressedButton] = useState<number | null>(null);
   const [correctButton, setCorrectButton] = useState<number | null>(null);
+  const [timerActive, setTimerActive] = useState(false);
+  const [questionKey, setQuestionKey] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
+  const expiryRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const tickTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const questionStartRef = useRef(Date.now());
+
+  // Stable refs for callbacks — prevents timer useEffect from re-firing on every render
+  const onAnswerRef = useRef(onAnswer);
+  const playSoundRef = useRef(playSound);
+  const triggerHapticRef = useRef(triggerHaptic);
+  onAnswerRef.current = onAnswer;
+  playSoundRef.current = playSound;
+  triggerHapticRef.current = triggerHaptic;
 
   const nextQuestion = useCallback(() => {
     setQuestion(generateQuestion());
-    setTimeLeft(QUESTION_TIME);
+    setQuestionKey(k => k + 1);
     setPressedButton(null);
     setCorrectButton(null);
   }, [generateQuestion]);
 
+  // Timer: CSS-driven bar + setTimeout for expiry and ticks
+  // Only re-runs when questionKey changes (new question), not on callback changes
   useEffect(() => {
-    const interval = setInterval(() => {
-      setTimeLeft(prev => {
-        if (prev <= 100) {
-          onAnswer(false, 0, question.tier || 1);
-          playSound('wrong');
-          triggerHaptic('heavy');
-          setIsShaking(true);
-          setTimeout(() => {
-            setIsShaking(false);
-            nextQuestion();
-          }, 300);
-          return QUESTION_TIME;
-        }
-        if (prev <= 1000) {
-          playSound('tick');
-        }
-        return prev - 100;
-      });
-    }, 100);
+    if (expiryRef.current) clearTimeout(expiryRef.current);
+    tickTimers.current.forEach(t => clearTimeout(t));
+    tickTimers.current = [];
 
-    return () => clearInterval(interval);
-  }, [question, onAnswer, playSound, triggerHaptic, nextQuestion]);
+    const duration = QUESTION_TIME / overclockFactor;
+    questionStartRef.current = Date.now();
+
+    setTimerActive(false);
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => setTimerActive(true));
+    });
+
+    // Tick sounds near end
+    const tickAt80 = duration * 0.8;
+    const tickAt90 = duration * 0.9;
+    tickTimers.current.push(setTimeout(() => playSoundRef.current('tick'), tickAt80));
+    tickTimers.current.push(setTimeout(() => playSoundRef.current('tick'), tickAt90));
+
+    // Expiry
+    expiryRef.current = setTimeout(() => {
+      onAnswerRef.current(false, 0, question.tier || 1);
+      playSoundRef.current('wrong');
+      triggerHapticRef.current('heavy');
+      setIsShaking(true);
+      setTimeout(() => {
+        setIsShaking(false);
+        nextQuestion();
+      }, 300);
+    }, duration);
+
+    return () => {
+      if (expiryRef.current) clearTimeout(expiryRef.current);
+      tickTimers.current.forEach(t => clearTimeout(t));
+    };
+  }, [questionKey, QUESTION_TIME, overclockFactor]);
 
   const triggerConfetti = (event: React.MouseEvent) => {
     const rect = (event.target as HTMLElement).getBoundingClientRect();
@@ -68,7 +107,7 @@ export const SpeedMath = memo(({
     const y = (rect.top + rect.height / 2) / window.innerHeight;
 
     confetti({
-      particleCount: 40 + streak * 8,
+      particleCount: Math.min(60, 30 + streak * 4),
       spread: 70,
       origin: { x, y },
       colors: ['#00D4FF', '#FF00FF', '#FFD700', '#00FF88'],
@@ -81,7 +120,8 @@ export const SpeedMath = memo(({
 
   const handleAnswer = (selected: number, event: React.MouseEvent) => {
     const isCorrect = selected === question.answer;
-    const speedBonus = Math.floor((timeLeft / QUESTION_TIME) * 10);
+    const elapsed = Date.now() - questionStartRef.current;
+    const speedBonus = Math.floor(Math.max(0, 1 - elapsed / (QUESTION_TIME / overclockFactor)) * 10);
 
     setPressedButton(selected);
 
@@ -102,89 +142,90 @@ export const SpeedMath = memo(({
     setTimeout(() => nextQuestion(), 100);
   };
 
-  const progress = (timeLeft / QUESTION_TIME) * 100;
+  const timerDurationSec = QUESTION_TIME / 1000 / overclockFactor;
 
   return (
-    <motion.div
+    <div
       ref={containerRef}
-      animate={isShaking ? { x: [-8, 8, -8, 8, 0] } : {}}
-      transition={{ duration: 0.4 }}
-      className="flex flex-col items-center gap-6 py-4 px-4 w-full"
+      className={`flex flex-col items-center gap-6 py-4 px-4 w-full ${isShaking ? 'sm-shake' : ''}`}
     >
-      {/* Timer bar */}
+      <style>{`
+        @keyframes sm-shake {
+          0%, 100% { transform: translateX(0); }
+          20% { transform: translateX(-8px); }
+          40% { transform: translateX(8px); }
+          60% { transform: translateX(-8px); }
+          80% { transform: translateX(8px); }
+        }
+        .sm-shake { animation: sm-shake 0.4s ease; }
+        @keyframes sm-question-in {
+          from { opacity: 0; transform: scale(0.95); }
+          to { opacity: 1; transform: scale(1); }
+        }
+        .sm-question-in { animation: sm-question-in 0.2s ease-out forwards; }
+      `}</style>
+
+      {/* Timer bar — CSS-driven, no JS ticks */}
       <div className="w-full max-w-sm h-1.5 bg-muted/30 rounded-full overflow-hidden border border-border/50">
-        <motion.div
+        <div
+          key={questionKey}
           className="h-full rounded-full"
           style={{
-            background: progress > 30 
-              ? 'linear-gradient(90deg, hsl(var(--neon-cyan)), hsl(var(--neon-magenta)))' 
-              : 'hsl(var(--destructive))',
-            boxShadow: progress > 30 
-              ? '0 0 10px hsl(var(--neon-cyan) / 0.5)' 
-              : '0 0 10px hsl(var(--destructive) / 0.5)'
+            width: timerActive ? '0%' : '100%',
+            transition: timerActive ? `width ${timerDurationSec}s linear` : 'none',
+            background: 'linear-gradient(90deg, hsl(var(--neon-cyan)), hsl(var(--neon-magenta)))',
+            boxShadow: '0 0 10px hsl(var(--neon-cyan) / 0.5)',
           }}
-          animate={{ width: `${progress}%` }}
-          transition={{ duration: 0.1 }}
         />
       </div>
 
       {/* Question - Centered with auto-scaling */}
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={question.question}
-          initial={{ opacity: 0, y: 20, scale: 0.9 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: -20, scale: 0.9 }}
-          transition={{ duration: 0.2 }}
-          className="text-center py-6 w-full max-w-sm px-2"
-        >
+      <div
+        key={question.question}
+        className="text-center py-6 w-full max-w-sm px-2 overflow-hidden sm-question-in"
+      >
           <p className="text-xs text-muted-foreground mb-3 uppercase tracking-widest">Solve</p>
-          <h2 
+          <h2
             className={`font-black font-mono text-glow-cyan leading-tight ${
-              question.question.length > 12 
-                ? 'text-3xl sm:text-4xl' 
-                : question.question.length > 8 
-                  ? 'text-4xl sm:text-5xl' 
-                  : 'text-5xl sm:text-6xl'
+              question.question.length > 20
+                ? 'text-xl sm:text-2xl'
+                : question.question.length > 15
+                  ? 'text-2xl sm:text-3xl'
+                  : question.question.length > 12
+                    ? 'text-3xl sm:text-4xl'
+                    : question.question.length > 8
+                      ? 'text-4xl sm:text-5xl'
+                      : 'text-5xl sm:text-6xl'
             }`}
             style={{
               wordBreak: 'keep-all',
-              whiteSpace: question.question.length > 10 ? 'normal' : 'nowrap',
+              whiteSpace: 'nowrap',
+              letterSpacing: question.question.length > 15 ? '-0.02em' : undefined,
             }}
           >
             {question.question}
           </h2>
-        </motion.div>
-      </AnimatePresence>
+      </div>
 
       {/* Answer Grid - Compact 2x2 */}
       <div className="grid grid-cols-2 gap-2.5 w-full max-w-sm">
         {question.options.slice(0, 4).map((option, index) => (
-          <motion.button
+          <button
             key={`${question.question}-${option}-${index}`}
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ 
-              opacity: 1, 
-              scale: pressedButton === option ? 1.1 : 1,
-            }}
-            transition={{ 
-              delay: index * 0.04,
-              scale: { type: "spring", stiffness: 500, damping: 15 }
-            }}
-            whileHover={{ scale: 1.03, borderColor: 'hsl(var(--neon-cyan))' }}
-            whileTap={{ scale: 1.1 }}
             onClick={(e) => handleAnswer(option, e)}
-            className={`btn-energy-cell py-4 px-3 rounded-xl text-2xl sm:text-3xl font-black font-mono transition-all duration-150 ${
+            className={`btn-energy-cell py-4 px-3 rounded-xl text-2xl sm:text-3xl font-black font-mono transition-transform duration-150 hover:scale-105 active:scale-95 ${
               correctButton === option ? 'correct' : ''
             }`}
             style={{
               color: correctButton === option ? 'hsl(var(--neon-gold))' : 'hsl(var(--foreground))',
+              transform: pressedButton === option ? 'scale(1.1)' : undefined,
+              animationDelay: `${index * 40}ms`,
             }}
           >
             {option}
-          </motion.button>
+          </button>
         ))}
       </div>
-    </motion.div>
+    </div>
   );
 });

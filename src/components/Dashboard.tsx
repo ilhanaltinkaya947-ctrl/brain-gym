@@ -17,13 +17,13 @@ const stagger = {
   hidden: { opacity: 0 },
   show: {
     opacity: 1,
-    transition: { staggerChildren: 0.08 },
+    transition: { staggerChildren: 0.12 },
   },
 };
 
 const fadeUp = {
   hidden: { opacity: 0, y: 24 },
-  show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 300, damping: 24 } },
+  show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 120, damping: 22 } },
 };
 
 export const Dashboard = ({
@@ -39,7 +39,7 @@ export const Dashboard = ({
     return num.toString();
   };
 
-  const readiness = brainCharge > 0 ? brainCharge : 85;
+  const readiness = Math.min(brainCharge > 0 ? brainCharge : 85, 50);
 
   // Responsive NeuralCore size
   const [coreSize, setCoreSize] = useState(240);
@@ -62,19 +62,13 @@ export const Dashboard = ({
       initial="hidden"
       animate="show"
       className="min-h-screen-dynamic flex flex-col px-5 py-4 safe-all relative bg-background overflow-hidden"
-      style={{
-        paddingTop: 'max(env(safe-area-inset-top, 12px), 12px)',
-        paddingBottom: 'max(env(safe-area-inset-bottom, 16px), 16px)',
-        paddingLeft: 'max(env(safe-area-inset-left, 20px), 20px)',
-        paddingRight: 'max(env(safe-area-inset-right, 20px), 20px)',
-      }}
     >
       {/* Header */}
       <motion.div variants={fadeUp} className="flex justify-end mb-4 z-10 pt-2">
         <motion.button
           whileHover={{ scale: 1.1, rotate: 90 }}
           whileTap={{ scale: 0.85 }}
-          transition={{ type: 'spring', stiffness: 400, damping: 15 }}
+          transition={{ type: 'spring', stiffness: 200, damping: 20 }}
           onClick={onOpenSettings}
           className="p-3 glass-panel rounded-full"
         >
@@ -93,7 +87,7 @@ export const Dashboard = ({
           <motion.div
             className="absolute inset-0"
             animate={{ opacity: [0.2, 0.35, 0.2] }}
-            transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
+            transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
             style={{
               background: 'radial-gradient(circle at 50% 50%, hsl(var(--neon-cyan) / 0.15) 0%, transparent 60%)',
             }}
@@ -103,7 +97,7 @@ export const Dashboard = ({
           <motion.div
             className="relative z-10"
             animate={{ rotate: [0, 1, -1, 0] }}
-            transition={{ duration: 12, repeat: Infinity, ease: 'easeInOut' }}
+            transition={{ duration: 30, repeat: Infinity, ease: 'easeInOut' }}
           >
             <NeuralCore size={coreSize} brainCharge={readiness} />
           </motion.div>
@@ -140,7 +134,7 @@ export const Dashboard = ({
         <motion.button
           whileHover={{ scale: 1.03, y: -3 }}
           whileTap={{ scale: 0.96 }}
-          transition={{ type: 'spring', stiffness: 400, damping: 15 }}
+          transition={{ type: 'spring', stiffness: 200, damping: 20 }}
           onClick={onStartGame}
           className="w-full py-4 rounded-2xl bg-foreground text-background text-lg font-semibold tracking-wide flex items-center justify-center gap-3 relative overflow-hidden group"
           style={{
@@ -151,11 +145,11 @@ export const Dashboard = ({
           <motion.div
             className="absolute inset-0 bg-gradient-to-r from-transparent via-background/15 to-transparent"
             animate={{ x: ['-100%', '100%'] }}
-            transition={{ duration: 2.5, repeat: Infinity, repeatDelay: 4, ease: 'easeInOut' }}
+            transition={{ duration: 3.5, repeat: Infinity, repeatDelay: 6, ease: 'easeInOut' }}
           />
           <motion.div
-            animate={{ rotate: [0, 12, -12, 0] }}
-            transition={{ duration: 0.6, repeat: Infinity, repeatDelay: 3 }}
+            animate={{ rotate: [0, 8, -8, 0] }}
+            transition={{ duration: 1.2, repeat: Infinity, repeatDelay: 5 }}
           >
             <Zap className="w-5 h-5" />
           </motion.div>

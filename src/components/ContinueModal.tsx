@@ -111,6 +111,32 @@ export const ContinueModal = ({
             className="absolute inset-0 bg-black/80 backdrop-blur-sm"
           />
 
+          {/* Red breathing glow */}
+          <div
+            className="absolute inset-0 pointer-events-none"
+            style={{
+              background: 'radial-gradient(ellipse 90% 60% at 50% 40%, hsl(0 80% 50% / 0.12) 0%, hsl(0 70% 40% / 0.05) 40%, transparent 70%)',
+              animation: 'cm-glow-breathe 3s ease-in-out infinite',
+            }}
+          />
+          <div
+            className="absolute inset-0 pointer-events-none"
+            style={{
+              boxShadow: 'inset 0 0 60px hsl(0 80% 50% / 0.08), inset 0 0 120px hsl(0 70% 40% / 0.04)',
+              animation: 'cm-edge-breathe 3s ease-in-out infinite',
+            }}
+          />
+          <style>{`
+            @keyframes cm-glow-breathe {
+              0%, 100% { opacity: 0.5; transform: scale(1); }
+              50% { opacity: 1; transform: scale(1.05); }
+            }
+            @keyframes cm-edge-breathe {
+              0%, 100% { opacity: 0.3; }
+              50% { opacity: 0.7; }
+            }
+          `}</style>
+
           {/* Card */}
           <motion.div
             variants={cardVariants}
