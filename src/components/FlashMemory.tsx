@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef, memo } from 'react';
 import { Check } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import { useScreenScale } from '@/hooks/useScreenScale';
 
 interface FlashSequenceProps {
   tier: number;
@@ -25,6 +26,7 @@ const getDifficultyConfig = (tier: number) => {
 type Phase = 'countdown' | 'showing' | 'playing' | 'success';
 
 export const FlashMemory = memo(({ tier, onAnswer, playSound, triggerHaptic, overclockFactor = 1 }: FlashSequenceProps) => {
+  const { s } = useScreenScale();
   const [sequence, setSequence] = useState<number[]>([]);
   const [phase, setPhase] = useState<Phase>('countdown');
   const [activeCell, setActiveCell] = useState<number | null>(null);
@@ -217,12 +219,14 @@ export const FlashMemory = memo(({ tier, onAnswer, playSound, triggerHaptic, ove
             // Show checkmark overlay
             setShowSuccess(true);
             confetti({
-              particleCount: 40,
+              particleCount: 20,
               spread: 60,
               origin: { x: 0.5, y: 0.5 },
               colors: ['#00D4FF', '#FF00FF', '#FFD700', '#00FF88'],
-              gravity: 1.2,
-              ticks: 100,
+              gravity: 1.5,
+              ticks: 60,
+              decay: 0.94,
+              disableForReducedMotion: true,
             });
             // Wait for checkmark to be visible, then report answer
             successTimeoutRef.current = setTimeout(() => onAnswerRef.current(true, 1.0, tier), 500);
@@ -272,8 +276,8 @@ export const FlashMemory = memo(({ tier, onAnswer, playSound, triggerHaptic, ove
           return (
             <div
               key={i}
-              className={`w-2.5 h-2.5 rounded-full transition-colors duration-200 ${dotClass} ${pulseClass}`}
-              style={{ boxShadow: shadow }}
+              className={`rounded-full transition-colors duration-200 ${dotClass} ${pulseClass}`}
+              style={{ width: s(10), height: s(10), boxShadow: shadow }}
             />
           );
         })}
@@ -312,8 +316,8 @@ export const FlashMemory = memo(({ tier, onAnswer, playSound, triggerHaptic, ove
       {/* Success Overlay */}
       {showSuccess && (
         <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none fm-success-in">
-          <div className="w-20 h-20 rounded-full bg-green-500/20 flex items-center justify-center border-2 border-green-500 fm-check-pop">
-            <Check className="w-10 h-10 text-green-500" strokeWidth={3} />
+          <div className="rounded-full bg-green-500/20 flex items-center justify-center border-2 border-green-500 fm-check-pop" style={{ width: s(80), height: s(80) }}>
+            <Check className="text-green-500" style={{ width: s(40), height: s(40) }} strokeWidth={3} />
           </div>
         </div>
       )}
@@ -325,7 +329,7 @@ export const FlashMemory = memo(({ tier, onAnswer, playSound, triggerHaptic, ove
             key={`cd-${roundKey}`}
             className="font-black uppercase tracking-[0.2em] text-neon-cyan fm-countdown-pop"
             style={{
-              fontSize: 24,
+              fontSize: s(24),
               textShadow: '0 0 20px hsl(var(--neon-cyan) / 0.5)',
             }}
           >
@@ -351,8 +355,10 @@ export const FlashMemory = memo(({ tier, onAnswer, playSound, triggerHaptic, ove
 
       {/* Grid — no scale animation, CSS transitions for state changes */}
       <div
-        className="grid gap-3 w-full max-w-xs aspect-square transition-opacity duration-300"
+        className="grid w-full aspect-square transition-opacity duration-300"
         style={{
+          gap: s(12),
+          maxWidth: s(320),
           gridTemplateColumns: `repeat(${config.gridCols}, 1fr)`,
           opacity: phase === 'countdown' ? 0.4 : isSuccess && showSuccess ? 0.3 : isSuccess ? 0.85 : 1,
         }}
@@ -420,7 +426,7 @@ export const FlashMemory = memo(({ tier, onAnswer, playSound, triggerHaptic, ove
               key={i}
               onClick={() => handleCellTap(i)}
               disabled={phase !== 'playing' || isCellDone}
-              className={`rounded-xl flex items-center justify-center touch-manipulation min-w-[44px] min-h-[44px] ${
+              className={`rounded-xl flex items-center justify-center touch-manipulation ${
                 phase === 'playing' && !isCellDone ? 'active:scale-[0.92]' : ''
               } ${isError ? 'fm-shake' : ''} ${isCellDone ? 'pointer-events-none' : ''}`}
               style={{
@@ -428,6 +434,8 @@ export const FlashMemory = memo(({ tier, onAnswer, playSound, triggerHaptic, ove
                 border: borderStyle,
                 boxShadow: shadowStyle,
                 aspectRatio: '1',
+                minWidth: s(44),
+                minHeight: s(44),
                 opacity: cellOpacity,
                 transform: `scale(${cellScale})`,
                 transition: 'transform 0.15s ease, background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease',

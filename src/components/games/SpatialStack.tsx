@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import confetti from 'canvas-confetti';
+import { useScreenScale } from '@/hooks/useScreenScale';
 
 interface SpatialStackProps {
   onAnswer: (correct: boolean, speedBonus: number, tier?: number) => void;
@@ -15,6 +16,7 @@ interface Cube {
   x: number;
   y: number;
   z: number;
+  isHidden?: boolean;
 }
 
 interface Question {
@@ -23,7 +25,7 @@ interface Question {
   viewAngle: number;
 }
 
-type StructureType = 'pyramid' | 'tower' | 'bridge' | 'l-shape';
+type StructureType = 'pyramid' | 'tower' | 'bridge' | 'l-shape' | 'staircase' | 'cross' | 'zigzag';
 
 // Tier-based configuration
 const TIER_CONFIG: Record<number, { min: number; max: number; speedBonusWindow: number }> = {
@@ -260,9 +262,136 @@ const generateLShape = (targetCount: number): Cube[] => {
   return cubes.slice(0, targetCount);
 };
 
+const generateStaircase = (targetCount: number): Cube[] => {
+  const cubes: Cube[] = [];
+  const steps = Math.max(2, Math.min(5, Math.ceil(targetCount / 3)));
+
+  for (let step = 0; step < steps && cubes.length < targetCount; step++) {
+    // Each step is a column of height (step + 1) at x = step
+    for (let z = 0; z <= step && cubes.length < targetCount; z++) {
+      cubes.push({ x: step, y: 0, z });
+    }
+  }
+
+  // Add depth (y) to fill remaining cubes
+  for (let dy = 1; cubes.length < targetCount && dy <= 3; dy++) {
+    for (let step = 0; step < steps && cubes.length < targetCount; step++) {
+      for (let z = 0; z <= step && cubes.length < targetCount; z++) {
+        if (!cubes.some(c => c.x === step && c.y === dy && c.z === z)) {
+          cubes.push({ x: step, y: dy, z });
+        }
+      }
+    }
+  }
+
+  return cubes.slice(0, targetCount);
+};
+
+const generateCross = (targetCount: number): Cube[] => {
+  const cubes: Cube[] = [];
+  const armLen = Math.max(1, Math.ceil((targetCount - 1) / 4));
+
+  // Center column
+  cubes.push({ x: 0, y: 0, z: 0 });
+
+  // Arms in 4 directions
+  for (let i = 1; i <= armLen && cubes.length < targetCount; i++) {
+    cubes.push({ x: i, y: 0, z: 0 });
+  }
+  for (let i = 1; i <= armLen && cubes.length < targetCount; i++) {
+    cubes.push({ x: -i, y: 0, z: 0 });
+  }
+  for (let i = 1; i <= armLen && cubes.length < targetCount; i++) {
+    cubes.push({ x: 0, y: i, z: 0 });
+  }
+  for (let i = 1; i <= armLen && cubes.length < targetCount; i++) {
+    cubes.push({ x: 0, y: -i, z: 0 });
+  }
+
+  // Stack center upward
+  for (let z = 1; cubes.length < targetCount && z <= 4; z++) {
+    cubes.push({ x: 0, y: 0, z });
+  }
+
+  // Widen arms or add more height if still short
+  let attempts = 0;
+  while (cubes.length < targetCount && attempts < 100) {
+    attempts++;
+    const base = cubes[Math.floor(Math.random() * cubes.length)];
+    const nz = base.z + 1;
+    if (nz <= 5 && !cubes.some(c => c.x === base.x && c.y === base.y && c.z === nz)) {
+      cubes.push({ x: base.x, y: base.y, z: nz });
+    }
+  }
+
+  return cubes.slice(0, targetCount);
+};
+
+const generateZigzag = (targetCount: number): Cube[] => {
+  const cubes: Cube[] = [];
+  const cols = Math.max(3, Math.min(6, Math.ceil(targetCount / 2)));
+
+  for (let x = 0; x < cols && cubes.length < targetCount; x++) {
+    // Alternating heights: even columns tall, odd columns short
+    const height = x % 2 === 0 ? Math.min(3, Math.ceil(targetCount / cols)) : 1;
+    for (let z = 0; z < height && cubes.length < targetCount; z++) {
+      cubes.push({ x, y: 0, z });
+    }
+  }
+
+  // Add depth to fill remaining
+  for (let dy = 1; cubes.length < targetCount && dy <= 3; dy++) {
+    for (let x = 0; x < cols && cubes.length < targetCount; x++) {
+      const existingHeight = Math.max(0, ...cubes.filter(c => c.x === x && c.y === 0).map(c => c.z)) + 1;
+      for (let z = 0; z < existingHeight && cubes.length < targetCount; z++) {
+        if (!cubes.some(c => c.x === x && c.y === dy && c.z === z)) {
+          cubes.push({ x, y: dy, z });
+        }
+      }
+    }
+  }
+
+  return cubes.slice(0, targetCount);
+};
+
+// A cube is fully hidden in isometric view if all 3 visible faces are blocked:
+// - top face blocked by cube at (x, y, z+1)
+// - left face blocked by cube at (x, y+1, z)
+// - right face blocked by cube at (x+1, y, z)
+const isFullyOccluded = (cube: Cube, cubeSet: Set<string>): boolean => {
+  return (
+    cubeSet.has(`${cube.x},${cube.y},${cube.z + 1}`) &&
+    cubeSet.has(`${cube.x},${cube.y + 1},${cube.z}`) &&
+    cubeSet.has(`${cube.x + 1},${cube.y},${cube.z}`)
+  );
+};
+
+const markHiddenCubes = (cubes: Cube[]): Cube[] => {
+  const cubeSet = new Set(cubes.map(c => `${c.x},${c.y},${c.z}`));
+  return cubes.map(c => ({
+    ...c,
+    isHidden: isFullyOccluded(c, cubeSet),
+  }));
+};
+
+const ensureSupport = (cubes: Cube[]): Cube[] => {
+  const cubeSet = new Set(cubes.map(c => `${c.x},${c.y},${c.z}`));
+  const result = [...cubes];
+  for (const c of cubes) {
+    for (let z = 0; z < c.z; z++) {
+      const key = `${c.x},${c.y},${z}`;
+      if (!cubeSet.has(key)) {
+        result.push({ x: c.x, y: c.y, z });
+        cubeSet.add(key);
+      }
+    }
+  }
+  return result;
+};
+
 // Main stack generation using structured shapes
 const generateStack = (targetCount: number, tier: number): Question => {
-  const structures: StructureType[] = ['pyramid', 'tower', 'bridge', 'l-shape'];
+  const structures: StructureType[] = ['pyramid', 'tower', 'bridge', 'l-shape', 'staircase', 'cross', 'zigzag'];
   const structure = structures[Math.floor(Math.random() * structures.length)];
 
   let cubes: Cube[];
@@ -279,9 +408,21 @@ const generateStack = (targetCount: number, tier: number): Question => {
     case 'l-shape':
       cubes = generateLShape(targetCount);
       break;
+    case 'staircase':
+      cubes = generateStaircase(targetCount);
+      break;
+    case 'cross':
+      cubes = generateCross(targetCount);
+      break;
+    case 'zigzag':
+      cubes = generateZigzag(targetCount);
+      break;
   }
 
-  // Ensure answer is within tier range
+  // Fill support gaps — every cube at z > 0 gets full column support below
+  cubes = ensureSupport(cubes);
+
+  // Clamp to tier range after support fill
   const config = getTierConfig(tier);
   const finalCount = Math.min(config.max, Math.max(config.min, cubes.length));
   cubes = cubes.slice(0, finalCount);
@@ -307,11 +448,14 @@ const generateStack = (targetCount: number, tier: number): Question => {
 
   cubes = cubes.slice(0, finalCount);
 
+  // Mark hidden cubes (fully occluded) — they'll render as ghost wireframes
+  const allCubes = markHiddenCubes(cubes);
+
   const viewAngle = generateViewAngle(tier);
 
   return {
-    visibleCubes: cubes,
-    totalCount: cubes.length,
+    visibleCubes: allCubes,  // ALL cubes, some with isHidden=true
+    totalCount: allCubes.length,
     viewAngle,
   };
 };
@@ -415,6 +559,7 @@ export const SpatialStack = ({
   const interQuestionDelay = effectiveTier >= 3 ? 150 : 200;
   const tierConfig = getTierConfig(effectiveTier);
 
+  const { s } = useScreenScale();
   const [question, setQuestion] = useState<Question>(() => generateStack(effectiveCubeCount, effectiveTier));
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
   const [questionKey, setQuestionKey] = useState(0);
@@ -440,7 +585,13 @@ export const SpatialStack = ({
       if (correct - offset >= 1) options.add(correct - offset);
       offset++;
     }
-    return Array.from(options).sort((a, b) => a - b).slice(0, 6);
+    // Shuffle options so the correct answer isn't always in the same position
+    const arr = Array.from(options).slice(0, 6);
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
   }, [question.totalCount]);
 
   // Sort cubes for proper rendering order (back to front, bottom to top)
@@ -468,11 +619,14 @@ export const SpatialStack = ({
       setLastFeedback('correct');
 
       confetti({
-        particleCount: 30,
+        particleCount: 15,
         spread: 50,
         origin: { x: 0.5, y: 0.5 },
         colors: ['#00FF00', '#32CD32', '#7CFC00'],
         scalar: 0.8,
+        ticks: 60,
+        decay: 0.94,
+        disableForReducedMotion: true,
       });
     } else {
       playSound('wrong');
@@ -507,7 +661,7 @@ export const SpatialStack = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [handleAnswerSelect, answerOptions]);
 
-  const cubeSize = 30;
+  const cubeSize = s(30);
 
   // Per-layer colors; tier 5 reduces contrast between layers
   const layerColors = useMemo(() => {
@@ -578,15 +732,17 @@ export const SpatialStack = ({
           Spatial Stack
         </div>
         <div className="text-sm text-muted-foreground">
-          Count ALL cubes (including hidden ones)
+          Count every cube — some are hidden
         </div>
       </div>
 
       {/* Isometric Cube Display */}
         <div
           key={questionKey}
-          className="relative w-72 h-64 mb-6 rounded-2xl border border-border/30 bg-card/30 flex items-center justify-center ss-fade-in"
+          className="relative mb-6 rounded-2xl border border-border/30 bg-card/30 flex items-center justify-center ss-fade-in"
           style={{
+            width: s(288),
+            height: s(256),
             boxShadow: lastFeedback === 'correct'
               ? '0 0 50px hsl(140, 70%, 45% / 0.5)'
               : lastFeedback === 'wrong'
@@ -595,7 +751,7 @@ export const SpatialStack = ({
             transition: 'box-shadow 0.3s ease',
           }}
         >
-          <svg width="240" height="220" viewBox={viewBox} preserveAspectRatio="xMidYMid meet">
+          <svg width={s(240)} height={s(220)} viewBox={viewBox} preserveAspectRatio="xMidYMid meet">
             {/* Grid floor */}
             {gridFloorPath && (
               <path
@@ -636,6 +792,26 @@ export const SpatialStack = ({
               const topFace = `M${top} L${right} L${mid} L${left}Z`;
               const leftFace = `M${left} L${mid} L${botMid} L${botLeft}Z`;
               const rightFace = `M${right} L${mid} L${botMid} L${botRight}Z`;
+
+              if (cube.isHidden) {
+                // Ghost cube — dashed wireframe, no fill
+                const ghostStroke = `hsl(${c.h}, ${c.s}%, ${c.l}%)`;
+                return (
+                  <g key={`cube-${i}`} style={{ animationDelay: `${i * 0.04}s` }}>
+                    <path
+                      className="cube-face"
+                      style={{ animationDelay: `${i * 0.04}s` }}
+                      d={`${topFace} ${leftFace} ${rightFace}`}
+                      fill="none"
+                      stroke={ghostStroke}
+                      strokeWidth="0.4"
+                      strokeDasharray="3,2"
+                      strokeOpacity={0.3}
+                      strokeLinejoin="round"
+                    />
+                  </g>
+                );
+              }
 
               return (
                 <g key={`cube-${i}`} style={{ animationDelay: `${i * 0.04}s` }}>
@@ -683,24 +859,27 @@ export const SpatialStack = ({
         </div>
 
       {/* Answer Options - 6 choices */}
-      <div className="grid grid-cols-3 gap-2 w-full max-w-xs">
+      <div className="grid grid-cols-3 gap-2 w-full" style={{ maxWidth: s(320) }}>
         {answerOptions.map((num) => (
           <button
             key={num}
             onClick={() => handleAnswerSelect(num)}
             disabled={isProcessing.current}
-            className={`h-14 rounded-xl text-xl font-bold border-2 transition-all duration-150 ease-in-out hover:scale-105 active:scale-[0.92] ${
+            className={`rounded-xl text-xl font-bold border-2 transition-all duration-150 ease-in-out hover:scale-105 active:scale-[0.92] ${
               selectedAnswer === num
                 ? num === question.totalCount
                   ? 'border-success bg-success/20 text-success'
                   : 'border-destructive bg-destructive/20 text-destructive'
                 : ''
             }`}
-            style={selectedAnswer !== num ? {
-              background: 'linear-gradient(135deg, hsl(140, 70%, 45% / 0.15), hsl(140, 70%, 45% / 0.05))',
-              borderColor: 'hsl(140, 70%, 45% / 0.4)',
-              color: 'hsl(140, 70%, 55%)',
-            } : {}}
+            style={{
+              height: s(56),
+              ...(selectedAnswer !== num ? {
+                background: 'linear-gradient(135deg, hsl(140, 70%, 45% / 0.15), hsl(140, 70%, 45% / 0.05))',
+                borderColor: 'hsl(140, 70%, 45% / 0.4)',
+                color: 'hsl(140, 70%, 55%)',
+              } : {}),
+            }}
           >
             {num}
           </button>

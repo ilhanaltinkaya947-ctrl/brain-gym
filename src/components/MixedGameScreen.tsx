@@ -68,6 +68,7 @@ import { ChimpMemory } from './games/ChimpMemory';
 import { FlashMemory } from './FlashMemory';
 import { HeatBackground } from './HeatBackground';
 import { FloatingXP } from './XPGainAnimation';
+import { useScreenScale } from '@/hooks/useScreenScale';
 import { MiniGameType, GAME_THEMES, GameMode, MIXABLE_GAMES } from '@/types/game';
 import { MathQuestion, ColorQuestion, getDifficultyTier } from '@/hooks/useGameEngine';
 import { useAdaptiveEngine, AdaptivePhase } from '@/hooks/useAdaptiveEngine';
@@ -112,6 +113,7 @@ export const MixedGameScreen = ({
   streakMultiplier = 1.0,
   assessmentType,
 }: MixedGameScreenProps) => {
+  const { s } = useScreenScale();
   const isAssessment = mode === 'assessment';
   const [currentGame, setCurrentGame] = useState<MiniGameType>(() => {
     const games = enabledGames.length > 0 ? enabledGames : MIXABLE_GAMES;
@@ -174,15 +176,15 @@ export const MixedGameScreen = ({
   const sessionXPRef = useRef(sessionXP);
   const wrongStreakRef = useRef(wrongStreak);
   const tierPenaltyRef = useRef(tierPenalty);
-  useEffect(() => { pendingDeathRef.current = pendingDeath; }, [pendingDeath]);
-  useEffect(() => { hasContinuedRef.current = hasContinued; }, [hasContinued]);
-  useEffect(() => { startCountdownRef2.current = startCountdown; }, [startCountdown]);
-  useEffect(() => { scoreRef.current = score; }, [score]);
-  useEffect(() => { correctRef.current = correct; }, [correct]);
-  useEffect(() => { wrongRef.current = wrong; }, [wrong]);
-  useEffect(() => { sessionXPRef.current = sessionXP; }, [sessionXP]);
-  useEffect(() => { wrongStreakRef.current = wrongStreak; }, [wrongStreak]);
-  useEffect(() => { tierPenaltyRef.current = tierPenalty; }, [tierPenalty]);
+  pendingDeathRef.current = pendingDeath;
+  hasContinuedRef.current = hasContinued;
+  startCountdownRef2.current = startCountdown;
+  scoreRef.current = score;
+  correctRef.current = correct;
+  wrongRef.current = wrong;
+  sessionXPRef.current = sessionXP;
+  wrongStreakRef.current = wrongStreak;
+  tierPenaltyRef.current = tierPenalty;
   
   // Calculate time elapsed for Classic mode (180 - timeLeft)
   const timeElapsed = (mode === 'classic' || mode === 'assessment') ? CLASSIC_DURATION - timeLeft : undefined;
@@ -773,10 +775,12 @@ export const MixedGameScreen = ({
     questionStartTimeRef.current = Date.now();
   }, [streak, wrongStreak, mode, selectNextGame, processAnswer, adaptiveState.gameSpeed, currentGame, tensionEngine, isPaused]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Tier-aware playSound wrapper — memoized to prevent child re-renders
+  // Tier-aware playSound wrapper — stable ref prevents child re-renders
+  const currentTierRef = useRef(currentTier);
+  currentTierRef.current = currentTier;
   const playSoundWithTier = useCallback((type: 'correct' | 'wrong' | 'tick' | 'heartbeat') => {
-    playSound(type, currentTier);
-  }, [playSound, currentTier]);
+    playSound(type, currentTierRef.current);
+  }, [playSound]);
 
   const renderCurrentGame = () => {
     const gameParams = getGameParams(currentGame);
@@ -1096,7 +1100,8 @@ export const MixedGameScreen = ({
               {/* Main Score (Classic) or Streak Count (Endless) */}
               <span
                 key={scoreKey}
-                className="font-mono text-7xl font-bold tracking-tight tabular-nums mgs-score-pop"
+                className="font-mono font-bold tracking-tight tabular-nums mgs-score-pop"
+                style={{ fontSize: s(72) }}
               >
                 {mode === 'classic' ? score.toLocaleString() : streak}
               </span>
@@ -1247,7 +1252,8 @@ export const MixedGameScreen = ({
 
           {tensionEngine.state.tension > 0.15 && wrongStreak === 0 && (
             <div
-              className="mx-auto w-40 h-1 rounded-full overflow-hidden bg-white/5 mt-2 mgs-fade-in"
+              className="mx-auto h-1 rounded-full overflow-hidden bg-white/5 mt-2 mgs-fade-in"
+              style={{ width: s(160) }}
             >
               <div
                 className={`h-full rounded-full ${tensionEngine.state.tension > 2.0 ? 'tension-pulse-active' : ''}`}
@@ -1463,8 +1469,9 @@ export const MixedGameScreen = ({
           <div className="flex flex-col items-center gap-3">
             <span
               key={startCountdown}
-              className="text-7xl font-black mgs-score-pop"
+              className="font-black mgs-score-pop"
               style={{
+                fontSize: s(72),
                 color: startCountdown === 3 ? 'hsl(140, 70%, 55%)' : startCountdown === 2 ? 'hsl(45, 95%, 55%)' : 'hsl(0, 80%, 55%)',
                 textShadow: `0 0 30px currentColor`,
               }}
@@ -1476,8 +1483,9 @@ export const MixedGameScreen = ({
         ) : isGameOver ? (
           <div className="flex flex-col items-center gap-4 mgs-fade-in">
             <div
-              className="text-4xl font-black uppercase tracking-wider game-over-pulse"
+              className="font-black uppercase tracking-wider game-over-pulse"
               style={{
+                fontSize: s(36),
                 background: 'linear-gradient(135deg, hsl(var(--neon-cyan)), hsl(var(--neon-gold)))',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
@@ -1496,8 +1504,10 @@ export const MixedGameScreen = ({
             {wrongPause && (
               <div className="absolute inset-0 z-10 flex items-center justify-center mgs-fade-in">
                 <div
-                  className="w-40 h-40 rounded-full mgs-wrong-pulse"
+                  className="rounded-full mgs-wrong-pulse"
                   style={{
+                    width: s(160),
+                    height: s(160),
                     background: 'radial-gradient(circle, hsl(0 80% 50% / 0.18) 0%, hsl(0 80% 50% / 0.05) 50%, transparent 70%)',
                   }}
                 />

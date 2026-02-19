@@ -145,17 +145,13 @@ Specific declarations:
 
 ## Support URL
 
-https://axonbrain.app/support
-
-(placeholder)
+https://ilhanaltinkaya947-ctrl.github.io/brain-gym/support.html
 
 ---
 
 ## Privacy Policy URL
 
-https://axonbrain.app/privacy
-
-(placeholder -- host the privacy-policy.html at this URL)
+https://ilhanaltinkaya947-ctrl.github.io/brain-gym/privacy.html
 
 ---
 

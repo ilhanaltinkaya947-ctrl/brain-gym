@@ -2,6 +2,7 @@ import { useState, useCallback, useRef, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { findWordsFromLetters } from '@/data/wordList';
 import confetti from 'canvas-confetti';
+import { useScreenScale } from '@/hooks/useScreenScale';
 
 interface WordConnectProps {
   onAnswer: (isCorrect: boolean, bonus?: number, tier?: number) => void;
@@ -109,34 +110,18 @@ const getTimerGradient = (timeLeft: number, totalTime: number): string => {
 
 // Fire confetti burst scaled by word index
 const fireConfetti = (wordIndex: number) => {
+  const base = { ticks: 60, decay: 0.94, disableForReducedMotion: true } as const;
   if (wordIndex === 0) {
-    confetti({
-      particleCount: 20,
-      spread: 40,
-      origin: { x: 0.5, y: 0.5 },
-      colors: ['#00FF00', '#32CD32', '#7CFC00'],
-      scalar: 0.7,
-    });
+    confetti({ ...base, particleCount: 12, spread: 40, origin: { x: 0.5, y: 0.5 }, colors: ['#00FF00', '#32CD32', '#7CFC00'], scalar: 0.7 });
   } else if (wordIndex === 1) {
-    confetti({
-      particleCount: 40,
-      spread: 55,
-      origin: { x: 0.5, y: 0.45 },
-      colors: ['#00FF00', '#32CD32', '#7CFC00', '#FFD700'],
-      scalar: 0.8,
-    });
+    confetti({ ...base, particleCount: 20, spread: 55, origin: { x: 0.5, y: 0.45 }, colors: ['#00FF00', '#32CD32', '#7CFC00', '#FFD700'], scalar: 0.8 });
   } else {
-    confetti({
-      particleCount: 40,
-      spread: 80,
-      origin: { x: 0.5, y: 0.4 },
-      colors: ['#00FF00', '#32CD32', '#7CFC00', '#FFD700', '#FF6B6B'],
-      scalar: 0.9,
-    });
+    confetti({ ...base, particleCount: 25, spread: 70, origin: { x: 0.5, y: 0.4 }, colors: ['#00FF00', '#32CD32', '#7CFC00', '#FFD700', '#FF6B6B'], scalar: 0.8 });
   }
 };
 
 export const WordConnect = ({ onAnswer, playSound, triggerHaptic, onScreenShake, difficulty = 1, tier = 1, overclockFactor = 1 }: WordConnectProps) => {
+  const { s, sw } = useScreenScale();
   const effectiveTier = Math.min(5, (tier || difficulty || 1) + (overclockFactor > 1.2 ? 1 : 0));
   const config = getTierConfig(effectiveTier);
 
@@ -157,6 +142,11 @@ export const WordConnect = ({ onAnswer, playSound, triggerHaptic, onScreenShake,
   const screenShakeFiredRef = useRef(false);
   const roundEndingRef = useRef(false);
   const foundWordsRef = useRef<string[]>([]);
+  // Synchronous refs — pointer events fire before React re-renders,
+  // so state values are stale within the same event cycle.
+  const isDraggingRef = useRef(false);
+  const currentWordRef = useRef('');
+  const selectedIndicesRef = useRef<number[]>([]);
   // Refs for stable timer closure
   const onAnswerRef = useRef(onAnswer);
   const playSoundRef = useRef(playSound);
@@ -187,8 +177,10 @@ export const WordConnect = ({ onAnswer, playSound, triggerHaptic, onScreenShake,
     setLetterPool(newPool);
     setFoundWords([]);
     foundWordsRef.current = [];
-    setSelectedIndices([]);
-    setCurrentWord('');
+    updateSelectedIndices([]);
+    updateCurrentWord('');
+    isDraggingRef.current = false;
+    setIsDragging(false);
     setFeedback(null);
     setFloatingScore(null);
     screenShakeFiredRef.current = false;
@@ -254,11 +246,17 @@ export const WordConnect = ({ onAnswer, playSound, triggerHaptic, onScreenShake,
     };
   }, [config.timer]);
 
-  // Circle layout positions — scales radius for more letters
+  // Wheel container size — larger for more letters, scaled by sw
+  const getWheelSize = (total: number): number => {
+    const base = total <= 8 ? 240 : total <= 9 ? 272 : 288;
+    return Math.round(base * sw);
+  };
+
+  // Circle layout positions — scales radius for more letters, scaled by sw
   const getLetterPosition = (index: number, total: number) => {
     const angle = (index * 2 * Math.PI) / total - Math.PI / 2;
-    const baseRadius = 90;
-    const radius = total <= 6 ? baseRadius : total <= 8 ? 85 : 80;
+    const baseRadius = total <= 6 ? 90 : total <= 8 ? 85 : total <= 9 ? 100 : 105;
+    const radius = Math.round(baseRadius * sw);
     return {
       x: Math.cos(angle) * radius,
       y: Math.sin(angle) * radius,
@@ -266,79 +264,114 @@ export const WordConnect = ({ onAnswer, playSound, triggerHaptic, onScreenShake,
   };
 
   const getLetterSize = (total: number) => {
-    if (total <= 5) return 56;
-    if (total <= 6) return 52;
-    if (total <= 7) return 46;
-    if (total <= 8) return 42;
-    if (total <= 9) return 38;
-    return 34;
+    const base = total <= 5 ? 56 : total <= 6 ? 52 : total <= 7 ? 46 : total <= 8 ? 42 : total <= 9 ? 40 : 38;
+    return Math.round(base * sw);
   };
 
+  // Cache letter positions to avoid getBoundingClientRect in hot pointer-move path
+  const letterPositionsRef = useRef<{ cx: number; cy: number }[]>([]);
+  const cacheLetterPositions = useCallback(() => {
+    letterPositionsRef.current = letterRefs.current.map(ref => {
+      if (!ref) return { cx: 0, cy: 0 };
+      const rect = ref.getBoundingClientRect();
+      return { cx: rect.left + rect.width / 2, cy: rect.top + rect.height / 2 };
+    });
+  }, []);
+
   const getLetterAtPoint = (clientX: number, clientY: number): number | null => {
-    const hitRadius = letterPool.length <= 7 ? 30 : letterPool.length <= 9 ? 24 : 20;
-    for (let i = 0; i < letterRefs.current.length; i++) {
-      const ref = letterRefs.current[i];
-      if (ref) {
-        const rect = ref.getBoundingClientRect();
-        const centerX = rect.left + rect.width / 2;
-        const centerY = rect.top + rect.height / 2;
-        const distance = Math.sqrt(Math.pow(clientX - centerX, 2) + Math.pow(clientY - centerY, 2));
-        if (distance < hitRadius) {
-          return i;
-        }
+    const baseHitRadius = letterPool.length <= 7 ? 30 : letterPool.length <= 9 ? 26 : 24;
+    const hitRadius = Math.round(baseHitRadius * sw);
+    const positions = letterPositionsRef.current;
+    for (let i = 0; i < positions.length; i++) {
+      const { cx, cy } = positions[i];
+      const dx = clientX - cx;
+      const dy = clientY - cy;
+      if (dx * dx + dy * dy < hitRadius * hitRadius) {
+        return i;
       }
     }
     return null;
   };
 
+  // Helper: sync both state + ref for selectedIndices
+  const updateSelectedIndices = (indices: number[]) => {
+    selectedIndicesRef.current = indices;
+    setSelectedIndices(indices);
+  };
+  // Helper: sync both state + ref for currentWord
+  const updateCurrentWord = (word: string) => {
+    currentWordRef.current = word;
+    setCurrentWord(word);
+  };
+
   const handlePointerDown = (index: number) => {
+    cacheLetterPositions(); // Cache once at drag start — avoids reflow during move
+    isDraggingRef.current = true;
     setIsDragging(true);
-    setSelectedIndices([index]);
-    setCurrentWord(letterPool[index]);
+    updateSelectedIndices([index]);
+    updateCurrentWord(letterPool[index]);
     playSound('tick');
     triggerHaptic('light');
   };
 
   const handlePointerMove = useCallback((e: React.PointerEvent) => {
-    if (!isDragging) return;
+    if (!isDraggingRef.current) return;
 
     const letterIndex = getLetterAtPoint(e.clientX, e.clientY);
-    if (letterIndex !== null && !selectedIndices.includes(letterIndex)) {
-      setSelectedIndices(prev => [...prev, letterIndex]);
-      setCurrentWord(prev => prev + letterPool[letterIndex]);
+    if (letterIndex === null) return;
+
+    const indices = selectedIndicesRef.current;
+
+    // Backtrack: dragging back to second-to-last letter undoes the last one
+    if (indices.length >= 2 && letterIndex === indices[indices.length - 2]) {
+      const newIndices = indices.slice(0, -1);
+      selectedIndicesRef.current = newIndices;
+      setSelectedIndices(newIndices);
+      const newWord = newIndices.map(i => letterPool[i]).join('');
+      currentWordRef.current = newWord;
+      setCurrentWord(newWord);
+      triggerHaptic('light');
+      return;
+    }
+
+    // Forward: add new unvisited letter
+    if (!indices.includes(letterIndex)) {
+      const newIndices = [...indices, letterIndex];
+      selectedIndicesRef.current = newIndices;
+      setSelectedIndices(newIndices);
+      const newWord = currentWordRef.current + letterPool[letterIndex];
+      currentWordRef.current = newWord;
+      setCurrentWord(newWord);
       playSound('tick');
       triggerHaptic('light');
     }
-  }, [isDragging, selectedIndices, letterPool, playSound, triggerHaptic]);
+  }, [letterPool, playSound, triggerHaptic]);
 
-  const handlePointerUp = useCallback(() => {
-    if (!isDragging) return;
-    setIsDragging(false);
-
-    const word = currentWord.toUpperCase();
+  const submitWord = useCallback(() => {
+    const word = currentWordRef.current.toUpperCase();
 
     if (word.length < config.minWordLen) {
-      setSelectedIndices([]);
-      setCurrentWord('');
+      updateSelectedIndices([]);
+      updateCurrentWord('');
       return;
     }
 
     // Check if already found
-    if (foundWords.includes(word)) {
+    if (foundWordsRef.current.includes(word)) {
       setFeedback('duplicate');
-      triggerHaptic('light');
+      triggerHapticRef.current('light');
       setTimeout(() => setFeedback(null), 400);
-      setSelectedIndices([]);
-      setCurrentWord('');
+      updateSelectedIndices([]);
+      updateCurrentWord('');
       return;
     }
 
     // Check if valid word
     if (allValidWords.includes(word)) {
       setFeedback('correct');
-      playSound('correct');
-      triggerHaptic('medium');
-      const newFound = [...foundWords, word];
+      playSoundRef.current('correct');
+      triggerHapticRef.current('medium');
+      const newFound = [...foundWordsRef.current, word];
       setFoundWords(newFound);
       foundWordsRef.current = newFound;
 
@@ -369,32 +402,41 @@ export const WordConnect = ({ onAnswer, playSound, triggerHaptic, onScreenShake,
     } else {
       // Invalid word
       setFeedback('wrong');
-      playSound('wrong');
-      triggerHaptic('heavy');
-      onScreenShake();
+      playSoundRef.current('wrong');
+      triggerHapticRef.current('heavy');
+      onScreenShakeRef.current();
       setTimeout(() => setFeedback(null), 400);
     }
 
-    setSelectedIndices([]);
-    setCurrentWord('');
-  }, [isDragging, currentWord, foundWords, allValidWords, effectiveTier, onAnswer, playSound, triggerHaptic, onScreenShake, endRound]);
+    updateSelectedIndices([]);
+    updateCurrentWord('');
+  }, [allValidWords, config, endRound]);
+
+  const handlePointerUp = useCallback(() => {
+    if (!isDraggingRef.current) return;
+    isDraggingRef.current = false;
+    setIsDragging(false);
+    submitWord();
+  }, [submitWord]);
 
   // SVG connection lines
   const getLinePath = () => {
     if (selectedIndices.length < 2) return '';
     const total = letterPool.length;
+    const center = wheelSize / 2;
     let path = '';
     selectedIndices.forEach((idx, i) => {
       const pos = getLetterPosition(idx, total);
       if (i === 0) {
-        path = `M ${pos.x + 120} ${pos.y + 120}`;
+        path = `M ${pos.x + center} ${pos.y + center}`;
       } else {
-        path += ` L ${pos.x + 120} ${pos.y + 120}`;
+        path += ` L ${pos.x + center} ${pos.y + center}`;
       }
     });
     return path;
   };
 
+  const wheelSize = getWheelSize(letterPool.length);
   const letterSize = getLetterSize(letterPool.length);
   const halfSize = letterSize / 2;
 
@@ -448,8 +490,12 @@ export const WordConnect = ({ onAnswer, playSound, triggerHaptic, onScreenShake,
           {[0, 1, 2].map(i => (
             <div
               key={i}
-              className="min-w-[64px] h-9 px-3 rounded-xl flex items-center justify-center text-sm font-bold overflow-hidden"
+              className="rounded-xl flex items-center justify-center text-sm font-bold overflow-hidden"
               style={{
+                minWidth: s(64),
+                height: s(36),
+                paddingLeft: s(12),
+                paddingRight: s(12),
                 borderWidth: foundWords[i] ? '1.5px' : '1px',
                 borderStyle: 'solid',
                 borderColor: foundWords[i]
@@ -494,8 +540,8 @@ export const WordConnect = ({ onAnswer, playSound, triggerHaptic, onScreenShake,
       <div className="relative mb-4">
         <div
           key={timeBonusKey > 0 ? `timer-${timeBonusKey}` : 'timer-init'}
-          className={`w-32 h-1.5 rounded-full overflow-hidden ${timerIsCritical ? 'wc-timer-critical' : ''} ${timeBonusKey > 0 ? 'wc-timer-flash' : ''}`}
-          style={{ backgroundColor: 'hsl(0 0% 15%)' }}
+          className={`h-1.5 rounded-full overflow-hidden ${timerIsCritical ? 'wc-timer-critical' : ''} ${timeBonusKey > 0 ? 'wc-timer-flash' : ''}`}
+          style={{ width: s(128), backgroundColor: 'hsl(0 0% 15%)' }}
         >
           <div
             className="h-full rounded-full"
@@ -571,7 +617,8 @@ export const WordConnect = ({ onAnswer, playSound, triggerHaptic, onScreenShake,
       {/* Letter wheel */}
       <div
         ref={containerRef}
-        className="relative w-60 h-60 touch-none"
+        className="relative touch-none"
+        style={{ width: wheelSize, height: wheelSize }}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
         onPointerLeave={handlePointerUp}
@@ -591,8 +638,10 @@ export const WordConnect = ({ onAnswer, playSound, triggerHaptic, onScreenShake,
         {/* Center circle */}
         <div className="absolute inset-0 flex items-center justify-center">
           <motion.div
-            className="w-24 h-24 rounded-full"
+            className="rounded-full"
             style={{
+              width: wheelSize >= Math.round(272 * sw) ? s(112) : s(96),
+              height: wheelSize >= Math.round(272 * sw) ? s(112) : s(96),
               background: 'radial-gradient(circle, hsl(210 60% 15% / 0.4) 0%, transparent 70%)',
               border: '1px solid hsl(210 40% 30% / 0.2)',
             }}

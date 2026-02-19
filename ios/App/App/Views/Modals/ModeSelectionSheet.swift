@@ -6,11 +6,23 @@ struct ModeSelectionSheet: View {
     @State private var classicPulse = false
     @State private var endlessPulse = false
     @State private var focusPulse = false
+    @State private var showClassicChoice = false
 
     private var theme: AxonTheme { appState.currentTheme }
 
     var body: some View {
         ZStack {
+            // Dismiss classic sub-choice on background tap
+            Color.clear
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    if showClassicChoice {
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) {
+                            showClassicChoice = false
+                        }
+                    }
+                }
+
             ambientBackground
             modeSelectionView
         }
@@ -58,28 +70,27 @@ struct ModeSelectionSheet: View {
                     .foregroundStyle(Color.textPrimary)
             }
             .padding(.top, 44)
-            .padding(.bottom, 24)
+            .padding(.bottom, 8)
             .opacity(appeared ? 1 : 0)
             .offset(y: appeared ? 0 : 10)
 
-            Spacer()
+            ScrollView(.vertical, showsIndicators: false) {
+                VStack(spacing: 12) {
+                    classicCard
+                        .opacity(appeared ? 1 : 0)
+                        .offset(y: appeared ? 0 : 20)
 
-            VStack(spacing: 12) {
-                classicCard
-                    .opacity(appeared ? 1 : 0)
-                    .offset(y: appeared ? 0 : 20)
+                    endlessCard
+                        .opacity(appeared ? 1 : 0)
+                        .offset(y: appeared ? 0 : 30)
 
-                endlessCard
-                    .opacity(appeared ? 1 : 0)
-                    .offset(y: appeared ? 0 : 30)
-
-                focusCard
-                    .opacity(appeared ? 1 : 0)
-                    .offset(y: appeared ? 0 : 40)
+                    focusCard
+                        .opacity(appeared ? 1 : 0)
+                        .offset(y: appeared ? 0 : 40)
+                }
+                .padding(.horizontal, 20)
+                .padding(.vertical, 12)
             }
-            .padding(.horizontal, 20)
-
-            Spacer()
 
             // Cancel
             Button {
@@ -99,91 +110,188 @@ struct ModeSelectionSheet: View {
     }
 
     // MARK: - Classic Card
+
+    private var recommendedTier: Int {
+        appState.cognitiveProfile.baselineComplete ? appState.cognitiveProfile.recommendedStartTier : 1
+    }
+
     private var classicCard: some View {
-        Button {
-            HapticService.shared.light()
-            SoundService.shared.playClassicProtocol()
-            appState.requestGameStart(mode: .classic, tier: appState.cognitiveProfile.baselineComplete ? appState.cognitiveProfile.recommendedStartTier : 1)
-        } label: {
-            VStack(spacing: 12) {
-                ZStack {
-                    Circle()
-                        .fill(
-                            RadialGradient(
-                                colors: [theme.primary.color.opacity(0.25), .clear],
-                                center: .center,
-                                startRadius: 12,
-                                endRadius: 40
-                            )
-                        )
-                        .frame(width: 80, height: 80)
-                        .scaleEffect(classicPulse ? 1.15 : 0.95)
-
-                    Circle()
-                        .fill(theme.primary.color.opacity(0.12))
-                        .frame(width: 46, height: 46)
-                        .overlay(
-                            Circle()
-                                .strokeBorder(theme.primary.color.opacity(0.3), lineWidth: 1)
-                        )
-
-                    Image(systemName: "clock")
-                        .font(.system(size: 20, weight: .medium))
-                        .foregroundStyle(theme.primary.color)
+        VStack(spacing: 0) {
+            Button {
+                HapticService.shared.light()
+                withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                    showClassicChoice.toggle()
                 }
+            } label: {
+                VStack(spacing: 12) {
+                    ZStack {
+                        Circle()
+                            .fill(
+                                RadialGradient(
+                                    colors: [theme.primary.color.opacity(0.25), .clear],
+                                    center: .center,
+                                    startRadius: 12,
+                                    endRadius: 40
+                                )
+                            )
+                            .frame(width: 80, height: 80)
+                            .scaleEffect(classicPulse ? 1.15 : 0.95)
 
-                VStack(spacing: 5) {
-                    HStack(spacing: 8) {
-                        Text("Classic Protocol")
-                            .font(.system(size: 17, weight: .semibold))
-                            .foregroundStyle(Color.textPrimary)
+                        Circle()
+                            .fill(theme.primary.color.opacity(0.12))
+                            .frame(width: 46, height: 46)
+                            .overlay(
+                                Circle()
+                                    .strokeBorder(theme.primary.color.opacity(0.3), lineWidth: 1)
+                            )
 
-                        Text("TIMED")
-                            .font(.system(size: 9, weight: .heavy))
-                            .tracking(1)
+                        Image(systemName: "clock")
+                            .font(.system(size: 20, weight: .medium))
                             .foregroundStyle(theme.primary.color)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 3)
-                            .background(theme.primary.color.opacity(0.15), in: Capsule())
                     }
 
-                    Text("3-minute endurance and accuracy test")
-                        .font(.system(size: 12))
-                        .foregroundStyle(Color.textSecondary)
+                    VStack(spacing: 5) {
+                        HStack(spacing: 8) {
+                            Text("Classic Protocol")
+                                .font(.system(size: 17, weight: .semibold))
+                                .foregroundStyle(Color.textPrimary)
 
-                    HStack(spacing: 4) {
-                        Image(systemName: "bolt.fill")
-                            .font(.system(size: 9))
-                        Text("180 seconds")
-                            .font(.system(size: 10, weight: .medium, design: .monospaced))
+                            Text("TIMED")
+                                .font(.system(size: 9, weight: .heavy))
+                                .tracking(1)
+                                .foregroundStyle(theme.primary.color)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 3)
+                                .background(theme.primary.color.opacity(0.15), in: Capsule())
+                        }
+
+                        Text("3-minute endurance and accuracy test")
+                            .font(.system(size: 12))
+                            .foregroundStyle(Color.textSecondary)
+
+                        HStack(spacing: 4) {
+                            Image(systemName: "bolt.fill")
+                                .font(.system(size: 9))
+                            Text("180 seconds")
+                                .font(.system(size: 10, weight: .medium, design: .monospaced))
+                        }
+                        .foregroundStyle(theme.primary.color.opacity(0.6))
+                        .padding(.top, 1)
                     }
-                    .foregroundStyle(theme.primary.color.opacity(0.6))
-                    .padding(.top, 1)
                 }
+                .padding(.vertical, 18)
+                .padding(.horizontal, 20)
+                .frame(maxWidth: .infinity)
             }
-            .padding(.vertical, 18)
-            .padding(.horizontal, 20)
-            .frame(maxWidth: .infinity)
-            .background {
-                RoundedRectangle(cornerRadius: 20)
-                    .fill(Color.white.opacity(0.04))
-                    .overlay {
-                        RoundedRectangle(cornerRadius: 20)
-                            .strokeBorder(
-                                LinearGradient(
-                                    colors: [theme.primary.color.opacity(0.25), theme.primary.color.opacity(0.06)],
-                                    startPoint: .top,
-                                    endPoint: .bottom
-                                ),
-                                lineWidth: 1
-                            )
-                    }
-                    .shadow(color: theme.primary.color.opacity(0.08), radius: 20, y: 4)
+            .buttonStyle(CardPressStyle())
+            .accessibilityLabel("Classic Protocol, timed. 3-minute endurance and accuracy test.")
+            .accessibilityHint("Tap to choose warmup or ranked start")
+
+            // Warmup vs Ranked sub-selection
+            if showClassicChoice {
+                classicChoiceButtons
+                    .transition(.opacity.combined(with: .move(edge: .top)))
+                    .padding(.top, 4)
+                    .padding(.bottom, 16)
+                    .padding(.horizontal, 16)
             }
         }
-        .buttonStyle(CardPressStyle())
-        .accessibilityLabel("Classic Protocol, timed. 3-minute endurance and accuracy test.")
-        .accessibilityHint("Starts a timed 180 second game session")
+        .background {
+            RoundedRectangle(cornerRadius: 20)
+                .fill(Color.white.opacity(0.04))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 20)
+                        .strokeBorder(
+                            LinearGradient(
+                                colors: [theme.primary.color.opacity(showClassicChoice ? 0.35 : 0.25), theme.primary.color.opacity(0.06)],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            ),
+                            lineWidth: 1
+                        )
+                }
+                .shadow(color: theme.primary.color.opacity(0.08), radius: 20, y: 4)
+        }
+    }
+
+    private var classicChoiceButtons: some View {
+        HStack(spacing: 10) {
+            // Warmup
+            Button {
+                HapticService.shared.light()
+                SoundService.shared.playClassicProtocol()
+                appState.requestGameStart(mode: .classic, tier: 1)
+            } label: {
+                VStack(spacing: 6) {
+                    Image(systemName: "flame")
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundStyle(theme.primary.color.opacity(0.8))
+
+                    Text("Warmup")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(Color.textPrimary)
+
+                    Text("Start easy")
+                        .font(.system(size: 10))
+                        .foregroundStyle(Color.textSecondary)
+
+                    Text("LVL 1")
+                        .font(.system(size: 10, weight: .bold, design: .monospaced))
+                        .foregroundStyle(theme.primary.color.opacity(0.7))
+                        .padding(.top, 1)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 14)
+                .background {
+                    RoundedRectangle(cornerRadius: 14)
+                        .fill(theme.primary.color.opacity(0.06))
+                        .overlay {
+                            RoundedRectangle(cornerRadius: 14)
+                                .strokeBorder(theme.primary.color.opacity(0.15), lineWidth: 1)
+                        }
+                }
+            }
+            .buttonStyle(CardPressStyle())
+            .accessibilityLabel("Warmup. Start from level 1.")
+
+            // Ranked
+            Button {
+                HapticService.shared.medium()
+                SoundService.shared.playClassicProtocol()
+                appState.requestGameStart(mode: .classic, tier: recommendedTier)
+            } label: {
+                VStack(spacing: 6) {
+                    Image(systemName: "trophy")
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundStyle(theme.primary.color)
+
+                    Text("Ranked")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(Color.textPrimary)
+
+                    Text("Your level")
+                        .font(.system(size: 10))
+                        .foregroundStyle(Color.textSecondary)
+
+                    Text("LVL \(recommendedTier)")
+                        .font(.system(size: 10, weight: .bold, design: .monospaced))
+                        .foregroundStyle(theme.primary.color)
+                        .padding(.top, 1)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 14)
+                .background {
+                    RoundedRectangle(cornerRadius: 14)
+                        .fill(theme.primary.color.opacity(0.10))
+                        .overlay {
+                            RoundedRectangle(cornerRadius: 14)
+                                .strokeBorder(theme.primary.color.opacity(0.25), lineWidth: 1)
+                        }
+                }
+            }
+            .buttonStyle(CardPressStyle())
+            .accessibilityLabel("Ranked. Start from level \(recommendedTier).")
+        }
     }
 
     // MARK: - Endless Card

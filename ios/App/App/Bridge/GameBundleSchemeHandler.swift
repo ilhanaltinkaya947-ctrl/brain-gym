@@ -13,7 +13,9 @@ final class GameBundleSchemeHandler: NSObject, WKURLSchemeHandler {
             self.bundlePath = url.deletingLastPathComponent().path
         } else {
             self.bundlePath = nil
+            #if DEBUG
             NSLog("[SchemeHandler] ERROR: GameBundle not found in app bundle")
+            #endif
         }
         super.init()
     }
@@ -31,7 +33,9 @@ final class GameBundleSchemeHandler: NSObject, WKURLSchemeHandler {
 
         guard FileManager.default.fileExists(atPath: filePath),
               let data = try? Data(contentsOf: URL(fileURLWithPath: filePath)) else {
+            #if DEBUG
             NSLog("[SchemeHandler] File not found: %@", relativePath)
+            #endif
             urlSchemeTask.didFailWithError(NSError(domain: "GameBundleSchemeHandler", code: 404))
             return
         }

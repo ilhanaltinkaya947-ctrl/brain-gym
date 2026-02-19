@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef, memo } from 'react';
 // framer-motion removed — using CSS animations for performance
 import confetti from 'canvas-confetti';
 import { MathQuestion } from '../hooks/useGameEngine';
+import { useScreenScale } from '@/hooks/useScreenScale';
 
 interface SpeedMathProps {
   generateQuestion: () => MathQuestion;
@@ -35,6 +36,7 @@ export const SpeedMath = memo(({
   tier = 1,
   overclockFactor = 1
 }: SpeedMathProps) => {
+  const { s } = useScreenScale();
   const QUESTION_TIME = getQuestionTime(tier);
   const [question, setQuestion] = useState<MathQuestion>(generateQuestion);
   const [isShaking, setIsShaking] = useState(false);
@@ -107,14 +109,16 @@ export const SpeedMath = memo(({
     const y = (rect.top + rect.height / 2) / window.innerHeight;
 
     confetti({
-      particleCount: Math.min(60, 30 + streak * 4),
-      spread: 70,
+      particleCount: Math.min(30, 15 + streak * 2),
+      spread: 60,
       origin: { x, y },
       colors: ['#00D4FF', '#FF00FF', '#FFD700', '#00FF88'],
-      scalar: 1,
-      gravity: 1.2,
+      scalar: 0.8,
+      gravity: 1.5,
       drift: 0,
-      ticks: 120,
+      ticks: 60,
+      decay: 0.94,
+      disableForReducedMotion: true,
     });
   };
 
@@ -166,7 +170,7 @@ export const SpeedMath = memo(({
       `}</style>
 
       {/* Timer bar — CSS-driven, no JS ticks */}
-      <div className="w-full max-w-sm h-1.5 bg-muted/30 rounded-full overflow-hidden border border-border/50">
+      <div className="w-full h-1.5 bg-muted/30 rounded-full overflow-hidden border border-border/50" style={{ maxWidth: s(384) }}>
         <div
           key={questionKey}
           className="h-full rounded-full"
@@ -182,22 +186,22 @@ export const SpeedMath = memo(({
       {/* Question - Centered with auto-scaling */}
       <div
         key={question.question}
-        className="text-center py-6 w-full max-w-sm px-2 overflow-hidden sm-question-in"
+        className="text-center py-6 w-full px-2 overflow-hidden sm-question-in"
+        style={{ maxWidth: s(384) }}
       >
           <p className="text-xs text-muted-foreground mb-3 uppercase tracking-widest">Solve</p>
           <h2
-            className={`font-black font-mono text-glow-cyan leading-tight ${
-              question.question.length > 20
-                ? 'text-xl sm:text-2xl'
-                : question.question.length > 15
-                  ? 'text-2xl sm:text-3xl'
-                  : question.question.length > 12
-                    ? 'text-3xl sm:text-4xl'
-                    : question.question.length > 8
-                      ? 'text-4xl sm:text-5xl'
-                      : 'text-5xl sm:text-6xl'
-            }`}
+            className="font-black font-mono text-glow-cyan leading-tight"
             style={{
+              fontSize: question.question.length > 20
+                ? s(20)
+                : question.question.length > 15
+                  ? s(24)
+                  : question.question.length > 12
+                    ? s(30)
+                    : question.question.length > 8
+                      ? s(36)
+                      : s(48),
               wordBreak: 'keep-all',
               whiteSpace: 'nowrap',
               letterSpacing: question.question.length > 15 ? '-0.02em' : undefined,
@@ -208,15 +212,17 @@ export const SpeedMath = memo(({
       </div>
 
       {/* Answer Grid - Compact 2x2 */}
-      <div className="grid grid-cols-2 gap-2.5 w-full max-w-sm">
+      <div className="grid grid-cols-2 gap-2.5 w-full" style={{ maxWidth: s(384) }}>
         {question.options.slice(0, 4).map((option, index) => (
           <button
             key={`${question.question}-${option}-${index}`}
             onClick={(e) => handleAnswer(option, e)}
-            className={`btn-energy-cell py-4 px-3 rounded-xl text-2xl sm:text-3xl font-black font-mono transition-transform duration-150 hover:scale-105 active:scale-95 ${
+            className={`btn-energy-cell rounded-xl font-black font-mono transition-transform duration-150 hover:scale-105 active:scale-95 ${
               correctButton === option ? 'correct' : ''
             }`}
             style={{
+              padding: `${s(16)}px ${s(12)}px`,
+              fontSize: s(24),
               color: correctButton === option ? 'hsl(var(--neon-gold))' : 'hsl(var(--foreground))',
               transform: pressedButton === option ? 'scale(1.1)' : undefined,
               animationDelay: `${index * 40}ms`,

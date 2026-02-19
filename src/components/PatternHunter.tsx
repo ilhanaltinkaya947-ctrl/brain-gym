@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import confetti from 'canvas-confetti';
+import { useScreenScale } from '@/hooks/useScreenScale';
 
 interface PatternHunterProps {
   onAnswer: (correct: boolean, speedBonus: number, tier?: number) => void;
@@ -11,57 +12,50 @@ interface PatternHunterProps {
 }
 
 // ─── Emoji Pair System ───────────────────────────────────────
-// iOS emojis with graduated difficulty:
-// T1: completely different emojis
-// T2: directional variants + mirrored animals
-// T3: same emoji, subtly mirrored (CSS scaleX(-1))
+// Graduated difficulty based on visual similarity:
+// Level 1: completely different emojis
+// Level 2: same category, noticeable difference
+// Level 3: very similar emojis, hard to distinguish at a glance
 
-interface EmojiDef {
-  emoji: string;
-  mirrored: boolean;
-}
-
-const e = (emoji: string, mirrored = false): EmojiDef => ({ emoji, mirrored });
-
-const EMOJI_PAIRS: Record<number, { base: EmojiDef; odd: EmojiDef }[]> = {
-  // Tier 1 — different emoji entirely (easy)
+const EMOJI_PAIRS: Record<number, { base: string; odd: string }[]> = {
+  // Level 1 — obviously different (easy)
   1: [
-    { base: e('🧠'), odd: e('💡') },
-    { base: e('🎯'), odd: e('🏆') },
-    { base: e('⚡'), odd: e('🔥') },
-    { base: e('🌙'), odd: e('☀️') },
-    { base: e('💎'), odd: e('🪙') },
-    { base: e('🔮'), odd: e('🧿') },
-    { base: e('🦊'), odd: e('🐺') },
-    { base: e('🎲'), odd: e('🎮') },
-    { base: e('🐙'), odd: e('🦑') },
-    { base: e('🍎'), odd: e('🍊') },
+    { base: '🧠', odd: '💡' },
+    { base: '🎯', odd: '🏆' },
+    { base: '⚡', odd: '🔥' },
+    { base: '🌙', odd: '☀️' },
+    { base: '💎', odd: '🪙' },
+    { base: '🔮', odd: '🧿' },
+    { base: '🦊', odd: '🐺' },
+    { base: '🎲', odd: '🎮' },
+    { base: '🐙', odd: '🦑' },
+    { base: '🍎', odd: '🍊' },
   ],
-  // Tier 2 — directional pairs + noticeable mirrors
+  // Level 2 — same category, visible difference
   2: [
-    { base: e('👈'), odd: e('👉') },
-    { base: e('🌗'), odd: e('🌓') },
-    { base: e('◀️'), odd: e('▶️') },
-    { base: e('👆'), odd: e('👇') },
-    { base: e('🐕'), odd: e('🐕', true) },
-    { base: e('🏃'), odd: e('🏃', true) },
-    { base: e('↩️'), odd: e('↪️') },
-    { base: e('🐈'), odd: e('🐈', true) },
-    { base: e('🦅'), odd: e('🦅', true) },
-    { base: e('🔵'), odd: e('🟣') },
+    { base: '🐕', odd: '🐩' },
+    { base: '🌗', odd: '🌓' },
+    { base: '👈', odd: '👉' },
+    { base: '🟢', odd: '🟡' },
+    { base: '🐈', odd: '🐈‍⬛' },
+    { base: '🌺', odd: '🌸' },
+    { base: '🍋', odd: '🍈' },
+    { base: '🔵', odd: '🟣' },
+    { base: '👆', odd: '👇' },
+    { base: '🐟', odd: '🐠' },
   ],
-  // Tier 3 — subtle mirrors (same emoji, flipped)
+  // Level 3 — very similar, requires focus
   3: [
-    { base: e('🧠'), odd: e('🧠', true) },
-    { base: e('🐠'), odd: e('🐠', true) },
-    { base: e('👂'), odd: e('👂', true) },
-    { base: e('🦶'), odd: e('🦶', true) },
-    { base: e('💪'), odd: e('💪', true) },
-    { base: e('🦜'), odd: e('🦜', true) },
-    { base: e('🐬'), odd: e('🐬', true) },
-    { base: e('🔑'), odd: e('🔑', true) },
-    { base: e('🐊'), odd: e('🐊', true) },
-    { base: e('🦈'), odd: e('🦈', true) },
+    { base: '🟫', odd: '🟧' },
+    { base: '🌑', odd: '🌚' },
+    { base: '🐻', odd: '🐻‍❄️' },
+    { base: '🫐', odd: '🍇' },
+    { base: '🪨', odd: '🪵' },
+    { base: '🌲', odd: '🌳' },
+    { base: '👁️', odd: '👀' },
+    { base: '✊', odd: '👊' },
+    { base: '🦅', odd: '🦆' },
+    { base: '🍑', odd: '🍊' },
   ],
 };
 
@@ -83,13 +77,13 @@ const getTierConfig = (tier: number, overclockFactor: number = 1): TierConfig =>
     case 1:
       return { gridSize: 16, cols: 4, oddCount: 1, timer: 6, difficultyLevel: 1, cellPulse: false, cellShuffle: false, shuffleInterval: 0 };
     case 2:
-      return { gridSize: 25, cols: 5, oddCount: 2, timer: 8, difficultyLevel: 2, cellPulse: false, cellShuffle: false, shuffleInterval: 0 };
+      return { gridSize: 25, cols: 5, oddCount: 2, timer: 8, difficultyLevel: 1, cellPulse: false, cellShuffle: false, shuffleInterval: 0 };
     case 3:
-      return { gridSize: 25, cols: 5, oddCount: 2, timer: 8, difficultyLevel: 3, cellPulse: false, cellShuffle: false, shuffleInterval: 0 };
+      return { gridSize: 25, cols: 5, oddCount: 3, timer: 8, difficultyLevel: 2, cellPulse: false, cellShuffle: false, shuffleInterval: 0 };
     case 4:
-      return { gridSize: 36, cols: 6, oddCount: 3, timer: 10, difficultyLevel: 3, cellPulse: true, cellShuffle: true, shuffleInterval: 2500 };
+      return { gridSize: 36, cols: 6, oddCount: 4, timer: 10, difficultyLevel: 2, cellPulse: true, cellShuffle: true, shuffleInterval: 2500 };
     case 5:
-      return { gridSize: 36, cols: 6, oddCount: 4, timer: 10, difficultyLevel: 3, cellPulse: true, cellShuffle: true, shuffleInterval: 1000 };
+      return { gridSize: 36, cols: 6, oddCount: 5, timer: 10, difficultyLevel: 3, cellPulse: true, cellShuffle: true, shuffleInterval: 1000 };
     default:
       return { gridSize: 16, cols: 4, oddCount: 1, timer: 6, difficultyLevel: 1, cellPulse: false, cellShuffle: false, shuffleInterval: 0 };
   }
@@ -98,7 +92,7 @@ const getTierConfig = (tier: number, overclockFactor: number = 1): TierConfig =>
 // ─── Game Data ───────────────────────────────────────────────
 
 interface CellData {
-  emojiDef: EmojiDef;
+  emoji: string;
   isOdd: boolean;
   id: number;
 }
@@ -118,8 +112,8 @@ const generateQuestion = (tier: number, overclockFactor: number = 1): Question =
 
   // 50/50 swap so either member can be the majority
   const swap = Math.random() > 0.5;
-  const baseDef = swap ? pair.odd : pair.base;
-  const oddDef = swap ? pair.base : pair.odd;
+  const baseEmoji = swap ? pair.odd : pair.base;
+  const oddEmoji = swap ? pair.base : pair.odd;
 
   const oddIndices: number[] = [];
   while (oddIndices.length < oddCount) {
@@ -128,7 +122,7 @@ const generateQuestion = (tier: number, overclockFactor: number = 1): Question =
   }
 
   const grid: CellData[] = Array(gridSize).fill(null).map((_, i) => ({
-    emojiDef: oddIndices.includes(i) ? oddDef : baseDef,
+    emoji: oddIndices.includes(i) ? oddEmoji : baseEmoji,
     isOdd: oddIndices.includes(i),
     id: i,
   }));
@@ -146,12 +140,12 @@ export const PatternHunter = ({
   tier = 1,
   overclockFactor = 1,
 }: PatternHunterProps) => {
+  const { s } = useScreenScale();
   const config = getTierConfig(tier, overclockFactor);
   const [question, setQuestion] = useState<Question>(() => generateQuestion(tier, overclockFactor));
   const [questionKey, setQuestionKey] = useState(0);
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [foundOdds, setFoundOdds] = useState<Set<number>>(new Set());
-  const [timeLeft, setTimeLeft] = useState<number>(config.timer * 1000);
   const [liveGrid, setLiveGrid] = useState<CellData[]>(question.grid);
   const questionStartTime = useRef(Date.now());
   const isProcessing = useRef(false);
@@ -164,11 +158,11 @@ export const PatternHunter = ({
   const triggerHapticRef = useRef(triggerHaptic);
   const onScreenShakeRef = useRef(onScreenShake);
   const tierRef = useRef(tier);
-  useEffect(() => { onAnswerRef.current = onAnswer; }, [onAnswer]);
-  useEffect(() => { playSoundRef.current = playSound; }, [playSound]);
-  useEffect(() => { triggerHapticRef.current = triggerHaptic; }, [triggerHaptic]);
-  useEffect(() => { onScreenShakeRef.current = onScreenShake; }, [onScreenShake]);
-  useEffect(() => { tierRef.current = tier; }, [tier]);
+  onAnswerRef.current = onAnswer;
+  playSoundRef.current = playSound;
+  triggerHapticRef.current = triggerHaptic;
+  onScreenShakeRef.current = onScreenShake;
+  tierRef.current = tier;
 
   // Sync liveGrid when question changes
   useEffect(() => {
@@ -267,7 +261,6 @@ export const PatternHunter = ({
     if (timerRef.current) clearInterval(timerRef.current);
     const duration = config.timer * 1000;
     questionStartTime.current = Date.now();
-    setTimeLeft(duration);
     startTimerBar(duration, 100);
 
     return () => {
@@ -300,11 +293,14 @@ export const PatternHunter = ({
       const totalRows = Math.ceil(liveGrid.length / question.cols);
       const yFraction = 0.25 + (row / Math.max(1, totalRows - 1)) * 0.4;
       confetti({
-        particleCount: 40,
+        particleCount: 20,
         spread: 50,
         origin: { x: xFraction, y: yFraction },
         colors: ['#00BFFF', '#1E90FF', '#00D4FF'],
         scalar: 0.8,
+        ticks: 60,
+        decay: 0.94,
+        disableForReducedMotion: true,
       });
 
       if (newFound.size >= config.oddCount) {
@@ -338,10 +334,10 @@ export const PatternHunter = ({
     }
   }, [question, liveGrid, foundOdds, config.oddCount, tier, onAnswer, playSound, triggerHaptic, onScreenShake, nextRound]);
 
-  // Cell sizing
-  const cellSize = config.cols <= 4 ? 'w-16 h-16' : config.cols === 5 ? 'w-14 h-14' : config.cols === 6 ? 'w-11 h-11' : 'w-9 h-9';
-  const textSize = config.cols <= 4 ? 'text-3xl' : config.cols === 5 ? 'text-2xl' : config.cols === 6 ? 'text-xl' : 'text-lg';
-  const gap = config.cols <= 4 ? 'gap-3' : config.cols === 5 ? 'gap-2' : 'gap-1.5';
+  // Cell sizing — scaled by screen width
+  const cellPx = config.cols <= 4 ? s(64) : config.cols === 5 ? s(56) : config.cols === 6 ? s(44) : s(36);
+  const textPx = config.cols <= 4 ? s(30) : config.cols === 5 ? s(24) : config.cols === 6 ? s(20) : s(18);
+  const gapPx = config.cols <= 4 ? s(12) : config.cols === 5 ? s(8) : s(6);
 
   // Helper: compute cell background color
   const getCellBg = (cell: CellData, isFound: boolean): string => {
@@ -382,7 +378,7 @@ export const PatternHunter = ({
         </div>
 
         {/* Timer bar — CSS transition driven */}
-        <div className="w-full max-w-sm relative mb-4">
+        <div className="w-full relative mb-4" style={{ maxWidth: s(384) }}>
           <div className="h-2 bg-muted/30 rounded-full overflow-hidden border border-border/50">
             <div
               key={timerBarKey}
@@ -412,8 +408,9 @@ export const PatternHunter = ({
         {/* Grid */}
         <div
           key={questionKey}
-          className={`grid ${gap} p-4 rounded-3xl`}
+          className="grid p-4 rounded-3xl"
           style={{
+            gap: gapPx,
             gridTemplateColumns: `repeat(${question.cols}, minmax(0, 1fr))`,
             background: 'linear-gradient(135deg, hsl(var(--game-pattern) / 0.1), hsl(var(--card) / 0.5))',
             border: '1px solid hsl(var(--game-pattern) / 0.3)',
@@ -426,25 +423,24 @@ export const PatternHunter = ({
               <button
                 key={cell.id}
                 onClick={() => handleSelect(cell.id)}
-                className={`${cellSize} rounded-xl border border-game-pattern/20 flex items-center justify-center touch-manipulation active:scale-[0.92]`}
+                className="rounded-xl border border-game-pattern/20 flex items-center justify-center touch-manipulation active:scale-[0.92]"
                 style={{
+                  width: cellPx,
+                  height: cellPx,
                   transition: 'transform 0.15s ease, background-color 0.2s ease, box-shadow 0.2s ease',
                   backgroundColor: getCellBg(cell, isFound),
                   boxShadow: getCellShadow(cell, isFound),
                   animation: config.cellPulse && !isFound
-                    ? `ph-cellPulse ${2 + (cell.id % 3) * 0.5}s ease-in-out infinite`
+                    ? `ph-cellPulse 3s ease-in-out infinite`
+                    : undefined,
+                  animationDelay: config.cellPulse && !isFound
+                    ? `${(cell.id % 2) * 1.5}s`
                     : undefined,
                 }}
                 disabled={isFound}
               >
-                <span
-                  className={`${textSize} select-none`}
-                  style={{
-                    display: 'inline-block',
-                    transform: cell.emojiDef.mirrored ? 'scaleX(-1)' : 'none',
-                  }}
-                >
-                  {cell.emojiDef.emoji}
+                <span className="select-none" style={{ fontSize: textPx }}>
+                  {cell.emoji}
                 </span>
               </button>
             );
@@ -473,8 +469,8 @@ export const PatternHunter = ({
           to { opacity: 1; transform: translateY(0); }
         }
         @keyframes ph-cellPulse {
-          0%, 100% { transform: scale(1); }
-          50% { transform: scale(1.03); }
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.85; }
         }
         @keyframes ph-timeBonus {
           0% { opacity: 1; transform: translateY(0); }

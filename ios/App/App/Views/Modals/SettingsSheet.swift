@@ -1,7 +1,9 @@
 import SwiftUI
+import StoreKit
 
 struct SettingsSheet: View {
     @EnvironmentObject var appState: AppState
+    @Environment(\.requestReview) private var requestReview
     @State private var showResetConfirm = false
 
     private var appVersion: String {
@@ -92,6 +94,47 @@ struct SettingsSheet: View {
                         ) {
                             HapticService.shared.light()
                             showResetConfirm = true
+                        }
+                    }
+
+                    // MARK: - Support
+                    settingsSection("SUPPORT") {
+                        VStack(spacing: 1) {
+                            linkRow(
+                                icon: "star.fill",
+                                iconColor: .neonGold,
+                                title: "Rate AXON",
+                                subtitle: "Help us grow"
+                            ) {
+                                HapticService.shared.light()
+                                requestReview()
+                            }
+
+                            divider
+
+                            linkRow(
+                                icon: "hand.raised.fill",
+                                iconColor: .neonCyan,
+                                title: "Privacy Policy",
+                                subtitle: "How we handle your data"
+                            ) {
+                                if let url = URL(string: "https://ilhanaltinkaya947-ctrl.github.io/brain-gym/privacy.html") {
+                                    UIApplication.shared.open(url)
+                                }
+                            }
+
+                            divider
+
+                            linkRow(
+                                icon: "questionmark.circle.fill",
+                                iconColor: .neonCyan,
+                                title: "Support",
+                                subtitle: "Get help or send feedback"
+                            ) {
+                                if let url = URL(string: "https://ilhanaltinkaya947-ctrl.github.io/brain-gym/support.html") {
+                                    UIApplication.shared.open(url)
+                                }
+                            }
                         }
                     }
 
@@ -244,6 +287,51 @@ struct SettingsSheet: View {
 
                 Image(systemName: "chevron.right")
                     .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(Color.textMuted.opacity(0.5))
+                    .accessibilityHidden(true)
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 14)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(title)
+        .accessibilityHint(subtitle)
+    }
+
+    // MARK: - Link Row (tappable, opens external)
+
+    @ViewBuilder
+    private func linkRow(
+        icon: String,
+        iconColor: Color,
+        title: String,
+        subtitle: String,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            HStack(spacing: 12) {
+                Image(systemName: icon)
+                    .font(.system(size: 15))
+                    .foregroundStyle(iconColor)
+                    .frame(width: 32, height: 32)
+                    .background(iconColor.opacity(0.12), in: RoundedRectangle(cornerRadius: 8))
+                    .accessibilityHidden(true)
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(title)
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundStyle(Color.textPrimary)
+
+                    Text(subtitle)
+                        .font(.system(size: 12))
+                        .foregroundStyle(Color.textMuted)
+                }
+
+                Spacer()
+
+                Image(systemName: "arrow.up.right")
+                    .font(.system(size: 12, weight: .semibold))
                     .foregroundStyle(Color.textMuted.opacity(0.5))
                     .accessibilityHidden(true)
             }

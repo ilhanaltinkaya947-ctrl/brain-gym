@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
 import { Check } from 'lucide-react';
+import { useScreenScale } from '@/hooks/useScreenScale';
 
 interface ChimpMemoryProps {
   tier: number;
@@ -20,6 +21,7 @@ const getGridConfig = (tier: number) => {
 };
 
 export const ChimpMemory = memo(({ tier, onAnswer, playSound, triggerHaptic, overclockFactor = 1 }: ChimpMemoryProps) => {
+  const { s } = useScreenScale();
   const gridConfig = getGridConfig(tier);
   const [cells, setCells] = useState<Cell[]>([]);
   const [phase, setPhase] = useState<'showing' | 'hiding' | 'playing' | 'success'>('showing');
@@ -147,12 +149,14 @@ export const ChimpMemory = memo(({ tier, onAnswer, playSound, triggerHaptic, ove
       // Show success indicator before completing
       setPhase('success');
       confetti({
-        particleCount: 40,
+        particleCount: 20,
         spread: 60,
         origin: { x: 0.5, y: 0.5 },
         colors: ['#00D4FF', '#FF00FF', '#FFD700', '#00FF88'],
-        gravity: 1.2,
-        ticks: 100,
+        gravity: 1.5,
+        ticks: 60,
+        decay: 0.94,
+        disableForReducedMotion: true,
       });
       setTimeout(() => onAnswer(true, 1.0, tier), 400);
     } else {
@@ -189,12 +193,13 @@ export const ChimpMemory = memo(({ tier, onAnswer, playSound, triggerHaptic, ove
             className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none"
           >
             <motion.div
-              className="w-20 h-20 rounded-full bg-green-500/20 backdrop-blur-sm flex items-center justify-center border-2 border-green-500"
+              className="rounded-full bg-green-500/20 backdrop-blur-sm flex items-center justify-center border-2 border-green-500"
+              style={{ width: s(80), height: s(80) }}
               initial={{ scale: 0 }}
               animate={{ scale: [0, 1.2, 1] }}
               transition={{ duration: 0.3 }}
             >
-              <Check className="w-10 h-10 text-green-500" strokeWidth={3} />
+              <Check className="text-green-500" style={{ width: s(40), height: s(40) }} strokeWidth={3} />
             </motion.div>
           </motion.div>
         )}
@@ -211,8 +216,10 @@ export const ChimpMemory = memo(({ tier, onAnswer, playSound, triggerHaptic, ove
           <div
             role="grid"
             aria-label={`${gridConfig.cols} by ${gridConfig.cols} memory grid, ${getDifficultyConfig(tier).count} numbers to memorize`}
-            className={`grid gap-3 w-full aspect-square ${gridConfig.cols === 4 ? 'grid-cols-4 max-w-[340px]' : 'grid-cols-5 max-w-[360px]'}`}
+            className={`grid w-full aspect-square ${gridConfig.cols === 4 ? 'grid-cols-4' : 'grid-cols-5'}`}
             style={{
+              gap: s(12),
+              maxWidth: gridConfig.cols === 4 ? s(340) : s(360),
               transition: 'transform 200ms ease-out, opacity 200ms ease-out',
               transform: phase === 'success' ? 'scale(0.95)' : 'scale(1)',
               opacity: phase === 'success' ? 0.5 : 1,
@@ -235,9 +242,10 @@ export const ChimpMemory = memo(({ tier, onAnswer, playSound, triggerHaptic, ove
                   transition: 'transform 150ms ease-out, opacity 150ms ease-out',
                   transform: cell.tapped ? 'scale(0.9)' : 'scale(1)',
                   opacity: cell.tapped ? 0.4 : 1,
+                  minWidth: s(52),
+                  minHeight: s(52),
                 }}
                 className={`relative rounded-xl flex items-center justify-center text-xl font-bold aspect-square transition-colors touch-manipulation
-                  min-w-[52px] min-h-[52px]
                   ${cell.revealed && cell.number ? 'bg-primary text-primary-foreground' : 'bg-muted/30 active:bg-muted/50'}
                   ${cell.isError ? 'bg-destructive animate-shake' : ''}
                   ${cell.tapped ? 'pointer-events-none' : ''}

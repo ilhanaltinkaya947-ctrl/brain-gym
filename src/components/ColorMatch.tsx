@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import confetti from 'canvas-confetti';
 import { ColorQuestion } from '../hooks/useGameEngine';
+import { useScreenScale } from '@/hooks/useScreenScale';
 
 interface ColorMatchProps {
   generateQuestion: () => ColorQuestion;
@@ -85,6 +86,7 @@ export const ColorMatch = ({
   tier: propTier,
   overclockFactor = 1
 }: ColorMatchProps) => {
+  const { s } = useScreenScale();
   const currentTier = propTier ?? 1;
   const questionTime = getTimeLimit(currentTier);
   const colorPalette = useMemo(() => getColorPalette(currentTier), [currentTier]);
@@ -92,8 +94,9 @@ export const ColorMatch = ({
   const generateTieredQuestion = useCallback((): GameQuestion => {
     const shuffledColors = shuffleArray([...colorPalette]);
 
-    if (currentTier >= 4 && currentTier < 5) {
-      // T4: Dual-answer — two words, answer both sequentially
+    // T4: 50% dual-answer, 50% word mode
+    if (currentTier >= 4 && currentTier < 5 && Math.random() >= 0.5) {
+      // Dual-answer — two words, answer both sequentially
       const topWordColor = shuffledColors[0];
       const topInkColor = shuffledColors[1];
       const bottomWordColor = shuffledColors[2] || shuffledColors[0];
@@ -123,7 +126,7 @@ export const ColorMatch = ({
     }
 
     const isInverted = currentTier === 5;
-    const isWordMode = currentTier === 2 && Math.random() < 0.5;
+    const isWordMode = currentTier >= 4; // T4 (non-dual) and T5
     const hasDistractor = currentTier === 3 || currentTier === 5;
     const hasBgInterference = currentTier >= 3;
 
@@ -189,9 +192,9 @@ export const ColorMatch = ({
   const onAnswerRef = useRef(onAnswer);
   const playSoundRef = useRef(playSound);
   const triggerHapticRef = useRef(triggerHaptic);
-  useEffect(() => { onAnswerRef.current = onAnswer; }, [onAnswer]);
-  useEffect(() => { playSoundRef.current = playSound; }, [playSound]);
-  useEffect(() => { triggerHapticRef.current = triggerHaptic; }, [triggerHaptic]);
+  onAnswerRef.current = onAnswer;
+  playSoundRef.current = playSound;
+  triggerHapticRef.current = triggerHaptic;
 
   const nextQuestion = useCallback(() => {
     questionAnsweredRef.current = false; // Unlock input for new question
@@ -264,14 +267,16 @@ export const ColorMatch = ({
     const y = (rect.top + rect.height / 2) / window.innerHeight;
 
     confetti({
-      particleCount: Math.min(60, 30 + streak * 4),
-      spread: 70,
+      particleCount: Math.min(30, 15 + streak * 2),
+      spread: 60,
       origin: { x, y },
       colors: ['#00D4FF', '#FF00FF', '#FFD700', '#00FF88'],
-      scalar: 1,
-      gravity: 1.2,
+      scalar: 0.8,
+      gravity: 1.5,
       drift: 0,
-      ticks: 120,
+      ticks: 60,
+      decay: 0.94,
+      disableForReducedMotion: true,
     });
   };
 
@@ -352,14 +357,7 @@ export const ColorMatch = ({
         </>
       );
     }
-    if (question.isInverted) {
-      return (
-        <>
-          Tap what the <span className="text-destructive font-bold">WORD SAYS</span>
-        </>
-      );
-    }
-    if (question.isWordMode) {
+    if (question.isInverted || question.isWordMode) {
       return (
         <>
           Tap what the <span className="text-destructive font-bold">WORD SAYS</span>
@@ -427,7 +425,7 @@ export const ColorMatch = ({
       `}</style>
 
       {/* Timer bar — CSS-driven animation, no JS ticks */}
-      <div className="w-full max-w-sm h-2 bg-muted/30 rounded-full overflow-hidden mb-6 border border-border/50">
+      <div className="w-full h-2 bg-muted/30 rounded-full overflow-hidden mb-6 border border-border/50" style={{ maxWidth: s(384) }}>
         <div
           key={questionKey}
           className="h-full rounded-full"
@@ -440,8 +438,33 @@ export const ColorMatch = ({
         />
       </div>
 
-      {/* Instructions */}
-      <p className="text-xs text-muted-foreground mb-4 uppercase tracking-widest text-center px-4 cm-fade-in h-5">
+      {/* Mode badge + Instructions */}
+      {modeLabel && (
+        <div
+          key={`mode-${questionKey}`}
+          className="cm-fade-in mb-2 px-3 py-1 rounded-full font-black uppercase tracking-widest text-center"
+          style={{
+            fontSize: s(12),
+            background: question.isWordMode || question.isInverted
+              ? 'hsl(0 85% 55% / 0.2)'
+              : 'hsl(270 70% 55% / 0.2)',
+            border: `1px solid ${question.isWordMode || question.isInverted
+              ? 'hsl(0 85% 55% / 0.5)'
+              : 'hsl(270 70% 55% / 0.3)'}`,
+            color: question.isWordMode || question.isInverted
+              ? 'hsl(0 85% 65%)'
+              : 'hsl(270 70% 65%)',
+          }}
+        >
+          {modeLabel}
+        </div>
+      )}
+      <p
+        className={`text-muted-foreground uppercase tracking-widest text-center px-4 cm-fade-in ${
+          question.isWordMode || question.isInverted ? 'text-sm font-bold mb-3' : 'text-xs mb-4'
+        }`}
+        style={question.isWordMode || question.isInverted ? { color: 'hsl(0 85% 65%)' } : undefined}
+      >
         {getInstruction()}
       </p>
 
@@ -464,8 +487,9 @@ export const ColorMatch = ({
 
         {/* Top Word */}
         <h2
-          className="text-6xl sm:text-7xl font-black uppercase tracking-wider relative z-10"
+          className="font-black uppercase tracking-wider relative z-10"
           style={{
+            fontSize: s(60),
             color: question.topWordColor,
             textShadow: `0 0 40px ${question.topWordColor}, 0 0 80px ${question.topWordColor}40`,
             opacity: question.secondCorrectAnswer && dualStep === 1 ? 0.4 : 1,
@@ -478,8 +502,9 @@ export const ColorMatch = ({
         {question.bottomWord && question.bottomWordColor && (
           <h3
             key={`dist-${questionKey}`}
-            className="text-4xl sm:text-5xl font-bold uppercase tracking-wider cm-distractor-in relative z-10"
+            className="font-bold uppercase tracking-wider cm-distractor-in relative z-10"
             style={{
+              fontSize: s(36),
               color: question.bottomWordColor,
               textShadow: `0 0 20px ${question.bottomWordColor}40`,
               opacity: question.secondCorrectAnswer && dualStep === 1 ? 1 : undefined,
@@ -491,15 +516,18 @@ export const ColorMatch = ({
       </div>
 
       {/* Color Buttons */}
-      <div className={`grid gap-3 w-full max-w-sm ${question.options.length > 4 ? 'grid-cols-3' : 'grid-cols-2'}`}>
+      <div className={`grid gap-3 w-full ${question.options.length > 4 ? 'grid-cols-3' : 'grid-cols-2'}`} style={{ maxWidth: s(384) }}>
         {question.options.map((option, index) => {
           const isCorrect = correctButton === option.label;
           return (
             <button
               key={`${questionKey}-${option.label}-${index}`}
               onClick={(e) => handleAnswer(option.label, e)}
-              className="p-4 sm:p-5 rounded-2xl text-base sm:text-lg font-black uppercase tracking-wide touch-manipulation min-h-[52px] cm-btn-in"
+              className="rounded-2xl font-black uppercase tracking-wide touch-manipulation cm-btn-in"
               style={{
+                padding: `${s(16)}px ${s(20)}px`,
+                minHeight: s(52),
+                fontSize: s(16),
                 background: isCorrect
                   ? `linear-gradient(145deg, ${option.color}40, ${option.color}20)`
                   : `linear-gradient(145deg, hsl(260 30% 14% / 0.8), hsl(260 30% 8% / 0.6))`,

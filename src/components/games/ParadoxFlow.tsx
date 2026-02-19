@@ -1,7 +1,8 @@
-import { useState, useCallback, useRef, useEffect, memo } from 'react';
+import { useState, useCallback, useRef, useEffect, memo, useMemo } from 'react';
 import { motion, AnimatePresence, useMotionValue, useTransform, PanInfo, animate } from 'framer-motion';
 import confetti from 'canvas-confetti';
 import { ArrowUp, ArrowDown, ArrowLeft, ArrowRight } from 'lucide-react';
+import { useScreenScale } from '@/hooks/useScreenScale';
 
 interface ParadoxFlowProps {
   onAnswer: (correct: boolean, speedBonus: number, tier?: number) => void;
@@ -39,12 +40,12 @@ const DIRECTION_LABELS: Record<Direction, string> = {
   RIGHT: 'RIGHT',
 };
 
-const ARROW_ICONS: Record<Direction, React.ReactNode> = {
-  UP: <ArrowUp className="w-24 h-24" strokeWidth={2} />,
-  DOWN: <ArrowDown className="w-24 h-24" strokeWidth={2} />,
-  LEFT: <ArrowLeft className="w-24 h-24" strokeWidth={2} />,
-  RIGHT: <ArrowRight className="w-24 h-24" strokeWidth={2} />,
-};
+const getArrowIcons = (size: number): Record<Direction, React.ReactNode> => ({
+  UP: <ArrowUp style={{ width: size, height: size }} strokeWidth={2} />,
+  DOWN: <ArrowDown style={{ width: size, height: size }} strokeWidth={2} />,
+  LEFT: <ArrowLeft style={{ width: size, height: size }} strokeWidth={2} />,
+  RIGHT: <ArrowRight style={{ width: size, height: size }} strokeWidth={2} />,
+});
 
 // Distractor colors that conflict with direction semantics
 const DISTRACTOR_COLORS: Record<Direction, string> = {
@@ -54,8 +55,8 @@ const DISTRACTOR_COLORS: Record<Direction, string> = {
   RIGHT: 'hsl(0, 85%, 55%)',
 };
 
-// Exit animation destinations
-const EXIT_TRANSFORMS: Record<Direction, { x: number; y: number; rotate: number }> = {
+// Exit animation destinations (base values, scaled by sw at render time)
+const EXIT_TRANSFORMS_BASE: Record<Direction, { x: number; y: number; rotate: number }> = {
   UP: { x: 0, y: -400, rotate: -15 },
   DOWN: { x: 0, y: 400, rotate: 15 },
   LEFT: { x: -400, y: 0, rotate: -25 },
@@ -187,6 +188,14 @@ export const ParadoxFlow = memo(({
   tier: propTier,
   overclockFactor = 1,
 }: ParadoxFlowProps) => {
+  const { s, sw } = useScreenScale();
+  const arrowIcons = useMemo(() => getArrowIcons(s(96)), [s]);
+  const EXIT_TRANSFORMS = useMemo<Record<Direction, { x: number; y: number; rotate: number }>>(() => ({
+    UP: { x: 0, y: Math.round(-400 * sw), rotate: -15 },
+    DOWN: { x: 0, y: Math.round(400 * sw), rotate: 15 },
+    LEFT: { x: Math.round(-400 * sw), y: 0, rotate: -25 },
+    RIGHT: { x: Math.round(400 * sw), y: 0, rotate: 25 },
+  }), [sw]);
   const effectiveFollowChance = followChance / overclockFactor;
   const previousInstructionRef = useRef<'FOLLOW' | 'AVOID'>('FOLLOW');
   const isFirstInSessionRef = useRef(true);
@@ -272,13 +281,16 @@ export const ParadoxFlow = memo(({
       triggerHaptic('medium');
 
       confetti({
-        particleCount: 15,
-        spread: 60,
+        particleCount: 8,
+        spread: 50,
         origin: { x: 0.5, y: 0.5 },
         colors: question.instruction === 'FOLLOW'
           ? ['#00FF88', '#00D4FF', '#7CFC00']
           : ['#FF6A00', '#FFD60A', '#FF3366'],
-        scalar: 0.8,
+        scalar: 0.7,
+        ticks: 60,
+        decay: 0.94,
+        disableForReducedMotion: true,
       });
     } else {
       playSound('wrong');
@@ -457,7 +469,7 @@ export const ParadoxFlow = memo(({
       )}
 
       {/* Swipeable Card Container */}
-      <div className="relative w-48 h-48 mb-4">
+      <div className="relative mb-4" style={{ width: s(192), height: s(192) }}>
         <AnimatePresence mode="popLayout">
           <motion.div
             key={questionKey}
@@ -516,7 +528,7 @@ export const ParadoxFlow = memo(({
                     className={`arrow-pulse${shouldShake ? ' arrow-shake' : ''}`}
                     style={{ color: sequencePhase === 'first' ? 'hsl(var(--muted-foreground) / 0.5)' : arrowColor }}
                   >
-                    {ARROW_ICONS[displayedArrowDirection]}
+                    {arrowIcons[displayedArrowDirection]}
                   </motion.div>
                 </AnimatePresence>
               ) : (
@@ -524,7 +536,7 @@ export const ParadoxFlow = memo(({
                   className={`arrow-pulse${shouldShake ? ' arrow-shake' : ''}`}
                   style={{ color: arrowColor }}
                 >
-                  {ARROW_ICONS[displayedArrowDirection]}
+                  {arrowIcons[displayedArrowDirection]}
                 </div>
               )}
 
@@ -580,7 +592,7 @@ export const ParadoxFlow = memo(({
           position: relative;
         }
         .arrow-shake {
-          animation: arrow-shake 0.15s ease-in-out infinite;
+          animation: arrow-shake 0.3s ease-in-out 1;
         }
         .instruction-pulse {
           animation: instruction-pulse 0.6s ease-in-out infinite;

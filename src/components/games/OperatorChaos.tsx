@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 // framer-motion removed — using CSS animations for performance
 import confetti from 'canvas-confetti';
+import { useScreenScale } from '@/hooks/useScreenScale';
 
 interface OperatorChaosProps {
   onAnswer: (correct: boolean, speedBonus: number, tier?: number) => void;
@@ -567,6 +568,7 @@ export const OperatorChaos = ({
   const timerDuration = tierConfig.timer;
   const includeParentheses = tierConfig.includeParentheses;
 
+  const { s } = useScreenScale();
   const [question, setQuestion] = useState<Question>(() =>
     generateQuestion(effectiveOpCount, effectiveMaxNumber, includeParentheses)
   );
@@ -650,11 +652,14 @@ export const OperatorChaos = ({
         setStreak(s => s + 1);
 
         confetti({
-          particleCount: 15,
+          particleCount: 12,
           spread: 50,
           origin: { x: 0.5, y: 0.5 },
           colors: ['#FFD700', '#FFA500', '#FF8C00'],
           scalar: 0.8,
+          ticks: 60,
+          decay: 0.94,
+          disableForReducedMotion: true,
         });
       } else {
         playSound('wrong');
@@ -722,8 +727,10 @@ export const OperatorChaos = ({
         return (
           <div
             key={`slot-${i}`}
-            className={`${isLongEquation ? 'w-11 h-11' : 'w-14 h-14'} rounded-xl border-2 flex items-center justify-center mx-1 flex-shrink-0`}
+            className="rounded-xl border-2 flex items-center justify-center mx-1 flex-shrink-0"
             style={{
+              width: isLongEquation ? s(44) : s(56),
+              height: isLongEquation ? s(44) : s(56),
               background: selected
                 ? 'linear-gradient(135deg, hsl(45, 90%, 55% / 0.3), hsl(45, 90%, 55% / 0.1))'
                 : 'hsl(0, 0%, 10%)',
@@ -811,7 +818,7 @@ export const OperatorChaos = ({
       </div>
 
       {/* Timer Bar */}
-      <div className="w-full max-w-xs mb-6">
+      <div className="w-full mb-6" style={{ maxWidth: s(320) }}>
         <div
           className="h-2 rounded-full overflow-hidden"
           style={{ background: 'hsl(0, 0%, 15%)' }}
@@ -830,8 +837,9 @@ export const OperatorChaos = ({
       {/* Equation Display */}
       <div
         key={questionKey}
-        className="flex items-center justify-center flex-nowrap p-6 rounded-2xl border border-border/30 bg-card/30 mb-10 min-w-0 w-full max-w-sm whitespace-nowrap overflow-hidden oc-equation-in"
+        className="flex items-center justify-center flex-nowrap p-6 rounded-2xl border border-border/30 bg-card/30 mb-10 min-w-0 w-full whitespace-nowrap overflow-hidden oc-equation-in"
         style={{
+          maxWidth: s(384),
           boxShadow: lastFeedback === 'correct'
             ? '0 0 40px hsl(45, 90%, 55% / 0.5)'
             : lastFeedback === 'wrong'
@@ -844,14 +852,15 @@ export const OperatorChaos = ({
       </div>
 
       {/* Operator Buttons */}
-      <div className="grid grid-cols-4 gap-3 w-full max-w-xs">
+      <div className="grid grid-cols-4 gap-3 w-full" style={{ maxWidth: s(320) }}>
         {OPERATORS.map((op) => (
           <button
             key={op}
             onClick={() => handleOperatorSelect(op)}
             disabled={isProcessing.current}
-            className="h-[72px] rounded-xl text-3xl font-bold border-2 active:scale-[0.92] hover:scale-105"
+            className="rounded-xl text-3xl font-bold border-2 active:scale-[0.92] hover:scale-105"
             style={{
+              height: s(72),
               background: 'linear-gradient(135deg, hsl(45, 90%, 55% / 0.15), hsl(45, 90%, 55% / 0.05))',
               borderColor: 'hsl(45, 90%, 55% / 0.5)',
               color: GOLD,

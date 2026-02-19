@@ -1,5 +1,6 @@
 import Foundation
 import SwiftUI
+import StoreKit
 
 enum AppScreen {
     case dashboard
@@ -320,6 +321,16 @@ final class AppState: ObservableObject {
         }
 
         currentScreen = .result
+
+        // Prompt for review after 5 games (once)
+        if userStats.totalGamesPlayed == 5 {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                if let scene = UIApplication.shared.connectedScenes
+                    .first(where: { $0.activationState == .foregroundActive }) as? UIWindowScene {
+                    SKStoreReviewController.requestReview(in: scene)
+                }
+            }
+        }
     }
 
     func handleRequestContinue(_ result: GameResult) {
